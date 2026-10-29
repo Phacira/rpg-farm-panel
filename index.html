@@ -5,9 +5,11 @@
 <section id="panel" class="panel"><h1>⚔ RPG-ферма: пульт зрителя</h1>
 <div id="auth" class="auth"></div><p id="pmsg" class="pmsg" hidden></p>
 <div id="pbody" hidden><div id="live" class="live">Подключение…</div><div id="tabs" class="tabs"></div>
-<canvas id="map" width="960" height="540"></canvas><div id="linfo" class="note"></div><div id="hero"></div></div></section>
+<canvas id="map" width="1280" height="720"></canvas><div id="linfo" class="note"></div><div id="acts" class="actsbox"></div><div id="hero"></div></div></section>
+<div id="sheet" class="sheet" hidden></div>
+<details class="chatcmds"><summary>📜 Те же команды для чата (если удобнее писать)</summary>
 <header><h1>📜 Команды для чата</h1><input id="q" type="search" placeholder="Поиск команды: поход, грядка, босс…" aria-label="Поиск"><nav id="nav"></nav></header>
-<main id="list"></main>
-<footer>Нажмите «Скопировать команду» и вставьте её в чат стрима. Кнопки действий прямо отсюда появятся в следующих версиях пульта.</footer>
-<script src="config.js"></script><script src="commands.js"></script><script src="panel.js"></script><script src="app.js"></script>
+<main id="list"></main></details>
+<footer>Кнопки выполняют действие от вашего Twitch-ника, без сообщений в чат. Результат показывается под кнопками.</footer>
+<script src="config.js"></script><script src="commands.js"></script><script src="actions.js"></script><script src="img/h/heroes.js"></script><script src="sprites.js"></script><script src="panel.js"></script><script src="app.js"></script>
 </body></html>
