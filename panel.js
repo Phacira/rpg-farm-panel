@@ -59,18 +59,29 @@
   function img(l) { if (!imgs[l]) { imgs[l] = new Image(); imgs[l].onload = draw; imgs[l].src = 'img/' + l + '.jpg'; } return imgs[l]; }
   function curLoc() { const me = state && state.me; return tab === 'me' ? (me ? me.loc : (state && state.cam) || 'camp') : tab; }
   // v7panel3b: на превью — спрайты героев как в игре (класс, пол, волосы, окраска сета, взгляд), свой — со звёздочкой и подсветкой; нет спрайта → точка
+  // v7panel4 п.11: спрайты на превью выключены (лагали и не совпадали по цвету с игрой) — цветные точки класса. Код спрайтов оставлен: SPRITES = true вернёт их.
+  const SPRITES = false;
+  // плавное движение точек: позиция догоняет цель из снимка (~раз в секунду), кадры только пока кто-то движется
+  const POS = {}; let anim = 0, lastL = '';
+  function animStep() { anim = 0; draw(true); }
   const CLSC = { warrior: '#e0703a', archer: '#7fbf5a', mage: '#7aa8ff', priest: '#e8d070', paladin: '#f0e0b0', assassin: '#b07ad8' };
-  function draw() {
+  function draw(fromAnim) {
     const c = $('map'); if (!c) return; const x = c.getContext('2d'), w = c.width, h = c.height, l = curLoc(), im = img(l);
     x.imageSmoothingEnabled = false;
     x.fillStyle = '#120e16'; x.fillRect(0, 0, w, h); if (im.complete && im.naturalWidth) { x.imageSmoothingEnabled = true; x.drawImage(im, 0, 0, w, h); x.imageSmoothingEnabled = false; }
     if (!state || !state.online) { x.fillStyle = 'rgba(10,6,12,.65)'; x.fillRect(0, 0, w, h); return; }
+    if (l !== lastL) { for (const n in POS) delete POS[n]; lastL = l; }
     const k = w / W, list = ((state.locs && state.locs[l]) || []).slice().sort((a, b) => a[2] - b[2]), me = user && user.login;
     const css = c.clientWidth || w, u = w / css; // пикселей холста на 1 css-пиксель — подписи всегда ~13 px на экране
+    let moving = false; const seen = {};
     const ramps = {}; ((state.ref && state.ref.hair) || []).forEach(z => { if (z[2]) ramps[z[0]] = z[2]; });
-    const HS = window.HeroSprites, labels = [], stat = { spr: 0, dot: 0, mine: 0, lab: 0, fs: 0 };
+    const HS = SPRITES ? window.HeroSprites : null, labels = [], stat = { spr: 0, dot: 0, mine: 0, lab: 0, fs: 0 };
     for (const t of list) {
-      const [n, hx, hy, cls, lv, st, k6, hid, dy, fl, hh] = t, mine = String(n).toLowerCase() === me, px = Math.round(hx * k), py = Math.round(hy * k);
+      const [n, hx, hy, cls, lv, st, k6, hid, dy, fl, hh] = t, mine = String(n).toLowerCase() === me;
+      let P = POS[n]; if (!P) P = POS[n] = { x: hx, y: hy }; seen[n] = 1;
+      if (fromAnim) { P.x += (hx - P.x) * .18; P.y += (hy - P.y) * .18; }
+      if (Math.abs(hx - P.x) > 2 || Math.abs(hy - P.y) > 2) moving = true; else { P.x = hx; P.y = hy; }
+      const px = Math.round(P.x * k), py = Math.round(P.y * k);
       const sp = HS && k6 ? HS.get(k6, hid, dy, ramps) : null;
       let top;
       if (sp) {
@@ -84,9 +95,9 @@
       } else {
         const r = (mine ? 7 : 5) * Math.max(1, u * .8);
         x.beginPath(); x.arc(px, py - r, r, 0, 7); x.fillStyle = mine ? '#ffd27a' : st === 'sleep' ? '#8a8aa8' : (CLSC[cls] || '#ffffff'); x.fill(); x.lineWidth = 2; x.strokeStyle = '#000'; x.stroke();
-        top = py - 2 * r; stat.dot++;
+        top = py - 2 * r; stat.dot++; if (mine) stat.mine = 1;
       }
-      labels.push({ mine, t: (mine ? '★ ' : '') + n + ' · ' + lv, x: px, y: top - 4 * u });
+      labels.push({ mine, t: (mine ? '★ ' : '') + n + ' · ' + (/^\d+$/.test(String(lv)) ? 'ур.' + lv : lv), x: px, y: top - 4 * u });
     }
     // подписи поверх всех героев; свой — всегда, чужие — если не налезают на уже нарисованные
     const fs = Math.round(13 * u), placed = []; x.font = `600 ${fs}px system-ui, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'bottom'; x.lineJoin = 'round';
@@ -96,9 +107,11 @@
       if (!L.mine && (list.length > 40 || placed.some(o => r[0] < o[2] && r[2] > o[0] && r[1] < o[3] && r[3] > o[1]))) continue;
       placed.push(r); x.lineWidth = 4 * u; x.strokeStyle = 'rgba(0,0,0,.85)'; x.strokeText(L.t, L.x, L.y); x.fillStyle = L.mine ? '#ffd27a' : '#fff'; x.fillText(L.t, L.x, L.y); stat.lab++;
     }
-    stat.fs = fs / u; window.__mapStat = stat; // для тестов: сколько спрайтов/точек/подписей и размер подписи в css-px
+    for (const n in POS) if (!seen[n]) delete POS[n];
+    if (moving && !anim) anim = requestAnimationFrame(animStep); // ~кадры только во время движения
+    stat.fs = fs / u; stat.sprites = SPRITES; stat.moving = moving; stat.draws = ((window.__mapStat && window.__mapStat.draws) || 0) + 1; window.__mapStat = stat; // для тестов: сколько спрайтов/точек/подписей и размер подписи в css-px
   }
-  if (window.HeroSprites) HeroSprites.onReady(() => draw());
+  if (SPRITES && window.HeroSprites) HeroSprites.onReady(() => draw());
   window.addEventListener('resize', () => draw());
   function bar(v, m, cls) { const p = Math.max(0, Math.min(100, m ? v / m * 100 : 0)); return `<div class="bar ${cls}"><i style="width:${p.toFixed(0)}%"></i><span>${v} / ${m}</span></div>`; }
   function card(me) {
@@ -108,8 +121,9 @@
     return `<div class="hcard"><div class="hname">★ ${esc(me.n)} <small>${esc(me.cn)} · ур. ${esc(me.lv)}</small></div>
       <div class="hst">${esc(ST[me.st] || me.st)} · ${esc(LOCN[me.loc] || me.loc)}${me.gd ? ' · гильдия: ' + esc(me.gd) : ''}</div>
       ${bar(me.hp, me.mhp, 'hp')}${bar(me.xp, me.xpN, 'xp')}
-      <div class="hgrid"><span>💰 ${esc(me.gold)}</span><span>🧪 ${esc(me.pot)}</span><span>🍲 ${esc(me.food)}</span><span>🥾 поход: ${cd}</span></div>
+      <div class="hgrid"><span>💰 ${esc(me.gold)}</span><span>🌱 семена: ${esc(me.sd || 0)}</span><span>✨ волшебные: ${esc(me.sdp || 0)}</span><span>🥾 поход: ${cd}</span></div>
       <div class="hveg">${veg}</div>
+      <div class="hcook">Можно приготовить еду или сварить зелий: <b>${esc(me.rw.cook || 0)}</b></div>
       <div class="note">Наград сегодня: поход ${me.rw.hike}, готовка ${me.rw.cook}, квест ${me.rw.quest}${me.q ? ' · есть квест' : ''}</div></div>`;
   }
   function render() {
@@ -144,15 +158,16 @@
       const sit = l === 'camp' && i === 4, key = (i === 0 ? 'moon' : GU[i % 6]) + '_' + g + '_' + cl + (sit ? '_sit' : '');
       locs[l].push([n, p[0], p[1], cl, R(1, 20), sit ? 'sleep' : l, i === 9 ? 'nosuch_sprite' : key, /assassin|paladin/.test(cl) ? '' : HR[i % 8], i === 7 ? '#3a8ad8' : '', i % 3 === 1 ? 1 : 0, SC[l], g]); });
     state = { type: 'state', online: !/offline=1/.test(location.search), t: Date.now(), cam: 'camp', locs, boss: { ph: 'wait', name: 'Тролль', in: 540000, n: 0 },
-      me: { n: 'demo_viewer', cls: 'warrior', cn: 'Воин', lv: 7, xp: 210, xpN: 350, hp: 86, mhp: 120, gold: 340, pot: 2, food: 3, gd: 'Лунные тени', gid: 'moon', eqOwn: ['w_sword1'], eqOn: { weapon: 'w_sword1' }, tt: ['Огородник', 'Гроза крыс'], ttOn: 'Огородник', hair: 'black', of: ['plant2', 'carrot2', 'harv4'], pty: false, st: 'camp', loc: 'camp', mode: 'idle',
-        veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, rw: { hike: 1, cook: 0, quest: 2 }, cd: 75, buffs: 1, q: null },
+      me: { n: 'demo_viewer', cls: 'warrior', cn: 'Воин', lv: 7, xp: 210, xpN: 350, hp: 86, mhp: 120, gold: 340, pot: 2, food: 3, sd: 4, sdp: 1, gd: 'Лунные тени', gid: 'moon', eqOwn: ['w_sword1'], eqOn: { weapon: 'w_sword1' }, tt: ['Огородник', 'Гроза крыс'], ttOn: 'Огородник', hair: 'black', of: ['plant2', 'carrot2', 'harv4'], pty: false, st: 'camp', loc: 'camp', mode: 'idle',
+        veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, rw: { hike: 1, cook: 1, quest: 2 }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null },
       ref: MOCK_REF };
   }
   const MOCK_REF = { guilds: [['fire', 'Огненный клинок', '#d9482b'], ['silver', 'Серебряный лист', '#9fc7d6'], ['moon', 'Лунные тени', '#8a6ad8'], ['gold', 'Золотой колос', '#e8b830']],
     hair: [['black', 'чёрный', [[14, 12, 14], [40, 36, 42], [82, 76, 86]]], ['darkbrown', 'тёмно-каштановый', [[24, 14, 10], [60, 38, 26], [104, 72, 50]]], ['chestnut', 'каштановый', null], ['lightbrown', 'русый', [[70, 52, 34], [132, 106, 74], [190, 164, 122]]], ['blond', 'блонд', [[118, 86, 40], [202, 162, 86], [246, 224, 152]]], ['red', 'рыжий', [[88, 28, 10], [178, 72, 26], [238, 140, 66]]], ['grey', 'седой', [[78, 78, 84], [150, 150, 158], [216, 216, 224]]]], hairPrice: 250, bsLv: 1,
     eq: [['w_sword1', 'Железный меч', 120, 'weapon', null, 1], ['a_leather', 'Кожаная броня', 150, 'armor', null, 1], ['o_shield', 'Деревянный щит', 90, 'offhand', ['warrior', 'paladin'], 1], ['t_amulet', 'Амулет силы', 400, 'trinket', null, 2]],
     bld: [['campfire', 'Костёр', 1, 4, 140, 'camp'], ['tents', 'Палатка', 2, 4, 400, 'camp'], ['blacksmith', 'Кузница', 1, 4, 250, 'town'], ['market', 'Рынок', 1, 4, 200, 'town'], ['shed', 'Сарай', 1, 4, 150, 'garden']],
-    quests: { plant2: 'Посадить 2 семечка', carrot2: 'Собрать 2 морковки', harv4: 'Собрать 4 урожая' }, crops: [['cucumber', 'Огурец'], ['tomato', 'Помидор'], ['carrot', 'Морковь'], ['eggplant', 'Баклажан'], ['pumpkin', 'Тыква']] };
+    quests: { plant2: 'Посадить 2 семечка', carrot2: 'Собрать 2 морковки', harv4: 'Собрать 4 урожая' }, recipes: [['Овощной салат', 'food', 'огурец 2, помидор 1', 1], ['Морковный суп', 'food', 'морковь 3', 1], ['Рагу', 'food', 'баклажан 2, морковь 2', 4], ['Тыквенный пирог', 'food', 'тыква 1, морковь 2', 7], ['Зелье лечения', 'potion', 'помидор 2', 1], ['Зелье удачи', 'potion', 'тыква 1, огурец 3', 4]],
+    crops: [['cucumber', 'Огурец'], ['tomato', 'Помидор'], ['carrot', 'Морковь'], ['eggplant', 'Баклажан'], ['pumpkin', 'Тыква']] };
   // отправка команды: в бою — через relay (ника нет, его подставит relay из токена); в демо — ответ имитируется на странице
   window.__panelSend = m => {
     if (mock) return setTimeout(() => PanelActions.done(mockReply(m)), 350);
@@ -161,7 +176,12 @@
   function mockReply(m) {
     const me = state.me, it = MOCK_REF.eq.find(i => i[0] === m.arg);
     if (m.cmd === 'поход' && me.cd > 0) return { id: m.id, ok: false, msg: `поход: КД ещё ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` };
-    if (m.cmd === 'готовить') return { id: m.id, ok: false, msg: '!готовить: нужна награда канала' };
+    if (m.cmd === 'готовить') { const r = MOCK_REF.recipes[+m.arg - 1]; return { id: m.id, ok: true, msg: r ? `пошёл к котлу готовить «${r[0]}» (демо)` : 'пошёл к котлу: лучшее из доступного (демо)' }; }
+    if (m.cmd === 'продать') return { id: m.id, ok: true, msg: `продал: ${m.arg} (демо)` };
+    if (m.cmd === 'обмен') return { id: m.id, ok: true, msg: 'обмен: 🌿 -10, 🎃 +1 (демо)' };
+    if (m.cmd === 'магия') return { id: m.id, ok: true, msg: 'магия: 🥕 +2 (демо)' };
+    if (m.cmd === 'салат') { const s = me.sal; if (!s.left) return { id: m.id, ok: false, msg: 'лимит салатов на этот период (демо)' }; if (!s.can) return { id: m.id, ok: false, msg: 'для салата не хватает: 🥕 0/5, 🍆 1/5, 🎃 0/1 — ничего не списано (демо)' }; }
+    if (m.cmd === 'грядка') return { id: m.id, ok: true, msg: 'осталось примерно 23 мин до созревания! (демо)' };
     if (m.cmd === 'купить' && it) { if (me.gold < it[2]) return { id: m.id, ok: false, msg: `«${it[1]}» стоит ${it[2]} золота, у тебя ${me.gold}` }; me.gold -= it[2]; me.eqOwn.push(it[0]); me.eqOn[it[3]] = it[0]; render(); return { id: m.id, ok: true, msg: `купил и надел «${it[1]}» (демо)` }; }
     return { id: m.id, ok: true, msg: `выполнено (демо): !${m.cmd}${m.arg ? ' ' + m.arg : ''}` };
   }

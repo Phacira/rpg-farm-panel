@@ -11,7 +11,14 @@
     const me = ctx.me, ref = ctx.ref || {}, gold = me ? me.gold : 0;
     const bldPick = loc => (ref.bld || []).filter(b => !loc || b[5] === loc).map(([id, name, lv, max, need]) => need == null ? { label: `${name} (ур. ${lv}, максимум)`, dis: true }
       : { label: `${name} (ур. ${lv}→${lv + 1})`, sub: `осталось ${need} з`, next: [50, 100, 250, 'всё'].map(a => ({ label: a === 'всё' ? `Всё золото (${gold} з)` : `${a} золота`, arg: `${id} ${a}`, dis: a !== 'всё' && gold < a, confirm: `Вложить ${a === 'всё' ? 'всё золото' : a + ' золота'} в «${name}»?` })) });
-    const crops = [{ label: 'Всё сразу', arg: 'всё', confirm: 'Продать ВСЕ овощи на рынке?' }].concat((ref.crops || []).map(([id, n]) => ({ label: n, sub: me && me.veg ? `есть ${me.veg[id] || 0}` : '', dis: me && me.veg && !(me.veg[id] > 0), arg: n.toLowerCase(), confirm: `Продать все: ${n}?` })));
+    // v7panel4 п.3: продажа — овощ, затем количество (1/5/10/все)
+    const crops = [{ label: 'Все овощи сразу', arg: 'всё', confirm: 'Продать ВСЕ овощи на рынке?' }].concat((ref.crops || []).map(([id, n]) => { const have = me && me.veg ? (me.veg[id] || 0) : 0;
+      return { label: n, sub: me && me.veg ? `есть ${have}` : '', dis: me && me.veg && !(have > 0),
+        next: [1, 5, 10].filter(q => q < have).map(q => ({ label: `${n}: ${q} шт.`, arg: `${n.toLowerCase()} ${q}`, confirm: `Продать ${n.toLowerCase()} — ${q} шт.?` }))
+          .concat([{ label: `${n}: все (${have} шт.)`, arg: n.toLowerCase(), confirm: `Продать все: ${n.toLowerCase()} (${have} шт.)?` }]) }; }));
+    // v7panel4 п.5: выбор рецепта (ref.recipes: [название, вид, что нужно, ур. открытия]; me.rcp[i]: 1 — открыт, 2 — хватает овощей)
+    const recipes = () => [{ label: 'Лучшее из доступного', sub: 'игра выберет сама', arg: '' }].concat((ref.recipes || []).map(([n, kind, need, lv], i) => { const f = me && me.rcp ? me.rcp[i] || 0 : 1, open = f & 1, can = f & 2; return {
+      label: (kind === 'potion' ? '🧪 ' : '🍲 ') + n, sub: !open ? `закрыт: нужен ур. ${lv}` : (can ? 'хватает: ' : 'не хватает: ') + need, dis: !open, arg: String(i + 1), confirm: `${kind === 'potion' ? 'Сварить' : 'Приготовить'} «${n}»?` }; }));
     const shop = () => (ref.eq || []).filter(i => !i[4] || (me && i[4].includes(me.cls))).map(([id, name, price, slot, , bs]) => {
       const own = me && (me.eqOwn || []).includes(id), on = me && me.eqOn && me.eqOn[slot] === id;
       return own ? { label: name, sub: on ? 'надето' : 'есть — надеть', dis: on, arg: id, cmd: 'экип' } : { label: name, sub: `${price} з · ${SLOT_RU[slot] || slot}${bs > (ref.bsLv || 1) ? ' · кузница ур.' + bs : ''}`, dis: gold < price || bs > (ref.bsLv || 1), arg: id, confirm: `Купить «${name}» за ${price} золота?` }; });
@@ -21,6 +28,13 @@
     const wear = () => (me && me.eqOwn || []).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, , slot]) => ({ label: n, sub: me.eqOn && me.eqOn[slot] === id ? 'надето' : SLOT_RU[slot] || slot, dis: me.eqOn && me.eqOn[slot] === id, arg: id, confirm: `Надеть «${n}»?` }));
     const unwear = () => Object.entries(me && me.eqOn || {}).filter(([, v]) => v).map(([slot, id]) => { const i = (ref.eq || []).find(x => x[0] === id); return { label: `${SLOT_RU[slot] || slot}: ${i ? i[1] : id}`, arg: slot, confirm: `Снять ${i ? '«' + i[1] + '»' : SLOT_RU[slot]}?` }; });
     const titles = () => (me && me.tt || []).map((t, i) => ({ label: t, sub: me.ttOn === t ? 'надет' : '', dis: me.ttOn === t, arg: String(i + 1), confirm: `Надеть титул «${t}»?` })).concat(me && me.ttOn ? [{ label: 'Снять титул', arg: 'снять', confirm: 'Снять титул?' }] : []);
+    // v7panel6: подсказки на кнопках «Магия» и «Салат» из снимка игры (me.mg / me.sal)
+    const mmss = s => s >= 3600 ? `${Math.floor(s / 3600)} ч ${Math.floor(s % 3600 / 60)} мин` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    const dhm = s => s >= 86400 ? `${Math.floor(s / 86400)} дн ${Math.floor(s % 86400 / 3600)} ч` : mmss(s);
+    const mg = me && me.mg, sal = me && me.sal;
+    const magicSub = !mg ? 'волшебное семечко' : !mg.seeds ? 'нет волшебных семян' : !mg.left ? `0/${mg.max}, завтра` : mg.cd > 0 ? `${mg.left}/${mg.max} · КД ${mmss(mg.cd)}` : `${mg.left}/${mg.max} · готово`;
+    const saladSub = !sal ? '🥒5 🍅5 🥕5 🍆5 🎃1' : !sal.left ? `0/${sal.max} · ${dhm(sal.reset)}` : `${sal.left}/${sal.max}${sal.can ? ' · можно' : ' · мало 🥕'}`;
+    const saladAsk = 'Приготовить салат? Спишется 🥒5 🍅5 🥕5 🍆5 🎃1' + (sal ? ` (осталось ${sal.left}/${sal.max} за 30 дн.${sal.reset ? ', сброс через ' + dhm(sal.reset) : ''})` : '');
     const hike = me && me.cd > 0 ? `КД ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : (me && me.rw && me.rw.hike > 0 ? `ходов: ${me.rw.hike}` : REWARD);
     return {
       town: [['📜', 'Задание', 'квест', quests, me && me.rw && me.rw.quest > 0 ? `ходов: ${me.rw.quest}` : REWARD],
@@ -28,8 +42,8 @@
         ['🏗', 'Вклад', 'вклад', () => bldPick('town'), 'в постройку города'], ['💰', 'Продать', 'продать', () => crops, 'овощи на рынке']],
       garden: [['🚶', 'На огород', 'огород', '', 'к своей грядке'], ['🌰', 'Семена', 'семена', '', '3 в день'], ['🌱', 'Посадить', 'посадить', '', ''],
         ['⏳', 'Грядка', 'грядка', '', 'сколько ждать'], ['🐞', 'Жуки', 'жуки', '', 'отогнать'], ['🧺', 'Собрать', 'собрать', '', 'урожай'],
-        ['✨', 'Магия', 'магия', '', 'шанс ×2'], ['🔁', 'Обмен', 'обмен', '', '10 сорняков → овощ', 'Обменять 10 сорняков на овощ?'], ['📦', 'Урожай', 'урожай', '', 'что у меня есть'],
-        ['🍲', 'Готовить', 'готовить', '', me && me.rw && me.rw.cook > 0 ? `ходов: ${me.rw.cook}` : REWARD], ['💰', 'Продать', 'продать', () => crops, 'овощи'], ['🏗', 'Вклад', 'вклад', () => bldPick('garden'), 'в сарай']],
+        ['✨', 'Магия', 'магия', '', magicSub], ['🔁', 'Обмен', 'обмен', '', '10 сорняков → овощ', 'Обменять 10 сорняков на овощ?'], ['🥗', 'Салат', 'салат', '', saladSub, saladAsk], ['📦', 'Урожай', 'урожай', '', 'что у меня есть'],
+        ['🍲', 'Готовить', 'готовить', recipes, me && me.rw && me.rw.cook > 0 ? `ходов: ${me.rw.cook}` : REWARD], ['💰', 'Продать', 'продать', () => crops, 'овощи'], ['🏗', 'Вклад', 'вклад', () => bldPick('garden'), 'в сарай']],
       camp: [['🛡', 'В пати', 'пати', '', 'групповой поход'], ['🏰', 'Гильдия', 'гильдия', guilds, me && me.gd ? me.gd : 'выбрать'],
         ['✔', 'Да', 'да', '', 'подтвердить гильдию'], ['✖', 'Нет', 'нет', '', 'отменить выбор'], ['🏗', 'Вклад', 'вклад', () => bldPick('camp'), 'костёр, палатка']],
       forest: [['⚔', 'В поход', 'поход', '', hike], ['🛡', 'Пати-поход', 'пати', '', me && me.pty ? 'вы в очереди' : 'вместе с другими']],
