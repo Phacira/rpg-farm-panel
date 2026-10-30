@@ -116,31 +116,41 @@
   function bar(v, m, cls) { const p = Math.max(0, Math.min(100, m ? v / m * 100 : 0)); return `<div class="bar ${cls}"><i style="width:${p.toFixed(0)}%"></i><span>${v} / ${m}</span></div>`; }
   // v7panel8 п.9: инвентарь своего героя (данные от игры: me.iv + eqOn/eqOwn, названия вещей — ref.eq)
   const SLOT_IC = { weapon: '⚔️', armor: '🥋', offhand: '🛡️', trinket: '📿', helm: '⛑️' };
+  // v7panel11: коды спрайтов из игры (crop_carrot…) → смайлики; «(активно)» — отдельной пометкой
+  const ICON_MAP = { crop_carrot: '🥕', crop_cucumber: '🥒', crop_eggplant: '🍆', crop_pumpkin: '🎃', crop_tomato: '🍅', potion: '🧪', food: '🍲' };
+  const VEG_BY_EMO = { '🥒': 'cucumber', '🍅': 'tomato', '🥕': 'carrot', '🍆': 'eggplant', '🎃': 'pumpkin' }; // v7panel11: овощи — настоящими спрайтами игры (img/veg/*.png из assets/crops)
+  const vegImg = (id, alt) => `<img class="vegi" src="img/veg/${id}.png" alt="${esc(alt || '')}">`;
+  window.__vegImg = vegImg;
+  function invIcon(ic, def) { ic = String(ic || ''); if (!ic) return def; if (/^[a-z0-9_]+$/i.test(ic)) return ICON_MAP[ic] || def; return ic; }
+  function invItem(x, def) { let nm = String(x[1] || ''), act = !!x[3]; nm = nm.replace(/^[a-z0-9_]+\s+(?=[А-ЯЁа-яё])/i, ''); if (/\s*\(активно\)\s*$/.test(nm)) { act = true; nm = nm.replace(/\s*\(активно\)\s*$/, ''); } const ic = invIcon(x[0], def), vm = /^crop_([a-z]+)$/.exec(String(x[0] || '')); return { ic, nm, n: x[2], act, veg: vm ? vm[1] : VEG_BY_EMO[ic] }; }
+  window.__panelInvItem = invItem;
+  let invOpen = false;
   function invHtml(me) {
     const ref = (state && state.ref) || {}, iv = me.iv || {}, eqN = {}; (ref.eq || []).forEach(e => eqN[e[0]] = e[1]);
-    const slots = (ref.slots && ref.slots.length ? ref.slots : [['weapon', 'Оружие'], ['armor', 'Броня'], ['offhand', 'Левая рука'], ['trinket', 'Амулет']]);
-    const it = (ic, name, n, cls) => `<span class="ivi${cls ? ' ' + cls : ''}" title="${esc(name)}">${esc(ic)} ${esc(name)}${n !== '' && n != null ? ` <b>${esc(n)}</b>` : ''}</span>`;
-    const row = (t, arr) => `<div class="ivr"><em>${t}</em>${arr.length ? arr.join('') : '<span class="ivn">пусто</span>'}</div>`;
+    const chip = (o, cnt) => `<span class="ivi${o.act ? ' on' : ''}" title="${esc(o.nm)}${o.act ? ' — ' + (o.tag || 'активно') : ''}">${o.veg ? vegImg(o.veg, o.ic) : esc(o.ic)} ${esc(o.nm)}${cnt ? ` <b>×${esc(o.n)}</b>` : ''}${o.act ? ` <i class="ivact">${o.tag || 'активно'}</i>` : ''}</span>`;
+    const row = (t, arr) => arr.length ? `<div class="ivr"><em>${t}</em><div class="ivv">${arr.join('')}</div></div>` : '';
+    const L = (a, def) => (a || []).map(x => chip(invItem(x, def), +x[2] > 0));
     const eqOn = me.eqOn || {}, spare = (me.eqOwn || []).filter(id => !Object.values(eqOn).includes(id));
-    const L = a => (a || []).map(x => it(x[0], x[1], x[2]));
-    return `<div class="hinv"><div class="ivh">🎒 Инвентарь</div>
-      ${row('Снаряжение', slots.map(([s, sn]) => it(SLOT_IC[s] || '▫️', eqOn[s] ? (eqN[eqOn[s]] || eqOn[s]) : sn + ': —', '', eqOn[s] ? 'on' : 'off')).concat(spare.map(id => it('🎒', eqN[id] || id, ''))))}
-      ${row('Материалы', L(iv.m))}${row('Еда', L(iv.f))}${row('Зелья', L(iv.p))}
-      ${row('Семена', [it('🌱', 'семена', me.sd || 0), it('✨', 'волшебные', me.sdp || 0)])}
-      ${row('Косметика', (iv.c || []).map(x => it(x[0], x[1], x[2] ? '✓' : '', x[2] ? 'on' : '')).concat(me.ttOn ? [it('🏷️', 'титул: ' + me.ttOn, '✓', 'on')] : []))}</div>`;
+    const gear = Object.keys(eqOn).filter(s => eqOn[s]).map(s => chip({ ic: SLOT_IC[s] || '▫️', nm: eqN[eqOn[s]] || eqOn[s], act: false }))
+      .concat(spare.map(id => chip({ ic: '🎒', nm: eqN[id] || id })));
+    const cos = (iv.c || []).map(x => chip({ ic: invIcon(x[0], '🎀'), nm: x[1], act: !!x[2], tag: 'надето' })).concat(me.ttOn ? [chip({ ic: '🏷️', nm: 'титул: ' + me.ttOn, act: true, tag: 'надето' })] : []);
+    const body = [row('Снаряжение', gear), row('Материалы', L(iv.m, '🪨')), row('Еда', L(iv.f, '🍲')), row('Зелья', L(iv.p, '🧪')), row('Косметика', cos)].join('');
+    return `<div class="hinv${invOpen ? ' open' : ''}"><button type="button" class="ivh" aria-expanded="${invOpen}">🎒 Инвентарь ${invOpen ? '▴' : '▾'}</button>${invOpen ? `<div class="ivb">${body || '<span class="ivn">пусто</span>'}</div>` : ''}</div>`;
   }
+  document.addEventListener('click', e => { if (e.target.closest('.hinv .ivh')) { invOpen = !invOpen; render(); } });
   function card(me) {
     if (!me) return `<div class="hcard"><b>Героя пока нет.</b><p class="note">Напишите в чат стрима <b>!rpg</b> — герой появится, и вы увидите его здесь.</p></div>`;
     const cd = me.cd > 0 ? `через ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : 'можно';
-    const veg = Object.keys(VEG).map(k => `${VEG[k]} ${me.veg && me.veg[k] || 0}`).join(' &nbsp;');
+    const veg = Object.keys(VEG).map(k => `<span class="hv" title="${k}">${vegImg(k, VEG[k])}${me.veg && me.veg[k] || 0}</span>`).join('');
+    const rw = me.rw || {}, cook = +rw.cook || 0;
+    const today = [`поход ${cd === 'можно' ? '✓' : cd}`].concat(cook > 0 ? [`готовка ${cook}`] : []).concat(+rw.quest > 0 ? [`квест ${rw.quest}`] : []).concat(me.q ? ['есть квест'] : []);
     return `<div class="hcard"><div class="hname">★ ${esc(me.n)} <small>${esc(me.cn)} · ур. ${esc(me.lv)}</small></div>
       <div class="hst">${esc(ST[me.st] || me.st)} · ${esc(LOCN[me.loc] || me.loc)}${me.gd ? ' · гильдия: ' + esc(me.gd) : ''}</div>
-      ${bar(me.hp, me.mhp, 'hp')}${bar(me.xp, me.xpN, 'xp')}
-      <div class="hgrid"><span>💰 ${esc(me.gold)}</span><span>🌱 семена: ${esc(me.sd || 0)}</span><span>✨ волшебные: ${esc(me.sdp || 0)}</span><span>🥾 поход: ${cd}</span></div>
+      ${bar(me.hp, me.mhp, 'hp')}${me.mmp ? bar(me.mp || 0, me.mmp, 'mp') : ''}${bar(me.xp, me.xpN, 'xp')}
+      <div class="hgrid"><span>💰 ${esc(me.gold)}</span><span>🌱 ${esc(me.sd || 0)} · ✨ ${esc(me.sdp || 0)}</span></div>
       <div class="hveg">${veg}</div>
-      ${invHtml(me)}
-      <div class="hcook">Можно приготовить еду или сварить зелий: <b>${esc(me.rw.cook || 0)}</b></div>
-      <div class="note">Наград сегодня: поход ${me.rw.hike}, готовка ${me.rw.cook}, квест ${me.rw.quest}${me.q ? ' · есть квест' : ''}</div></div>`;
+      <div class="htoday">Сегодня: ${today.map(esc).join(' · ')}</div>
+      ${invHtml(me)}</div>`;
   }
   function render() {
     $('auth').innerHTML = user ? `<span class="who">Вы: <b>${esc(user.login)}</b> <small>(ID ${esc(user.id)})</small></span><button id="bout" class="small">Выйти</button>`
@@ -175,7 +185,7 @@
       locs[l].push([n, p[0], p[1], cl, R(1, 20), sit ? 'sleep' : l, i === 9 ? 'nosuch_sprite' : key, /assassin|paladin/.test(cl) ? '' : HR[i % 8], i === 7 ? '#3a8ad8' : '', i % 3 === 1 ? 1 : 0, SC[l], g]); });
     state = { type: 'state', online: !/offline=1/.test(location.search), t: Date.now(), cam: 'camp', locs, boss: { ph: 'wait', name: 'Тролль', in: 540000, n: 0 },
       me: { n: 'demo_viewer', cls: 'warrior', cn: 'Воин', lv: 7, xp: 210, xpN: 350, hp: 86, mhp: 120, gold: 340, pot: 2, food: 3, sd: 4, sdp: 1, gd: 'Лунные тени', gid: 'moon', eqOwn: ['w_sword1'], eqOn: { weapon: 'w_sword1' }, tt: ['Огородник', 'Гроза крыс'], ttOn: 'Огородник', hair: 'black', of: ['plant2', 'carrot2', 'harv4'], pty: false, st: 'camp', loc: 'camp', mode: 'idle',
-        veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, rw: { hike: 1, cook: 1, quest: 2 }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null, iv: { m: [['🪵', 'Дерево', 12], ['🪨', 'Камень', 5], ['⛓️', 'Железо', 1]], f: [['🥗', 'Овощной салат', 1], ['🍲', 'Морковный суп (активно)', 2]], p: [['❤️', 'Зелье лечения', 2]], c: [['✨', 'Аура: Светлячки', 1], ['💫', 'След: Листья', 0]] } },
+        veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, rw: { hike: 1, cook: 1, quest: 2 }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null, iv: { m: [['🪵', 'Дерево', 12], ['🪨', 'Камень', 5], ['⛓️', 'Железо', 1]], f: [['🥗', 'Овощной салат', 1], ['crop_carrot', 'Тушёная морковь (активно)', 8]], p: [['❤️', 'Зелье лечения', 2]], c: [['✨', 'Аура: Светлячки', 1], ['💫', 'След: Листья', 0]] } },
       ref: MOCK_REF };
   }
   const MOCK_REF = { guilds: [['fire', 'Огненный клинок', '#d9482b'], ['silver', 'Серебряный лист', '#9fc7d6'], ['moon', 'Лунные тени', '#8a6ad8'], ['gold', 'Золотой колос', '#e8b830']],

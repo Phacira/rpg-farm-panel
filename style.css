@@ -59,10 +59,15 @@ details.chatcmds header{position:static}
 .tabs button.tab{display:flex;align-items:center;justify-content:center;text-align:center;height:46px;min-height:0;padding:0 6px;border:2px solid var(--edge);box-sizing:border-box;line-height:1.1}
 
 /* v7panel8 п.9: инвентарь в карточке «Мой герой» */
-.hinv{margin:6px 0;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.05);font-size:13px}
-.ivh{font-weight:600;margin-bottom:4px}.ivr{display:flex;flex-wrap:wrap;gap:3px 6px;align-items:baseline;margin:2px 0}
-.ivr>em{font-style:normal;opacity:.65;min-width:84px;font-size:12px}.ivi{white-space:nowrap;padding:1px 6px;border-radius:6px;background:rgba(0,0,0,.25)}
-.ivi.on{outline:1px solid rgba(255,210,122,.6)}.ivi.off{opacity:.55}.ivi b{color:#ffd27a}.ivn{opacity:.45}
+.hinv{margin:6px 0;border-radius:8px;background:rgba(255,255,255,.05);font-size:13px}
+.hinv .ivh{display:block;width:100%;text-align:left;font-weight:600;background:none;border:0;color:inherit;padding:6px 8px;cursor:pointer;font-size:13px}
+.ivb{padding:0 8px 6px}.ivr{display:grid;grid-template-columns:92px 1fr;gap:6px;align-items:start;margin:3px 0}
+.ivr>em{font-style:normal;opacity:.65;font-size:12px;padding-top:2px}.ivv{display:flex;flex-wrap:wrap;gap:3px 4px;min-width:0}
+.ivi{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;padding:1px 6px;border-radius:6px;background:rgba(0,0,0,.25);line-height:1.5}
+.ivi.on{outline:1px solid rgba(255,210,122,.6)}.ivi b{color:#ffd27a;font-weight:600}.ivact{font-style:normal;font-size:10px;opacity:.75;color:#9fe08a}.ivn{opacity:.45}
+.htoday{font-size:13px;opacity:.85;margin:4px 0}
 
 /* v7panel10: выключенная кнопка (Парикмахер — «Цирюльника пока нет на месте») */
 button.act.off{opacity:.5;filter:grayscale(1);cursor:not-allowed}button.act.off small{white-space:normal;line-height:1.1;font-size:11.5px}
+
+.vegi{width:18px;height:18px;object-fit:contain;vertical-align:-4px;image-rendering:auto}.hveg{display:flex;flex-wrap:wrap;gap:4px 12px}.hv{display:inline-flex;align-items:center;gap:3px}.hveg .vegi{width:22px;height:22px}
