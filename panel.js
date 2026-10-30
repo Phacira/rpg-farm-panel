@@ -135,7 +135,8 @@
       .concat(spare.map(id => chip({ ic: '🎒', nm: eqN[id] || id })));
     // v7panel12: блок «Косметика» убран (косметика выключена до утверждения Tim); титул — в «Снаряжении»
     const ttl = me.ttOn ? [chip({ ic: '🏷️', nm: 'титул: ' + me.ttOn, act: true, tag: 'надето' })] : [];
-    const body = [row('Снаряжение', gear.concat(ttl)), row('Материалы', L(iv.m, '🪨')), row('Еда', L(iv.f, '🍲')), row('Зелья', L(iv.p, '🧪'))].join('');
+    const pet = (me.pt || []).map(([id, n]) => chip({ ic: '🐾', nm: 'питомец: ' + n, act: me.ptOn === id, tag: 'надет' })); // v7panel12 п.7
+    const body = [row('Снаряжение', gear.concat(ttl, pet)), row('Материалы', L(iv.m, '🪨')), row('Еда', L(iv.f, '🍲')), row('Зелья', L(iv.p, '🧪'))].join('');
     return `<div class="hinv${invOpen ? ' open' : ''}"><button type="button" class="ivh" aria-expanded="${invOpen}">🎒 Инвентарь ${invOpen ? '▴' : '▾'}</button>${invOpen ? `<div class="ivb">${body || '<span class="ivn">пусто</span>'}</div>` : ''}</div>`;
   }
   document.addEventListener('click', e => { if (e.target.closest('.hinv .ivh')) { invOpen = !invOpen; render(); } });

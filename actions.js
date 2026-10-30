@@ -29,6 +29,7 @@
     const quests = () => me && me.q ? [{ label: 'У вас уже есть задание', dis: true }] : (me && me.of || []).map((id, i) => ({ label: `${i + 1}. ${(ref.quests || {})[id] || id}`, arg: String(i + 1) })).concat([{ label: 'Показать список (без хода)', arg: '' }]);
     const wear = () => (me && me.eqOwn || []).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, , slot]) => ({ label: n, sub: me.eqOn && me.eqOn[slot] === id ? 'надето' : SLOT_RU[slot] || slot, dis: me.eqOn && me.eqOn[slot] === id, arg: id, confirm: `Надеть «${n}»?` }));
     const unwear = () => Object.entries(me && me.eqOn || {}).filter(([, v]) => v).map(([slot, id]) => { const i = (ref.eq || []).find(x => x[0] === id); return { label: `${SLOT_RU[slot] || slot}: ${i ? i[1] : id}`, arg: slot, confirm: `Снять ${i ? '«' + i[1] + '»' : SLOT_RU[slot]}?` }; });
+    const pets = () => (me && me.pt || []).map(([id, n]) => ({ label: n, sub: me.ptOn === id ? 'с героем' : '', dis: me.ptOn === id, arg: id, cmd: 'экип', confirm: `Взять питомца «${n}»?` })).concat(me && me.ptOn ? [{ label: 'Убрать питомца', arg: 'питомец', cmd: 'снять', confirm: 'Убрать питомца?' }] : []); // v7panel12 п.7
     const titles = () => (me && me.tt || []).map((t, i) => ({ label: t, sub: me.ttOn === t ? 'надет' : '', dis: me.ttOn === t, arg: String(i + 1), confirm: `Надеть титул «${t}»?` })).concat(me && me.ttOn ? [{ label: 'Снять титул', arg: 'снять', confirm: 'Снять титул?' }] : []);
     // v7panel6: подсказки на кнопках «Магия» и «Салат» из снимка игры (me.mg / me.sal)
     const mmss = s => s >= 3600 ? `${Math.floor(s / 3600)} ч ${Math.floor(s % 3600 / 60)} мин` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -56,6 +57,7 @@
         ['💫', 'Оглушить', 'оглушить', '', 'красный каст'], ['🕸', 'Связать', 'связать', '', 'жёлтый каст'], ['🔮', 'Очистить', 'очистить', '', 'фиолетовый каст'],
         ['🐌', 'Замедлить', 'замедлить', '', 'маг'], ['🛡', 'Заслон', 'заслон', '', 'паладин'], ['✝', 'Воскресить', 'воскресить', '', 'поднять союзника']],
       me: me ? [['🎒', 'Надеть', 'экип', wear, 'своё снаряжение'], ['🧤', 'Снять', 'снять', unwear, 'вещь со слота'], ['🏷', 'Титул', 'титул', titles, me.ttOn || 'выбрать'],
+        ...(me.pt && me.pt.length ? [['🐾', 'Питомец', 'экип', pets, ((me.pt.find(p => p[0] === me.ptOn) || [])[1]) || 'не взят']] : []),
         hairBtn, ['🏰', 'Гильдия', 'гильдия', guilds, me.gd || 'выбрать'], ['⚒', 'Кузница', 'купить', shop, 'купить вещь']]
         : [['🧙', 'Стать героем', 'вступить', '', 'если стример разрешил']]
     };
