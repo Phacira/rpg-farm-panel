@@ -11,8 +11,8 @@
   // pick(ctx) → [{label, arg, sub, confirm, dis}] — выбор аргумента в окне
   function defs(ctx) {
     const me = ctx.me, ref = ctx.ref || {}, gold = me ? me.gold : 0;
-    const bldPick = loc => (ref.bld || []).filter(b => !loc || b[5] === loc).map(([id, name, lv, max, need]) => need == null ? { label: `${name} (ур. ${lv}, максимум)`, dis: true }
-      : { label: `${name} (ур. ${lv}→${lv + 1})`, sub: `осталось ${need} з`, next: [50, 100, 250, 'всё'].map(a => ({ label: a === 'всё' ? `Всё золото (${gold} з)` : `${a} золота`, arg: `${id} ${a}`, dis: a !== 'всё' && gold < a, confirm: `Вложить ${a === 'всё' ? 'всё золото' : a + ' золота'} в «${name}»?` })) });
+    const bldPick = loc => (ref.bld || []).filter(b => !loc || b[5] === loc).map(([id, name, lv, max, need, , eff, nextEff]) => need == null ? { label: `${name} (ур. ${lv}, максимум)`, sub: eff || undefined, dis: true }
+      : { label: `${name} (ур. ${lv}→${lv + 1})`, sub: `осталось ${need} з` + (nextEff ? ` · ур.${lv + 1}: ${nextEff}` : ''), next: [50, 100, 250, 'всё'].map(a => ({ label: a === 'всё' ? `Всё золото (${gold} з)` : `${a} золота`, arg: `${id} ${a}`, dis: a !== 'всё' && gold < a, confirm: `Вложить ${a === 'всё' ? 'всё золото' : a + ' золота'} в «${name}»?` })) });
     // v7panel4 п.3: продажа — овощ, затем количество (1/5/10/все)
     const crops = [{ label: 'Все овощи сразу', arg: 'всё', confirm: 'Продать ВСЕ овощи на рынке?' }].concat((ref.crops || []).map(([id, n]) => { const have = me && me.veg ? (me.veg[id] || 0) : 0;
       return { label: n, sub: me && me.veg ? `есть ${have}` : '', dis: me && me.veg && !(have > 0),
