@@ -114,6 +114,21 @@
   if (SPRITES && window.HeroSprites) HeroSprites.onReady(() => draw());
   window.addEventListener('resize', () => draw());
   function bar(v, m, cls) { const p = Math.max(0, Math.min(100, m ? v / m * 100 : 0)); return `<div class="bar ${cls}"><i style="width:${p.toFixed(0)}%"></i><span>${v} / ${m}</span></div>`; }
+  // v7panel8 п.9: инвентарь своего героя (данные от игры: me.iv + eqOn/eqOwn, названия вещей — ref.eq)
+  const SLOT_IC = { weapon: '⚔️', armor: '🥋', offhand: '🛡️', trinket: '📿', helm: '⛑️' };
+  function invHtml(me) {
+    const ref = (state && state.ref) || {}, iv = me.iv || {}, eqN = {}; (ref.eq || []).forEach(e => eqN[e[0]] = e[1]);
+    const slots = (ref.slots && ref.slots.length ? ref.slots : [['weapon', 'Оружие'], ['armor', 'Броня'], ['offhand', 'Левая рука'], ['trinket', 'Амулет']]);
+    const it = (ic, name, n, cls) => `<span class="ivi${cls ? ' ' + cls : ''}" title="${esc(name)}">${esc(ic)} ${esc(name)}${n !== '' && n != null ? ` <b>${esc(n)}</b>` : ''}</span>`;
+    const row = (t, arr) => `<div class="ivr"><em>${t}</em>${arr.length ? arr.join('') : '<span class="ivn">пусто</span>'}</div>`;
+    const eqOn = me.eqOn || {}, spare = (me.eqOwn || []).filter(id => !Object.values(eqOn).includes(id));
+    const L = a => (a || []).map(x => it(x[0], x[1], x[2]));
+    return `<div class="hinv"><div class="ivh">🎒 Инвентарь</div>
+      ${row('Снаряжение', slots.map(([s, sn]) => it(SLOT_IC[s] || '▫️', eqOn[s] ? (eqN[eqOn[s]] || eqOn[s]) : sn + ': —', '', eqOn[s] ? 'on' : 'off')).concat(spare.map(id => it('🎒', eqN[id] || id, ''))))}
+      ${row('Материалы', L(iv.m))}${row('Еда', L(iv.f))}${row('Зелья', L(iv.p))}
+      ${row('Семена', [it('🌱', 'семена', me.sd || 0), it('✨', 'волшебные', me.sdp || 0)])}
+      ${row('Косметика', (iv.c || []).map(x => it(x[0], x[1], x[2] ? '✓' : '', x[2] ? 'on' : '')).concat(me.ttOn ? [it('🏷️', 'титул: ' + me.ttOn, '✓', 'on')] : []))}</div>`;
+  }
   function card(me) {
     if (!me) return `<div class="hcard"><b>Героя пока нет.</b><p class="note">Напишите в чат стрима <b>!rpg</b> — герой появится, и вы увидите его здесь.</p></div>`;
     const cd = me.cd > 0 ? `через ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : 'можно';
@@ -123,6 +138,7 @@
       ${bar(me.hp, me.mhp, 'hp')}${bar(me.xp, me.xpN, 'xp')}
       <div class="hgrid"><span>💰 ${esc(me.gold)}</span><span>🌱 семена: ${esc(me.sd || 0)}</span><span>✨ волшебные: ${esc(me.sdp || 0)}</span><span>🥾 поход: ${cd}</span></div>
       <div class="hveg">${veg}</div>
+      ${invHtml(me)}
       <div class="hcook">Можно приготовить еду или сварить зелий: <b>${esc(me.rw.cook || 0)}</b></div>
       <div class="note">Наград сегодня: поход ${me.rw.hike}, готовка ${me.rw.cook}, квест ${me.rw.quest}${me.q ? ' · есть квест' : ''}</div></div>`;
   }
@@ -159,7 +175,7 @@
       locs[l].push([n, p[0], p[1], cl, R(1, 20), sit ? 'sleep' : l, i === 9 ? 'nosuch_sprite' : key, /assassin|paladin/.test(cl) ? '' : HR[i % 8], i === 7 ? '#3a8ad8' : '', i % 3 === 1 ? 1 : 0, SC[l], g]); });
     state = { type: 'state', online: !/offline=1/.test(location.search), t: Date.now(), cam: 'camp', locs, boss: { ph: 'wait', name: 'Тролль', in: 540000, n: 0 },
       me: { n: 'demo_viewer', cls: 'warrior', cn: 'Воин', lv: 7, xp: 210, xpN: 350, hp: 86, mhp: 120, gold: 340, pot: 2, food: 3, sd: 4, sdp: 1, gd: 'Лунные тени', gid: 'moon', eqOwn: ['w_sword1'], eqOn: { weapon: 'w_sword1' }, tt: ['Огородник', 'Гроза крыс'], ttOn: 'Огородник', hair: 'black', of: ['plant2', 'carrot2', 'harv4'], pty: false, st: 'camp', loc: 'camp', mode: 'idle',
-        veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, rw: { hike: 1, cook: 1, quest: 2 }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null },
+        veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, rw: { hike: 1, cook: 1, quest: 2 }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null, iv: { m: [['🪵', 'Дерево', 12], ['🪨', 'Камень', 5], ['⛓️', 'Железо', 1]], f: [['🥗', 'Овощной салат', 1], ['🍲', 'Морковный суп (активно)', 2]], p: [['❤️', 'Зелье лечения', 2]], c: [['✨', 'Аура: Светлячки', 1], ['💫', 'След: Листья', 0]] } },
       ref: MOCK_REF };
   }
   const MOCK_REF = { guilds: [['fire', 'Огненный клинок', '#d9482b'], ['silver', 'Серебряный лист', '#9fc7d6'], ['moon', 'Лунные тени', '#8a6ad8'], ['gold', 'Золотой колос', '#e8b830']],

@@ -4,6 +4,8 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const SLOT_RU = { weapon: 'оружие', armor: 'броня', offhand: 'щит', trinket: 'амулет' };
   const REWARD = 'нужен ход от награды канала';
+  const HAIR_AVAILABLE = false; // v7panel10: true — включить кнопку «Парикмахер» (или игра включит сама через ref.hairOn)
+  const HAIR_OFF_TEXT = 'Цирюльника пока нет на месте';
   let seq = 0; const pend = {}; let results = [];
   // Каждая кнопка: [иконка, подпись, команда, аргумент|функция-выбор, подсказка, подтверждение?]
   // pick(ctx) → [{label, arg, sub, confirm, dis}] — выбор аргумента в окне
@@ -36,9 +38,12 @@
     const saladSub = !sal ? '🥒5 🍅5 🥕5 🍆5 🎃1' : !sal.left ? `0/${sal.max} · ${dhm(sal.reset)}` : `${sal.left}/${sal.max}${sal.can ? ' · можно' : ' · мало 🥕'}`;
     const saladAsk = 'Приготовить салат? Спишется 🥒5 🍅5 🥕5 🍆5 🎃1' + (sal ? ` (осталось ${sal.left}/${sal.max} за 30 дн.${sal.reset ? ', сброс через ' + dhm(sal.reset) : ''})` : '');
     const hike = me && me.cd > 0 ? `КД ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : (me && me.rw && me.rw.hike > 0 ? `ходов: ${me.rw.hike}` : REWARD);
+    // v7panel10: парикмахер виден, но неактивен, пока HAIR_AVAILABLE=false и игра не прислала ref.hairOn (CONFIG.hairRecolor.enabled в игре)
+    const hairOk = (HAIR_AVAILABLE || ref.hairOn === true) && (ref.hair || []).length > 0;
+    const hairBtn = hairOk ? ['💈', 'Парикмахер', 'парикмахер', hair, `${ref.hairPrice || 250} з`] : ['💈', 'Парикмахер', 'парикмахер', '', HAIR_OFF_TEXT, null, true];
     return {
       town: [['📜', 'Задание', 'квест', quests, me && me.rw && me.rw.quest > 0 ? `ходов: ${me.rw.quest}` : REWARD],
-        ['⚒', 'Кузница', 'купить', shop, 'купить / надеть'], ['💈', 'Парикмахер', 'парикмахер', hair, `${ref.hairPrice || 250} з`],
+        ['⚒', 'Кузница', 'купить', shop, 'купить / надеть'], hairBtn,
         ['🏗', 'Вклад', 'вклад', () => bldPick('town'), 'в постройку города'], ['💰', 'Продать', 'продать', () => crops, 'овощи на рынке']],
       garden: [['🚶', 'На огород', 'огород', '', 'к своей грядке'], ['🌰', 'Семена', 'семена', '', '3 в день'], ['🌱', 'Посадить', 'посадить', '', ''],
         ['⏳', 'Грядка', 'грядка', '', 'сколько ждать'], ['🐞', 'Жуки', 'жуки', '', 'отогнать'], ['🧺', 'Собрать', 'собрать', '', 'урожай'],
@@ -51,7 +56,7 @@
         ['💫', 'Оглушить', 'оглушить', '', 'красный каст'], ['🕸', 'Связать', 'связать', '', 'жёлтый каст'], ['🔮', 'Очистить', 'очистить', '', 'фиолетовый каст'],
         ['🐌', 'Замедлить', 'замедлить', '', 'маг'], ['🛡', 'Заслон', 'заслон', '', 'паладин'], ['✝', 'Воскресить', 'воскресить', '', 'поднять союзника']],
       me: me ? [['🎒', 'Надеть', 'экип', wear, 'своё снаряжение'], ['🧤', 'Снять', 'снять', unwear, 'вещь со слота'], ['🏷', 'Титул', 'титул', titles, me.ttOn || 'выбрать'],
-        ['💈', 'Парикмахер', 'парикмахер', hair, `${ref.hairPrice || 250} з`], ['🏰', 'Гильдия', 'гильдия', guilds, me.gd || 'выбрать'], ['⚒', 'Кузница', 'купить', shop, 'купить вещь']]
+        hairBtn, ['🏰', 'Гильдия', 'гильдия', guilds, me.gd || 'выбрать'], ['⚒', 'Кузница', 'купить', shop, 'купить вещь']]
         : [['🧙', 'Стать героем', 'вступить', '', 'если стример разрешил']]
     };
   }
@@ -63,7 +68,7 @@
     const title = { town: 'Город', garden: 'Огород', camp: 'Лагерь', forest: 'Лес', boss: 'Босс', me: 'Мой герой' }[ctx.tab] || '';
     el.innerHTML = `<h2>Действия: ${esc(title)}</h2>${!on ? '<p class="note">Кнопки работают, когда идёт стрим.</p>' : !ctx.me && ctx.tab !== 'me' ? '<p class="note">У вас пока нет героя — кнопки появятся, когда он будет.</p>' : ''}
       <div class="acts">${list.map((d, i) => { const busy = Object.values(pend).some(p => p.cmd === d[2]);
-        return `<button class="act${busy ? ' busy' : ''}" data-a="${i}"${!on || (!ctx.me && d[2] !== 'вступить') || busy ? ' disabled' : ''}><span class="ai">${d[0]}</span><span class="al">${esc(d[1])}</span><small>${esc(d[4] || '')}</small></button>`; }).join('')}</div>
+        return `<button class="act${busy ? ' busy' : ''}${d[6] ? ' off' : ''}" data-a="${i}"${d[6] ? ' disabled aria-disabled="true" title="' + esc(d[4]) + '"' : !on || (!ctx.me && d[2] !== 'вступить') || busy ? ' disabled' : ''}><span class="ai">${d[0]}</span><span class="al">${esc(d[1])}</span><small>${esc(d[4] || '')}</small></button>`; }).join('')}</div>
       <div class="cres" aria-live="polite">${results.map(r => `<div class="${r.ok ? 'ok' : r.ok === false ? 'bad' : 'wait'}">${r.ok ? '✔' : r.ok === false ? '✖' : '…'} <b>${esc(r.label)}</b>: ${esc(r.msg)}</div>`).join('')}</div>`;
   }
   // окно выбора/подтверждения
@@ -81,7 +86,7 @@
     sheet(title, opts.map(o => Object.assign({}, o, { go: () => o.next ? choose(d, o.next, o.label) : ask(d, o.arg, d[1] + (o.label ? ' · ' + o.label : ''), o.confirm, o.cmd) })));
   }
   function click(i) {
-    const d = curList[i]; if (!d) return;
+    const d = curList[i]; if (!d || d[6]) return; // v7panel10: выключенная кнопка команду не шлёт
     if (typeof d[3] === 'function') return choose(d, d[3](), d[1]);
     ask(d, d[3] || '', d[1], d[5]);
   }
