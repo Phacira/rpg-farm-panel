@@ -121,18 +121,22 @@
   const VEG_BY_EMO = { '🥒': 'cucumber', '🍅': 'tomato', '🥕': 'carrot', '🍆': 'eggplant', '🎃': 'pumpkin' }; // v7panel11: овощи — настоящими спрайтами игры (img/veg/*.png из assets/crops)
   const vegImg = (id, alt) => `<img class="vegi" src="img/veg/${id}.png" alt="${esc(alt || '')}">`;
   window.__vegImg = vegImg;
+  // v7panel20 п.7: железо — серый слиток (тот же пиксельный набор, что в игре) вместо ⛓️
+  const INGOT = '<img class="vegi" src="img/ingot.png" alt="железо">';
+  const icoH = ic => ic === '⛓️' || ic === '⛓' ? INGOT : esc(ic);
   function invIcon(ic, def) { ic = String(ic || ''); if (!ic) return def; if (/^[a-z0-9_]+$/i.test(ic)) return ICON_MAP[ic] || def; return ic; }
   function invItem(x, def) { let nm = String(x[1] || ''), act = !!x[3]; nm = nm.replace(/^[a-z0-9_]+\s+(?=[А-ЯЁа-яё])/i, ''); if (/\s*\(активно\)\s*$/.test(nm)) { act = true; nm = nm.replace(/\s*\(активно\)\s*$/, ''); } const ic = invIcon(x[0], def), vm = /^crop_([a-z]+)$/.exec(String(x[0] || '')); return { ic, nm, n: x[2], act, veg: vm ? vm[1] : VEG_BY_EMO[ic] }; }
   window.__panelInvItem = invItem;
   let invOpen = false;
   function invHtml(me) {
     const ref = (state && state.ref) || {}, iv = me.iv || {}, eqN = {}; (ref.eq || []).forEach(e => eqN[e[0]] = e[1]);
-    const chip = (o, cnt) => `<span class="ivi${o.act ? ' on' : ''}" title="${esc(o.nm)}${o.act ? ' — ' + (o.tag || 'активно') : ''}">${o.veg ? vegImg(o.veg, o.ic) : esc(o.ic)} ${esc(o.nm)}${cnt ? ` <b>×${esc(o.n)}</b>` : ''}${o.act ? ` <i class="ivact">${o.tag || 'активно'}</i>` : ''}</span>`;
+    const chip = (o, cnt) => `<span class="ivi${o.act ? ' on' : ''}" title="${esc(o.nm)}${o.act ? ' — ' + (o.tag || 'активно') : ''}">${o.veg ? vegImg(o.veg, o.ic) : icoH(o.ic)} ${esc(o.nm)}${cnt ? ` <b>×${esc(o.n)}</b>` : ''}${o.act ? ` <i class="ivact">${o.tag || 'активно'}</i>` : ''}</span>`;
     const row = (t, arr) => arr.length ? `<div class="ivr"><em>${t}</em><div class="ivv">${arr.join('')}</div></div>` : '';
     const L = (a, def) => (a || []).map(x => chip(invItem(x, def), +x[2] > 0));
     const eqOn = me.eqOn || {}, spare = (me.eqOwn || []).filter(id => !Object.values(eqOn).includes(id));
-    const gear = Object.keys(eqOn).filter(s => eqOn[s]).map(s => chip({ ic: SLOT_IC[s] || '▫️', nm: eqN[eqOn[s]] || eqOn[s], act: false }))
-      .concat(spare.map(id => chip({ ic: '🎒', nm: eqN[id] || id })));
+    const eqT = {}; (ref.eq || []).forEach(e => eqT[e[0]] = e[6] || ''); // v7panel20 п.2: что даёт вещь
+    const gear = Object.keys(eqOn).filter(s => eqOn[s]).map(s => chip({ ic: SLOT_IC[s] || '▫️', nm: (eqN[eqOn[s]] || eqOn[s]) + (eqT[eqOn[s]] ? ' — ' + eqT[eqOn[s]] : ''), act: false }))
+      .concat(spare.map(id => chip({ ic: '🎒', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : '') })));
     // v7panel12: блок «Косметика» убран (косметика выключена до утверждения Tim); титул — в «Снаряжении»
     const ttl = me.ttOn ? [chip({ ic: '🏷️', nm: 'титул: ' + me.ttOn, act: true, tag: 'надето' })] : [];
     const pet = (me.pt || []).map(([id, n]) => chip({ ic: '🐾', nm: 'питомец: ' + n, act: me.ptOn === id, tag: 'надет' })); // v7panel12 п.7
@@ -140,16 +144,42 @@
     return `<div class="hinv${invOpen ? ' open' : ''}"><button type="button" class="ivh" aria-expanded="${invOpen}">🎒 Инвентарь ${invOpen ? '▴' : '▾'}</button>${invOpen ? `<div class="ivb">${body || '<span class="ivn">пусто</span>'}</div>` : ''}</div>`;
   }
   document.addEventListener('click', e => { if (e.target.closest('.hinv .ivh')) { invOpen = !invOpen; render(); } });
-  // v7panel18: блок «Улучшения» (как вкладка в игре): по строке на здание + баффы героя; данные — ref.bld / me.bf
-  function upHtml(me) {
-    const ref = (state && state.ref) || {}, MN = {}; (ref.mats || []).forEach(([id, n, ic]) => MN[id] = (ic ? ic + ' ' : '') + n);
-    const rows = (ref.bld || []).map(([id, name, lv, max, need, , eff0, nextEff0, ml, eff1, nextEff1]) => { const eff = eff1 || eff0, nextEff = nextEff1 || nextEff0; const mats = Object.entries(ml || {}).map(([m, n]) => `${MN[m] || m} ${n}`);
-      const left = need == null ? 'максимум' : [need ? need + ' з' : ''].concat(mats).filter(Boolean).join(', ') || 'готово';
-      return `<div class="upr"><b>${esc(name)} <small>ур.${esc(lv)}</small></b><span>сейчас: ${esc(eff || '—')}</span>${need == null ? '' : `<span class="upn">ур.${lv + 1}: ${esc(nextEff || '')}</span>`}<span class="upl">${need == null ? 'максимальный уровень' : 'осталось: ' + esc(left)}</span></div>`; }).join('');
-    const bf = me && me.bf ? me.bf : [];
-    const buffs = `<div class="upr"><b>Баффы героя сейчас</b>${bf.length ? bf.map(([n, t, c]) => `<span>${esc(n)}: ${esc(t)} (осталось ${esc(c)})</span>`).join('') : '<span class="upl">нет активных баффов</span>'}</div>`;
-    return `<div class="upbox"><h2>🏗 Улучшения</h2>${rows}${me ? buffs : ''}</div>`;
+  // v7panel20 п.1: «Улучшения» компактно — строка на здание: значок, ур., эффект сейчас → дальше, цена. Баффы перенесены в «Мой герой».
+  const BIC = { campfire: '🔥', tents: '⛺', blacksmith: '⚒️', market: '🏪', shed: '🛖' };
+  function upHtml() {
+    const ref = (state && state.ref) || {}, MN = {}; (ref.mats || []).forEach(([id, n, ic]) => MN[id] = id === 'iron' ? INGOT + esc(n) : esc((ic ? ic + ' ' : '') + n));
+    const rows = (ref.bld || []).map(([id, name, lv, max, need, , eff0, nextEff0, ml, eff1, nextEff1]) => { const eff = eff1 || eff0, nextEff = nextEff1 || nextEff0;
+      const price = need == null ? 'макс.' : [need ? esc(need + ' з') : ''].concat(Object.entries(ml || {}).map(([m, n]) => `${MN[m] || esc(m)} ${esc(n)}`)).filter(Boolean).join(', ') || 'готово';
+      return `<div class="upr1"><span class="upi">${BIC[id] || '🏠'}</span><b>${esc(name)} <small>${esc(lv)}${need == null ? '' : '→' + esc(lv + 1)}</small></b><span class="upe">${esc(eff || '—')}${need == null ? '' : ` <i>→</i> ${esc(nextEff || '')}`}</span><span class="upp">${price}</span></div>`; }).join('');
+    return `<div class="upbox"><h2>🏗 Улучшения</h2>${rows}</div>`;
   }
+  // v7panel20 п.3: эффекты блюд и зелий списком (как «Улучшения»), вкладка «Огород»
+  function foodHtml(me) {
+    const ref = (state && state.ref) || {}, L = ref.recipes || [];
+    if (!L.length) return '';
+    const rows = L.map(([n, kind, need, lv, txt], i) => { const f = me && me.rcp ? me.rcp[i] || 0 : 1;
+      return `<div class="upr1${f & 1 ? '' : ' off'}"><span class="upi">${kind === 'potion' ? '🧪' : '🍲'}</span><b>${esc(n)}</b><span class="upe">${esc(txt || '—')}</span><span class="upp">${f & 1 ? esc(need) : 'с ур.' + esc(lv)}</span></div>`; }).join('');
+    return `<div class="upbox"><h2>🍲 Еда и зелья</h2>${rows}</div>`;
+  }
+  // v7panel20 п.2: все характеристики героя (из игры: me.sr), что даёт надетое (me.eqS) и баффы (me.bf)
+  function statHtml(me) {
+    const sr = (me.sr || []).filter(r => !/^(Семена|Готовка|Уровень|Золото)/.test(r[1]));
+    const eq = me.eqS || [], bf = me.bf || [];
+    return `<div class="hstats">${sr.map(([i, n, v]) => `<span><em>${esc(i)} ${esc(n)}</em> ${esc(v)}</span>`).join('')}</div>`
+      + `<div class="hlist"><b>Надето:</b> ${eq.length ? eq.map(([sn, n, t]) => `<span>${esc(sn)}: ${esc(n)} — ${esc(t)}</span>`).join('') : '<span class="dim">ничего</span>'}</div>`
+      + `<div class="hlist"><b>Баффы:</b> ${bf.length ? bf.map(([n, t, c]) => `<span>${esc(n)}: ${esc(t)} (×${esc(c)})</span>`).join('') : '<span class="dim">нет активных</span>'}</div>`;
+  }
+  // v7panel20 п.8: журнал боя на пульте — последние 15 мин (ref.log от игры), прокрутка, фильтр «мои/все», повторы подряд — «×N»
+  let logMine = false;
+  function logHtml(me) {
+    const L = ((state && state.ref && state.ref.log) || []), nm = me && me.n ? String(me.n).toLowerCase() : '';
+    const src = logMine && nm ? L.filter(e => String(e[1]).toLowerCase().includes(nm)) : L, out = [];
+    for (const e of src) { const p = out[out.length - 1]; if (p && p.x === e[1]) { p.n++; p.t = e[0]; } else out.push({ t: e[0], x: e[1], k: e[2], n: 1 }); }
+    const hm = t => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+    return `<div class="logbox"><div class="logh"><h2>📜 Журнал (15 мин)</h2><span class="logf"><button type="button" data-lf="0" class="${logMine ? '' : 'on'}">все</button><button type="button" data-lf="1" class="${logMine ? 'on' : ''}"${nm ? '' : ' disabled'}>мои</button></span></div>
+      <div class="logl" id="logl">${out.length ? out.map(e => `<div class="lg ${e.k === 'b' ? 'lb' : 'le'}"><time>${hm(e.t)}</time> ${esc(e.x)}${e.n > 1 ? ` <b>×${e.n}</b>` : ''}</div>`).join('') : '<div class="lg le">за 15 минут событий нет</div>'}</div></div>`;
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('.logf button'); if (b && !b.disabled) { logMine = b.dataset.lf === '1'; render(); } });
   function card(me) {
     if (!me) return `<div class="hcard"><b>Героя пока нет.</b><p class="note">Напишите в чат стрима <b>!rpg</b> — герой появится, и вы увидите его здесь.</p></div>`;
     const cd = me.cd > 0 ? `через ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : 'можно';
@@ -162,7 +192,7 @@
       <div class="hgrid"><span>💰 ${esc(me.gold)}</span><span>🌱 ${esc(me.sd || 0)} · ✨ ${esc(me.sdp || 0)}</span></div>
       <div class="hveg">${veg}</div>
       <div class="htoday">Сегодня: ${today.map(esc).join(' · ')}</div>
-      ${invHtml(me)}</div>`;
+      ${tab === 'me' ? statHtml(me) : ''}${invHtml(me)}</div>`;
   }
   function render() {
     $('auth').innerHTML = user ? `<span class="who">Вы: <b>${esc(user.login)}</b> <small>(ID ${esc(user.id)})</small></span><button id="bout" class="small">Выйти</button>`
@@ -179,8 +209,10 @@
     let info = on ? `${LOCN[l] || l}: героев ${list.length}` : 'Когда стример запустит игру, здесь появится карта.';
     if (on && l === 'boss' && state.boss) { const b = state.boss; info += ' · ' + (b.ph === 'wait' ? `босс ${esc(b.name || '')} через ${Math.ceil(b.in / 60000)} мин` : b.ph === 'signup' ? `запись на босса: ${b.n}` : b.ph === 'fight' ? 'идёт бой с боссом!' : 'босс повержен'); }
     $('linfo').innerHTML = info;
-    $('hero').innerHTML = on ? card(state.me) + (tab === 'town' ? upHtml(state.me) : '') : '';
+    const ol = $('logl'), stick = !ol || ol.scrollTop + ol.clientHeight >= ol.scrollHeight - 8, oldTop = ol ? ol.scrollTop : 0;
+    $('hero').innerHTML = on ? card(state.me) + (tab === 'town' ? upHtml() : tab === 'garden' ? foodHtml(state.me) : '') + (tab === 'forest' || tab === 'boss' || tab === 'me' ? logHtml(state.me) : '') : '';
     if (window.PanelActions) PanelActions.render($('acts'), { online: !!on, tab, me: on ? state.me : null, ref: state && state.ref });
+    const ll = $('logl'); if (ll) ll.scrollTop = stick ? ll.scrollHeight : oldTop; // прокрутка: внизу — следим за новыми, иначе остаёмся где читали
     draw();
   }
   document.addEventListener('click', e => { const b = e.target.closest('#tabs button'); if (b) { tab = b.dataset.t; render(); } });
@@ -215,7 +247,7 @@
     const me = state.me, it = MOCK_REF.eq.find(i => i[0] === m.arg);
     if (m.cmd === 'поход' && me.cd > 0) return { id: m.id, ok: false, msg: `поход: КД ещё ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` };
     if (m.cmd === 'готовить') { const r = MOCK_REF.recipes[+m.arg - 1]; return { id: m.id, ok: true, msg: r ? `пошёл к котлу готовить «${r[0]}» (демо)` : 'пошёл к котлу: лучшее из доступного (демо)' }; }
-    if (m.cmd === 'продать') return { id: m.id, ok: true, msg: `продал: ${m.arg} (демо)` };
+    if (m.cmd === 'продать') return { id: m.id, ok: true, msg: `идёт на рынок и продаёт: ${m.arg} (демо)` };
     if (m.cmd === 'обмен') return { id: m.id, ok: true, msg: 'обмен: 🌿 -10, 🎃 +1 (демо)' };
     if (m.cmd === 'магия') return { id: m.id, ok: true, msg: 'магия: 🥕 +2 (демо)' };
     if (m.cmd === 'салат') { const s = me.sal; if (!s.left) return { id: m.id, ok: false, msg: 'лимит салатов на этот период (демо)' }; if (!s.can) return { id: m.id, ok: false, msg: 'для салата не хватает: 🥕 0/5, 🍆 1/5, 🎃 0/1 — ничего не списано (демо)' }; }

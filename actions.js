@@ -12,16 +12,16 @@
   function defs(ctx) {
     const me = ctx.me, ref = ctx.ref || {}, gold = me ? me.gold : 0;
     // v7panel18: вклад — выбор «Золото» или «Материалы» (материал → количество из сумки или докупить золотом по ref.matP)
-    const MN = {}; (ref.mats || []).forEach(([id, n, ic]) => MN[id] = [n, ic]); const mtn = id => (MN[id] || [id])[0], mti = id => (MN[id] || [, ''])[1] || '';
+    const MN = {}; (ref.mats || []).forEach(([id, n, ic]) => MN[id] = [n, ic]); const mtn = id => (MN[id] || [id])[0], mti = id => id === 'iron' ? '' : (MN[id] || [, ''])[1] || ''; // v7panel20 п.7: у железа вместо цепей — слиток (картинкой на карточке), в текстовых списках без значка
     const bldPick = loc => (ref.bld || []).filter(b => !loc || b[5] === loc).map(([id, name, lv, max, need, , eff, nextEff, ml]) => { ml = ml || {};
-      if (need == null) return { label: `${name} (ур. ${lv}, максимум)`, sub: eff || undefined, dis: true };
+      if (need == null) return { label: `${name} (ур. ${lv}, максимум)`, dis: true }; // v7panel20 п.1: без длинных текстов эффекта
       const mlist = Object.entries(ml), left = [need ? need + ' з' : ''].concat(mlist.map(([m, n]) => `${mti(m)}${mtn(m)} ${n}`)).filter(Boolean).join(', ') || 'готово';
       const goldOpts = [50, 100, 250, 'всё'].filter(a => a === 'всё' || a < need).map(a => ({ label: a === 'всё' ? `Всё золото (${gold} з)` : `${a} золота`, arg: `${id} ${a === 'всё' ? 'всё' : a}`, dis: a === 'всё' ? gold < 1 : gold < a, confirm: `Вложить ${a === 'всё' ? 'всё золото' : a + ' золота'} в «${name}»?` }));
       const matOpts = mlist.map(([m, n]) => { const have = me && me.mt ? +me.mt[m] || 0 : 0, k = Math.min(have, n), price = (ref.matP || {})[m] || 0, buy = n - k;
         return { label: `${mti(m)} ${mtn(m)}`, sub: `нужно ${n}, в сумке ${have}`, next: [1, 5, 10].filter(q => q < k).map(q => ({ label: `${mtn(m)}: ${q} из сумки`, arg: `${id} ${m} ${q}`, confirm: `Вложить ${mtn(m).toLowerCase()} ${q} шт. в «${name}»?` }))
           .concat(k ? [{ label: `${mtn(m)}: ${k} из сумки`, arg: `${id} ${m} ${k}`, confirm: `Вложить ${mtn(m).toLowerCase()} ${k} шт. в «${name}»?` }] : [])
           .concat(buy ? [{ label: `Докупить: ${mtn(m)} ${n}${k ? ` (${k} из сумки + ${buy})` : ''}`, sub: `${buy} × ${price} = ${buy * price} з`, dis: gold < buy * price, arg: `${id} ${m} ${n} золотом`, confirm: `Вложить ${mtn(m).toLowerCase()} ${n} шт. в «${name}», докупив ${buy} за ${buy * price} золота?` }] : []) }; });
-      return { label: `${name} (ур. ${lv}→${lv + 1})`, sub: `осталось: ${left}` + (nextEff ? ` · ур.${lv + 1}: ${nextEff}` : ''),
+      return { label: `${name} (ур. ${lv}→${lv + 1})`, sub: `осталось: ${left}`,
         next: [{ label: '💰 Золото', sub: need ? `осталось ${need} з, у вас ${gold}` : 'золото собрано', dis: !need, next: goldOpts },
           { label: '🪵 Материалы', sub: mlist.length ? mlist.map(([m, n]) => `${mtn(m)} ${n}`).join(', ') : 'материалы не нужны', dis: !mlist.length, next: matOpts }] }; });
     // v7panel4 п.3: продажа — овощ, затем количество (1/5/10/все)
@@ -32,13 +32,13 @@
     // v7panel4 п.5: выбор рецепта (ref.recipes: [название, вид, что нужно, ур. открытия]; me.rcp[i]: 1 — открыт, 2 — хватает овощей)
     const recipes = () => [{ label: 'Лучшее из доступного', sub: 'игра выберет сама', arg: '' }].concat((ref.recipes || []).map(([n, kind, need, lv], i) => { const f = me && me.rcp ? me.rcp[i] || 0 : 1, open = f & 1, can = f & 2; return {
       label: (kind === 'potion' ? '🧪 ' : '🍲 ') + n, sub: !open ? `закрыт: нужен ур. ${lv}` : (can ? 'хватает: ' : 'не хватает: ') + need, dis: !open, arg: String(i + 1), confirm: `${kind === 'potion' ? 'Сварить' : 'Приготовить'} «${n}»?` }; }));
-    const shop = () => (ref.eq || []).filter(i => !i[4] || (me && i[4].includes(me.cls))).map(([id, name, price, slot, , bs]) => {
+    const shop = () => (ref.eq || []).filter(i => !i[4] || (me && i[4].includes(me.cls))).map(([id, name, price, slot, , bs, stt]) => { // v7panel20 п.2: + статы вещи
       const own = me && (me.eqOwn || []).includes(id), on = me && me.eqOn && me.eqOn[slot] === id;
-      return own ? { label: name, sub: on ? 'надето' : 'есть — надеть', dis: on, arg: id, cmd: 'экип' } : { label: name, sub: `${price} з · ${SLOT_RU[slot] || slot}${bs > (ref.bsLv || 1) ? ' · кузница ур.' + bs : ''}`, dis: gold < price || bs > (ref.bsLv || 1), arg: id, confirm: `Купить «${name}» за ${price} золота?` }; });
+      return own ? { label: name, sub: (on ? 'надето' : 'есть — надеть') + (stt ? ' · ' + stt : ''), dis: on, arg: id, cmd: 'экип' } : { label: name, sub: `${stt ? stt + ' · ' : ''}${price} з · ${SLOT_RU[slot] || slot}${bs > (ref.bsLv || 1) ? ' · кузница ур.' + bs : ''}`, dis: gold < price || bs > (ref.bsLv || 1), arg: id, confirm: `Купить «${name}» за ${price} золота?` }; });
     const hair = () => (ref.hair || []).map(([id, n]) => ({ label: n, sub: me && me.hair === id ? 'сейчас' : `${ref.hairPrice || 250} з`, dis: (me && me.hair === id) || gold < (ref.hairPrice || 250), arg: n, confirm: `Покрасить волосы в «${n}» за ${ref.hairPrice || 250} золота?` }));
     const guilds = () => (ref.guilds || []).map(([id, n], i) => ({ label: n, sub: me && me.gid === id ? 'ваша гильдия' : '', dis: me && me.gid === id, arg: String(i + 1), confirm: `Вступить в гильдию «${n}»?` }));
     const quests = () => me && me.q ? [{ label: 'У вас уже есть задание', dis: true }] : (me && me.of || []).map((id, i) => ({ label: `${i + 1}. ${(ref.quests || {})[id] || id}`, arg: String(i + 1) })).concat([{ label: 'Показать список (без хода)', arg: '' }]);
-    const wear = () => (me && me.eqOwn || []).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, , slot]) => ({ label: n, sub: me.eqOn && me.eqOn[slot] === id ? 'надето' : SLOT_RU[slot] || slot, dis: me.eqOn && me.eqOn[slot] === id, arg: id, confirm: `Надеть «${n}»?` }));
+    const wear = () => (me && me.eqOwn || []).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, , slot, , , stt]) => ({ label: n, sub: (me.eqOn && me.eqOn[slot] === id ? 'надето' : SLOT_RU[slot] || slot) + (stt ? ' · ' + stt : ''), dis: me.eqOn && me.eqOn[slot] === id, arg: id, confirm: `Надеть «${n}»?` }));
     const unwear = () => Object.entries(me && me.eqOn || {}).filter(([, v]) => v).map(([slot, id]) => { const i = (ref.eq || []).find(x => x[0] === id); return { label: `${SLOT_RU[slot] || slot}: ${i ? i[1] : id}`, arg: slot, confirm: `Снять ${i ? '«' + i[1] + '»' : SLOT_RU[slot]}?` }; });
     const pets = () => (me && me.pt || []).map(([id, n]) => ({ label: n, sub: me.ptOn === id ? 'с героем' : '', dis: me.ptOn === id, arg: id, cmd: 'экип', confirm: `Взять питомца «${n}»?` })).concat(me && me.ptOn ? [{ label: 'Убрать питомца', arg: 'питомец', cmd: 'снять', confirm: 'Убрать питомца?' }] : []); // v7panel12 п.7
     const titles = () => (me && me.tt || []).map((t, i) => ({ label: t, sub: me.ttOn === t ? 'надет' : '', dis: me.ttOn === t, arg: String(i + 1), confirm: `Надеть титул «${t}»?` })).concat(me && me.ttOn ? [{ label: 'Снять титул', arg: 'снять', confirm: 'Снять титул?' }] : []);
@@ -61,7 +61,7 @@
         ['⏳', 'Грядка', 'грядка', '', 'сколько ждать'], ['🐞', 'Жуки', 'жуки', '', 'отогнать'], ['🧺', 'Собрать', 'собрать', '', 'урожай'],
         ['✨', 'Магия', 'магия', '', magicSub], ['🔁', 'Обмен', 'обмен', '', '10 сорняков → овощ', 'Обменять 10 сорняков на овощ?'], ['🥗', 'Салат', 'салат', '', saladSub, saladAsk], ['📦', 'Урожай', 'урожай', '', 'что у меня есть'],
         ['🍲', 'Готовить', 'готовить', recipes, me && me.rw && me.rw.cook > 0 ? `ходов: ${me.rw.cook}` : REWARD], ['💰', 'Продать', 'продать', () => crops, 'овощи'], ['🏗', 'Вклад', 'вклад', () => bldPick('garden'), 'в сарай']],
-      camp: [['🛡', 'В пати', 'пати', '', 'групповой поход'], ['🏰', 'Гильдия', 'гильдия', guilds, me && me.gd ? me.gd : 'выбрать'],
+      camp: [['🏰', 'Гильдия', 'гильдия', guilds, me && me.gd ? me.gd : 'выбрать'],
         ['✔', 'Да', 'да', '', 'подтвердить гильдию'], ['✖', 'Нет', 'нет', '', 'отменить выбор'], ['🏗', 'Вклад', 'вклад', () => bldPick('camp'), 'костёр, палатка']],
       forest: [['⚔', 'В поход', 'поход', '', hike], ['🛡', 'Пати-поход', 'пати', '', me && me.pty ? 'вы в очереди' : 'вместе с другими']],
       boss: [['☠', 'Записаться', 'босс', '', 'в отряд на босса'], ['👊', 'Удар', 'удар', '', 'до 4 в минуту'], ['💚', 'Лечить', 'лечить', '', 'раз в 30 с'],
