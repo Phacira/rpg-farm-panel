@@ -140,6 +140,16 @@
     return `<div class="hinv${invOpen ? ' open' : ''}"><button type="button" class="ivh" aria-expanded="${invOpen}">🎒 Инвентарь ${invOpen ? '▴' : '▾'}</button>${invOpen ? `<div class="ivb">${body || '<span class="ivn">пусто</span>'}</div>` : ''}</div>`;
   }
   document.addEventListener('click', e => { if (e.target.closest('.hinv .ivh')) { invOpen = !invOpen; render(); } });
+  // v7panel18: блок «Улучшения» (как вкладка в игре): по строке на здание + баффы героя; данные — ref.bld / me.bf
+  function upHtml(me) {
+    const ref = (state && state.ref) || {}, MN = {}; (ref.mats || []).forEach(([id, n, ic]) => MN[id] = (ic ? ic + ' ' : '') + n);
+    const rows = (ref.bld || []).map(([id, name, lv, max, need, , eff0, nextEff0, ml, eff1, nextEff1]) => { const eff = eff1 || eff0, nextEff = nextEff1 || nextEff0; const mats = Object.entries(ml || {}).map(([m, n]) => `${MN[m] || m} ${n}`);
+      const left = need == null ? 'максимум' : [need ? need + ' з' : ''].concat(mats).filter(Boolean).join(', ') || 'готово';
+      return `<div class="upr"><b>${esc(name)} <small>ур.${esc(lv)}</small></b><span>сейчас: ${esc(eff || '—')}</span>${need == null ? '' : `<span class="upn">ур.${lv + 1}: ${esc(nextEff || '')}</span>`}<span class="upl">${need == null ? 'максимальный уровень' : 'осталось: ' + esc(left)}</span></div>`; }).join('');
+    const bf = me && me.bf ? me.bf : [];
+    const buffs = `<div class="upr"><b>Баффы героя сейчас</b>${bf.length ? bf.map(([n, t, c]) => `<span>${esc(n)}: ${esc(t)} (осталось ${esc(c)})</span>`).join('') : '<span class="upl">нет активных баффов</span>'}</div>`;
+    return `<div class="upbox"><h2>🏗 Улучшения</h2>${rows}${me ? buffs : ''}</div>`;
+  }
   function card(me) {
     if (!me) return `<div class="hcard"><b>Героя пока нет.</b><p class="note">Напишите в чат стрима <b>!rpg</b> — герой появится, и вы увидите его здесь.</p></div>`;
     const cd = me.cd > 0 ? `через ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : 'можно';
@@ -169,7 +179,7 @@
     let info = on ? `${LOCN[l] || l}: героев ${list.length}` : 'Когда стример запустит игру, здесь появится карта.';
     if (on && l === 'boss' && state.boss) { const b = state.boss; info += ' · ' + (b.ph === 'wait' ? `босс ${esc(b.name || '')} через ${Math.ceil(b.in / 60000)} мин` : b.ph === 'signup' ? `запись на босса: ${b.n}` : b.ph === 'fight' ? 'идёт бой с боссом!' : 'босс повержен'); }
     $('linfo').innerHTML = info;
-    $('hero').innerHTML = on ? card(state.me) : '';
+    $('hero').innerHTML = on ? card(state.me) + (tab === 'town' ? upHtml(state.me) : '') : '';
     if (window.PanelActions) PanelActions.render($('acts'), { online: !!on, tab, me: on ? state.me : null, ref: state && state.ref });
     draw();
   }
