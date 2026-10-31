@@ -148,22 +148,38 @@
     return `<div class="hinv${invOpen ? ' open' : ''}"><button type="button" class="ivh" aria-expanded="${invOpen}">🎒 Инвентарь ${invOpen ? '▴' : '▾'}</button>${invOpen ? `<div class="ivb">${body || '<span class="ivn">пусто</span>'}</div>` : ''}</div>`;
   }
   document.addEventListener('click', e => { if (e.target.closest('.hinv .ivh')) { invOpen = !invOpen; render(); } });
-  // v7panel20 п.1: «Улучшения» компактно — строка на здание: значок, ур., эффект сейчас → дальше, цена. Баффы перенесены в «Мой герой».
+  // v7panel22 п.1: «Улучшения» и «Еда и зелья» — ровные колонки (CSS grid + subgrid), короткие тексты, на телефоне — две строки
   const BIC = { campfire: '🔥', tents: '⛺', blacksmith: '⚒️', market: '🏪', shed: '🛖' };
+  const NUM = /[+\-−]?\d+(?:[.,]\d+)?%?/;
+  const UPSH = [[/^ускоряет восстановление HP у всех героев в лагере: за 5 мин$/, 'реген HP в лагере за 5 мин'], [/^щит на поход: макс\. HP.*$/, 'щит на поход, % HP'], [/^сон лечит быстрее на$/, 'сон лечит'], [/^золота за каждый урожай$/, 'золото за урожай'], [/^овощи дороже на золота$/, 'овощи дороже, з'], [/^атака всех героев$/, 'атака героев'], [/^лечение у костра$/, 'лечение у костра']];
+  // «мест у костра +0, лечение +0%» и «… +1, … +25%» → [[метка, сейчас, дальше], …]
+  function upStats(eff, nxt) {
+    const A = String(eff || '').split(/[,;]\s*/), B = String(nxt || '').split(/[,;]\s*/);
+    return A.map((a, k) => { const m = a.match(NUM), b = B[k] || '', mb = b.match(NUM);
+      if (!m && !mb) return [a, '', ''];
+      let l = (m ? a : b).replace(NUM, ' ').replace(/:\s*нет$/, '').replace(/\s+/g, ' ').trim(); UPSH.forEach(([r, t]) => { l = l.replace(r, t); });
+      return [l, m ? m[0] : 'нет', mb ? mb[0] : '']; });
+  }
+  window.__upStats = upStats;
   function upHtml() {
     const ref = (state && state.ref) || {}, MN = {}; (ref.mats || []).forEach(([id, n, ic]) => MN[id] = icOn() ? icImg(id) + esc(n) : id === 'iron' ? INGOT + esc(n) : esc((ic ? ic + ' ' : '') + n));
-    const rows = (ref.bld || []).map(([id, name, lv, max, need, , eff0, nextEff0, ml, eff1, nextEff1]) => { const eff = eff1 || eff0, nextEff = nextEff1 || nextEff0;
-      const price = need == null ? 'макс.' : [need ? esc(need + ' з') : ''].concat(Object.entries(ml || {}).map(([m, n]) => `${MN[m] || esc(m)} ${esc(n)}`)).filter(Boolean).join(', ') || 'готово';
-      return `<div class="upr1"><span class="upi">${BIC[id] || '🏠'}</span><b>${esc(name)} <small>${esc(lv)}${need == null ? '' : '→' + esc(lv + 1)}</small></b><span class="upe">${esc(eff || '—')}${need == null ? '' : ` <i>→</i> ${esc(nextEff || '')}`}</span><span class="upp">${price}</span></div>`; }).join('');
-    return `<div class="upbox"><h2>🏗 Улучшения</h2>${rows}</div>`;
+    const rows = (ref.bld || []).map(([id, name, lv, max, need, , eff0, nextEff0, ml, eff1, nextEff1]) => { const top = need == null;
+      const S = upStats(top ? (nextEff1 || eff1 || eff0) : (eff1 || eff0), top ? '' : (nextEff1 || nextEff0));
+      const price = top ? 'макс.' : [need ? esc(need + ' з') : ''].concat(Object.entries(ml || {}).map(([m, n]) => `<span>${MN[m] || esc(m)} ${esc(n)}</span>`)).filter(Boolean).join(' ') || 'готово';
+      const col = f => S.map(x => `<div>${f(x)}</div>`).join('');
+      return `<div class="upr2${top ? ' max' : ''}" data-b="${esc(id)}"><span class="upi">${BIC[id] || '🏠'}</span><b class="upn">${esc(name)} <small>${esc(lv)}${top ? '' : '→' + esc(lv + 1)}</small></b>`
+        + `<span class="upl">${col(x => esc(x[0]))}</span><span class="upc">${col(x => esc(x[1]))}</span><span class="upd">${top ? '' : col(x => x[2] ? '→ ' + esc(x[2]) : '')}</span><span class="upp">${price}</span></div>`; }).join('');
+    return `<div class="upbox"><h2>🏗 Улучшения</h2><div class="upt upt-b"><div class="upr2 uph"><span></span><span>Здание</span><span>Эффект</span><span>Сейчас</span><span>Дальше</span><span>Цена</span></div>${rows}</div></div>`;
   }
-  // v7panel20 п.3: эффекты блюд и зелий списком (как «Улучшения»), вкладка «Огород»
+  const FSH = [[/ \(само при HP < 35%\)/, ' (авто <35%)'], [/после каждой волны/, 'за волну'], [/после волны/, 'за волну'], [/до конца боя/, 'на бой'], [/ и сундук на ступень лучше/, ', сундук лучше'], [/шанс сундука/, 'сундук']];
+  function shortFx(t) { let s = String(t || ''); FSH.forEach(([r, x]) => { s = s.replace(r, x); }); return s; }
+  window.__shortFx = shortFx;
   function foodHtml(me) {
     const ref = (state && state.ref) || {}, L = ref.recipes || [];
     if (!L.length) return '';
     const rows = L.map(([n, kind, need, lv, txt, ick], i) => { const f = me && me.rcp ? me.rcp[i] || 0 : 1;
-      return `<div class="upr1${f & 1 ? '' : ' off'}"><span class="upi">${ick ? icImg(ick) : kind === 'potion' ? '🧪' : '🍲'}</span><b>${esc(n)}</b><span class="upe">${esc(txt || '—')}</span><span class="upp">${f & 1 ? esc(need) : 'с ур.' + esc(lv)}</span></div>`; }).join('');
-    return `<div class="upbox"><h2>🍲 Еда и зелья</h2>${rows}</div>`;
+      return `<div class="upr2${f & 1 ? '' : ' off'}"${f & 1 ? '' : ` title="откроется с ур.${esc(lv)}"`}><span class="upi">${ick ? icImg(ick) : kind === 'potion' ? '🧪' : '🍲'}</span><b class="upn">${esc(n)}</b><span class="upe" title="${esc(txt || '')}">${esc(shortFx(txt) || '—')}</span><span class="upp">${f & 1 ? esc(need) : 'с ур.' + esc(lv)}</span></div>`; }).join('');
+    return `<div class="upbox"><h2>🍲 Еда и зелья</h2><div class="upt upt-f"><div class="upr2 uph"><span></span><span>Название</span><span>Эффект</span><span>Состав</span></div>${rows}</div></div>`;
   }
   // v7panel20 п.2: все характеристики героя (из игры: me.sr), что даёт надетое (me.eqS) и баффы (me.bf)
   function statHtml(me) {

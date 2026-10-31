@@ -65,15 +65,27 @@
       camp: [['🏰', 'Гильдия', 'гильдия', guilds, me && me.gd ? me.gd : 'выбрать'],
         ['✔', 'Да', 'да', '', 'подтвердить гильдию'], ['✖', 'Нет', 'нет', '', 'отменить выбор'], ['🏗', 'Вклад', 'вклад', () => bldPick('camp'), 'костёр, палатка']],
       forest: [['⚔', 'В поход', 'поход', '', hike], ['🛡', 'Пати-поход', 'пати', '', me && me.pty ? 'вы в очереди' : 'вместе с другими']],
-      boss: [['☠', 'Записаться', 'босс', '', 'в отряд на босса'], ['👊', 'Удар', 'удар', '', 'до 4 в минуту'], ['💚', 'Лечить', 'лечить', '', 'раз в 30 с'],
+      boss: bossOrder(me, [['☠', 'Записаться', 'босс', '', 'в отряд на босса'], ['👊', 'Удар', 'удар', '', 'до 4 в минуту'], ['💚', 'Лечить', 'лечить', '', 'раз в 30 с'],
         ['💫', 'Оглушить', 'оглушить', '', 'красный каст'], ['🕸', 'Связать', 'связать', '', 'жёлтый каст'], ['🔮', 'Очистить', 'очистить', '', 'фиолетовый каст'],
-        ['🐌', 'Замедлить', 'замедлить', '', 'маг'], ['🛡', 'Заслон', 'заслон', '', 'паладин'], ['✝', 'Воскресить', 'воскресить', '', 'поднять союзника']],
+        ['🐌', 'Замедлить', 'замедлить', '', 'замедлить каст'], ['🛡', 'Заслон', 'заслон', '', 'щит отряду'], ['✝', 'Воскресить', 'воскресить', '', 'поднять союзника']]),
       me: me ? [['🎒', 'Надеть', 'экип', wear, 'своё снаряжение'], ['🧤', 'Снять', 'снять', unwear, 'вещь со слота'], ['🏷', 'Титул', 'титул', titles, me.ttOn || 'выбрать'],
         ...(me.pt && me.pt.length ? [['🐾', 'Питомец', 'экип', pets, ((me.pt.find(p => p[0] === me.ptOn) || [])[1]) || 'не взят']] : []),
         hairBtn, ['🏰', 'Гильдия', 'гильдия', guilds, me.gd || 'выбрать'], ['⚒', 'Кузница', 'купить', shop, 'купить вещь']]
         : [['🧙', 'Стать героем', 'вступить', '', 'если стример разрешил']]
     };
   }
+  // v7panel22 п.2: босс — кнопки своего класса сверху, чужие ниже группой «Не твой класс» (неактивны). Правила — bosscore.js CC (+ !удар/!лечить/!босс — всем)
+  const BOSS_CLS = { оглушить: ['paladin', 'warrior'], связать: ['archer', 'assassin'], очистить: ['priest'], замедлить: ['mage'], заслон: ['paladin'], воскресить: ['priest'] };
+  const CLS_RU = { warrior: 'воин', paladin: 'паладин', archer: 'лучник', assassin: 'ассасин', mage: 'маг', priest: 'жрец' };
+  const BOSS_ORD = { priest: ['босс', 'очистить', 'воскресить', 'лечить', 'удар'], paladin: ['босс', 'заслон', 'оглушить', 'удар', 'лечить'], warrior: ['босс', 'оглушить', 'удар', 'лечить'],
+    archer: ['босс', 'связать', 'удар', 'лечить'], assassin: ['босс', 'связать', 'удар', 'лечить'], mage: ['босс', 'замедлить', 'удар', 'лечить'] };
+  function bossOrder(me, L) {
+    const cls = me && me.cls; if (!cls || !BOSS_ORD[cls]) return L;
+    const ord = BOSS_ORD[cls], mine = ord.map(c => L.find(d => d[2] === c)).filter(Boolean);
+    const rest = L.filter(d => !ord.includes(d[2])).map(d => { const w = (BOSS_CLS[d[2]] || []).map(c => CLS_RU[c]).join(', '); const x = d.slice(); x[4] = 'только: ' + w; x[6] = 1; x[7] = 'other'; return x; });
+    return mine.concat(rest);
+  }
+  window.__bossOrder = bossOrder;
   let ctxNow = null, curList = [];
   function render(el, ctx) {
     ctxNow = ctx; if (!el) return;
@@ -81,8 +93,8 @@
     curList = list;
     const title = { town: 'Город', garden: 'Огород', camp: 'Лагерь', forest: 'Лес', boss: 'Босс', me: 'Мой герой' }[ctx.tab] || '';
     el.innerHTML = `<h2>Действия: ${esc(title)}</h2>${!on ? '<p class="note">Кнопки работают, когда идёт стрим.</p>' : !ctx.me && ctx.tab !== 'me' ? '<p class="note">У вас пока нет героя — кнопки появятся, когда он будет.</p>' : ''}
-      <div class="acts">${list.map((d, i) => { const busy = Object.values(pend).some(p => p.cmd === d[2]);
-        return `<button class="act${busy ? ' busy' : ''}${d[6] ? ' off' : ''}" data-a="${i}"${d[6] ? ' disabled aria-disabled="true" title="' + esc(d[4]) + '"' : !on || (!ctx.me && d[2] !== 'вступить') || busy ? ' disabled' : ''}><span class="ai">${d[0]}</span><span class="al">${esc(d[1])}</span><small>${esc(d[4] || '')}</small></button>`; }).join('')}</div>
+      <div class="acts">${list.map((d, i) => { const grp = d[7] === 'other' && (!list[i - 1] || list[i - 1][7] !== 'other') ? '<div class="agrp">Не твой класс</div>' : ''; const busy = Object.values(pend).some(p => p.cmd === d[2]);
+        return `<button class="act${busy ? ' busy' : ''}${d[6] ? ' off' : ''}" data-a="${i}"${d[6] ? ' disabled aria-disabled="true" title="' + esc(d[4]) + '"' : !on || (!ctx.me && d[2] !== 'вступить') || busy ? ' disabled' : ''}><span class="ai">${d[0]}</span><span class="al">${esc(d[1])}</span><small>${esc(d[4] || '')}</small></button>`.replace(/^/, grp); }).join('')}</div>
       <div class="cres" aria-live="polite">${results.map(r => `<div class="${r.ok ? 'ok' : r.ok === false ? 'bad' : 'wait'}">${r.ok ? '✔' : r.ok === false ? '✖' : '…'} <b>${esc(r.label)}</b>: ${esc(r.msg)}</div>`).join('')}</div>`;
   }
   // окно выбора/подтверждения

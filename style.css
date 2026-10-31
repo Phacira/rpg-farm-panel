@@ -92,3 +92,26 @@ button.act.off{opacity:.5;filter:grayscale(1);cursor:not-allowed}button.act.off 
 img.vegi.ic{image-rendering:pixelated;width:22px;height:22px;vertical-align:-6px}
 .upr1 img.vegi.ic{width:20px;height:20px;vertical-align:-5px}
 .sopts .al img.oic{width:24px;height:24px;image-rendering:pixelated;vertical-align:-7px;margin-right:6px}
+
+/* v7panel22 п.1: таблицы «Улучшения» / «Еда и зелья» */
+.upt{display:grid;column-gap:8px}
+.upt-b{grid-template-columns:22px minmax(110px,auto) minmax(0,1fr) auto auto minmax(90px,auto)}
+.upt-f{grid-template-columns:22px minmax(120px,auto) minmax(0,1fr) minmax(120px,auto)}
+.upr2{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:center;min-height:30px;padding:3px 0;border-top:1px solid rgba(255,255,255,.08)}
+.upr2.uph{font-size:11px;opacity:.6;min-height:0;border-top:0;text-transform:lowercase}
+.upr2 .upi{text-align:center}.upr2 small{opacity:.7;font-weight:400}.upr2 .upn{white-space:nowrap}
+.upr2 .upl,.upr2 .upe{font-size:12px;opacity:.85;min-width:0}
+.upr2 .upc,.upr2 .upd{font-size:12px;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}.upr2 .upd{color:#9be38f}
+.upr2 .upp{font-size:12px;opacity:.85;text-align:right}.upr2 .upp span{white-space:nowrap;margin-left:4px}
+.upr2.off{opacity:.42;filter:grayscale(.7)}.upr2.max .upc{color:var(--gold)}
+.upr2 .vegi{width:14px;height:14px;vertical-align:-2px}.upr2 img.vegi.ic{width:20px;height:20px;vertical-align:-5px}
+.acts .agrp{grid-column:1/-1;font-size:12px;opacity:.6;margin:6px 0 -2px;border-top:1px dashed rgba(255,255,255,.2);padding-top:6px}
+/* узкая колонка или телефон — две строки */
+.upbox{container-type:inline-size}
+@container (max-width:520px){
+ .upt{display:block}.upr2.uph{display:none}
+ .upt-b .upr2{grid-template-columns:22px minmax(0,1fr) 52px 60px;grid-template-areas:"i n n p" ". l c d";row-gap:2px}
+ .upt-b .upi{grid-area:i}.upt-b .upn{grid-area:n}.upt-b .upp{grid-area:p;grid-column:3/5}.upt-b .upl{grid-area:l}.upt-b .upc{grid-area:c}.upt-b .upd{grid-area:d}
+ .upt-f .upr2{min-height:62px;grid-template-columns:22px minmax(0,1fr) auto;grid-template-areas:"i n p" ". e e";row-gap:2px}
+ .upt-f .upi{grid-area:i}.upt-f .upn{grid-area:n;white-space:normal}.upt-f .upe{grid-area:e}.upt-f .upp{grid-area:p;max-width:62cqw}
+}
