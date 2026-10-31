@@ -115,3 +115,6 @@ img.vegi.ic{image-rendering:pixelated;width:22px;height:22px;vertical-align:-6px
  .upt-f .upr2{min-height:62px;grid-template-columns:22px minmax(0,1fr) auto;grid-template-areas:"i n p" ". e e";row-gap:2px}
  .upt-f .upi{grid-area:i}.upt-f .upn{grid-area:n;white-space:normal}.upt-f .upe{grid-area:e}.upt-f .upp{grid-area:p;max-width:62cqw}
 }
+
+/* v7panel24: готовка пачкой */
+.bcq{display:inline-flex;gap:4px;margin-left:6px;vertical-align:middle}.bcq select{font:inherit;font-size:12px;padding:1px 2px}.bcgo{font:inherit;font-size:12px;padding:2px 6px;cursor:pointer}.bcgo:disabled{opacity:.5;cursor:default}.bcst{font-size:12px;opacity:.85;margin:2px 0 6px}
