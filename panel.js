@@ -123,7 +123,11 @@
   window.__vegImg = vegImg;
   // v7panel20 п.7: железо — серый слиток (тот же пиксельный набор, что в игре) вместо ⛓️
   const INGOT = '<img class="vegi" src="img/ingot.png" alt="железо">';
-  const icoH = ic => ic === '⛓️' || ic === '⛓' ? INGOT : esc(ic);
+  // v7panel21 п.1: иконки DCSS/Idylwild (img/ic/<ключ>.png) — когда игра включила их (ref.ic); 'ic:<ключ>' в инвентаре
+  const icImg = k => `<img class="vegi ic" src="img/ic/${esc(k)}.png" alt="">`;
+  const icOn = () => !!(state && state.ref && state.ref.ic);
+  window.__icImg = icImg; window.__icOn = icOn;
+  const icoH = ic => { ic = String(ic || ''); if (/^ic:[a-z0-9_]+$/.test(ic)) return icImg(ic.slice(3)); return ic === '⛓️' || ic === '⛓' ? (icOn() ? icImg('iron') : INGOT) : esc(ic); };
   function invIcon(ic, def) { ic = String(ic || ''); if (!ic) return def; if (/^[a-z0-9_]+$/i.test(ic)) return ICON_MAP[ic] || def; return ic; }
   function invItem(x, def) { let nm = String(x[1] || ''), act = !!x[3]; nm = nm.replace(/^[a-z0-9_]+\s+(?=[А-ЯЁа-яё])/i, ''); if (/\s*\(активно\)\s*$/.test(nm)) { act = true; nm = nm.replace(/\s*\(активно\)\s*$/, ''); } const ic = invIcon(x[0], def), vm = /^crop_([a-z]+)$/.exec(String(x[0] || '')); return { ic, nm, n: x[2], act, veg: vm ? vm[1] : VEG_BY_EMO[ic] }; }
   window.__panelInvItem = invItem;
@@ -135,8 +139,8 @@
     const L = (a, def) => (a || []).map(x => chip(invItem(x, def), +x[2] > 0));
     const eqOn = me.eqOn || {}, spare = (me.eqOwn || []).filter(id => !Object.values(eqOn).includes(id));
     const eqT = {}; (ref.eq || []).forEach(e => eqT[e[0]] = e[6] || ''); // v7panel20 п.2: что даёт вещь
-    const gear = Object.keys(eqOn).filter(s => eqOn[s]).map(s => chip({ ic: SLOT_IC[s] || '▫️', nm: (eqN[eqOn[s]] || eqOn[s]) + (eqT[eqOn[s]] ? ' — ' + eqT[eqOn[s]] : ''), act: false }))
-      .concat(spare.map(id => chip({ ic: '🎒', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : '') })));
+    const gear = Object.keys(eqOn).filter(s => eqOn[s]).map(s => chip({ ic: icOn() ? 'ic:' + eqOn[s] : SLOT_IC[s] || '▫️', nm: (eqN[eqOn[s]] || eqOn[s]) + (eqT[eqOn[s]] ? ' — ' + eqT[eqOn[s]] : ''), act: false }))
+      .concat(spare.map(id => chip({ ic: icOn() ? 'ic:' + id : '🎒', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : '') })));
     // v7panel12: блок «Косметика» убран (косметика выключена до утверждения Tim); титул — в «Снаряжении»
     const ttl = me.ttOn ? [chip({ ic: '🏷️', nm: 'титул: ' + me.ttOn, act: true, tag: 'надето' })] : [];
     const pet = (me.pt || []).map(([id, n]) => chip({ ic: '🐾', nm: 'питомец: ' + n, act: me.ptOn === id, tag: 'надет' })); // v7panel12 п.7
@@ -147,7 +151,7 @@
   // v7panel20 п.1: «Улучшения» компактно — строка на здание: значок, ур., эффект сейчас → дальше, цена. Баффы перенесены в «Мой герой».
   const BIC = { campfire: '🔥', tents: '⛺', blacksmith: '⚒️', market: '🏪', shed: '🛖' };
   function upHtml() {
-    const ref = (state && state.ref) || {}, MN = {}; (ref.mats || []).forEach(([id, n, ic]) => MN[id] = id === 'iron' ? INGOT + esc(n) : esc((ic ? ic + ' ' : '') + n));
+    const ref = (state && state.ref) || {}, MN = {}; (ref.mats || []).forEach(([id, n, ic]) => MN[id] = icOn() ? icImg(id) + esc(n) : id === 'iron' ? INGOT + esc(n) : esc((ic ? ic + ' ' : '') + n));
     const rows = (ref.bld || []).map(([id, name, lv, max, need, , eff0, nextEff0, ml, eff1, nextEff1]) => { const eff = eff1 || eff0, nextEff = nextEff1 || nextEff0;
       const price = need == null ? 'макс.' : [need ? esc(need + ' з') : ''].concat(Object.entries(ml || {}).map(([m, n]) => `${MN[m] || esc(m)} ${esc(n)}`)).filter(Boolean).join(', ') || 'готово';
       return `<div class="upr1"><span class="upi">${BIC[id] || '🏠'}</span><b>${esc(name)} <small>${esc(lv)}${need == null ? '' : '→' + esc(lv + 1)}</small></b><span class="upe">${esc(eff || '—')}${need == null ? '' : ` <i>→</i> ${esc(nextEff || '')}`}</span><span class="upp">${price}</span></div>`; }).join('');
@@ -157,8 +161,8 @@
   function foodHtml(me) {
     const ref = (state && state.ref) || {}, L = ref.recipes || [];
     if (!L.length) return '';
-    const rows = L.map(([n, kind, need, lv, txt], i) => { const f = me && me.rcp ? me.rcp[i] || 0 : 1;
-      return `<div class="upr1${f & 1 ? '' : ' off'}"><span class="upi">${kind === 'potion' ? '🧪' : '🍲'}</span><b>${esc(n)}</b><span class="upe">${esc(txt || '—')}</span><span class="upp">${f & 1 ? esc(need) : 'с ур.' + esc(lv)}</span></div>`; }).join('');
+    const rows = L.map(([n, kind, need, lv, txt, ick], i) => { const f = me && me.rcp ? me.rcp[i] || 0 : 1;
+      return `<div class="upr1${f & 1 ? '' : ' off'}"><span class="upi">${ick ? icImg(ick) : kind === 'potion' ? '🧪' : '🍲'}</span><b>${esc(n)}</b><span class="upe">${esc(txt || '—')}</span><span class="upp">${f & 1 ? esc(need) : 'с ур.' + esc(lv)}</span></div>`; }).join('');
     return `<div class="upbox"><h2>🍲 Еда и зелья</h2>${rows}</div>`;
   }
   // v7panel20 п.2: все характеристики героя (из игры: me.sr), что даёт надетое (me.eqS) и баффы (me.bf)
@@ -166,7 +170,7 @@
     const sr = (me.sr || []).filter(r => !/^(Семена|Готовка|Уровень|Золото)/.test(r[1]));
     const eq = me.eqS || [], bf = me.bf || [];
     return `<div class="hstats">${sr.map(([i, n, v]) => `<span><em>${esc(i)} ${esc(n)}</em> ${esc(v)}</span>`).join('')}</div>`
-      + `<div class="hlist"><b>Надето:</b> ${eq.length ? eq.map(([sn, n, t]) => `<span>${esc(sn)}: ${esc(n)} — ${esc(t)}</span>`).join('') : '<span class="dim">ничего</span>'}</div>`
+      + `<div class="hlist"><b>Надето:</b> ${eq.length ? eq.map(([sn, n, t, id]) => `<span>${icOn() && id ? icImg(id) : ''}${esc(sn)}: ${esc(n)} — ${esc(t)}</span>`).join('') : '<span class="dim">ничего</span>'}</div>`
       + `<div class="hlist"><b>Баффы:</b> ${bf.length ? bf.map(([n, t, c]) => `<span>${esc(n)}: ${esc(t)} (×${esc(c)})</span>`).join('') : '<span class="dim">нет активных</span>'}</div>`;
   }
   // v7panel20 п.8: журнал боя на пульте — последние 15 мин (ref.log от игры), прокрутка, фильтр «мои/все», повторы подряд — «×N»

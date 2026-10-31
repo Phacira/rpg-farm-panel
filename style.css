@@ -88,3 +88,7 @@ button.act.off{opacity:.5;filter:grayscale(1);cursor:not-allowed}button.act.off 
 .logh{display:flex;justify-content:space-between;align-items:center}.logh h2{font-size:15px;margin:2px 0 6px}
 .logf button{font-size:12px;padding:2px 8px;margin-left:4px;border-radius:6px;background:rgba(255,255,255,.08);color:inherit;border:1px solid rgba(255,255,255,.15)}.logf button.on{background:#ffd27a;color:#222}
 .logl{max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:1px}.lg time{opacity:.55}.lg.le{color:#ffe7a8}.lg b{color:#ffd27a}
+/* v7panel21 п.1: иконки DCSS/Idylwild 32px */
+img.vegi.ic{image-rendering:pixelated;width:22px;height:22px;vertical-align:-6px}
+.upr1 img.vegi.ic{width:20px;height:20px;vertical-align:-5px}
+.sopts .al img.oic{width:24px;height:24px;image-rendering:pixelated;vertical-align:-7px;margin-right:6px}
