@@ -179,12 +179,17 @@
     if (!L.length) return '';
     const bc = +ref.bc || 0, cook = me && me.rw ? +me.rw.cook || 0 : 0; // v7panel24: готовка пачкой — только если игра прислала ref.bc (флаг batchCook включён)
     const rows = L.map(([n, kind, need, lv, txt, ick], i) => { const f = me && me.rcp ? me.rcp[i] || 0 : 1, ok = me && (f & 3) === 3;
-      const q = bc && ok ? `<span class="bcq"><select data-bcq="${i}" aria-label="Сколько порций"><option value="1">1</option>${bc >= 3 ? '<option value="3">3</option>' : ''}<option value="макс">макс</option></select><button type="button" class="bcgo" data-bci="${i}"${cook > 0 ? '' : ' disabled title="нужна награда «готовка»"'}>Приготовить</button></span>` : '';
+      const q = bc && ok ? `<span class="bcq"><select data-bcq="${i}" aria-label="Сколько порций">${['1'].concat(bc >= 3 ? ['3'] : [], ['макс']).map(v => `<option value="${v}"${(bcSel[i] || '1') === v ? ' selected' : ''}>${v}</option>`).join('')}</select><button type="button" class="bcgo" data-bci="${i}"${cook > 0 ? '' : ' disabled title="нужна награда «готовка»"'}>Приготовить</button></span>` : '';
       return `<div class="upr2${f & 1 ? '' : ' off'}"${f & 1 ? '' : ` title="откроется с ур.${esc(lv)}"`}><span class="upi">${ick ? icImg(ick) : kind === 'potion' ? '🧪' : '🍲'}</span><b class="upn">${esc(n)}</b><span class="upe" title="${esc(txt || '')}">${esc(shortFx(txt) || '—')}</span><span class="upp">${f & 1 ? esc(need) : 'с ур.' + esc(lv)}${q}</span></div>`; }).join('');
     const ds = bc && me && me.iv ? (me.iv.f || []).filter(x => !x[3]).reduce((a, x) => a + (+x[2] || 0), 0) : 0, ps = bc && me && me.iv ? (me.iv.p || []).reduce((a, x) => a + (+x[2] || 0), 0) : 0;
     return `<div class="upbox"><h2>🍲 Еда и зелья</h2>${bc ? `<div class="bcst">Запас: 🍲 ${ds} · 🧪 ${ps} · токенов готовки ${cook}</div>` : ''}<div class="upt upt-f"><div class="upr2 uph"><span></span><span>Название</span><span>Эффект</span><span>Состав</span></div>${rows}</div></div>`;
   }
-  document.addEventListener('click', e => { const b = e.target.closest('button.bcgo'); if (!b || b.disabled) return; const i = +b.dataset.bci, sel = document.querySelector(`select[data-bcq="${i}"]`), q = sel ? sel.value : '1', r = ((state && state.ref && state.ref.recipes) || [])[i];
+  // v7panel25 п.2: выбранное количество хранится в памяти пульта; пока список открыт/в фокусе, карточку не перерисовываем (иначе выбор закрывался)
+  const bcSel = {}; let bcHold = false;
+  const bcBusy = () => { const a = document.activeElement; return !!(a && a.matches && a.matches('select[data-bcq]')); };
+  document.addEventListener('change', e => { const s = e.target.closest && e.target.closest('select[data-bcq]'); if (s) bcSel[s.dataset.bcq] = s.value; });
+  document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('select[data-bcq]')) setTimeout(() => { if (bcHold && !bcBusy()) { bcHold = false; render(); } }, 0); });
+  document.addEventListener('click', e => { const b = e.target.closest('button.bcgo'); if (!b || b.disabled) return; const i = +b.dataset.bci, sel = document.querySelector(`select[data-bcq="${i}"]`), q = sel ? sel.value : bcSel[i] || '1', r = ((state && state.ref && state.ref.recipes) || [])[i];
     if (r && window.PanelActions && PanelActions.fire) PanelActions.fire('готовить', `${i + 1} ${q}`, `Готовить · ${r[0]} × ${q}`); });
   // v7panel20 п.2: все характеристики героя (из игры: me.sr), что даёт надетое (me.eqS) и баффы (me.bf)
   function statHtml(me) {
@@ -208,7 +213,7 @@
   function card(me) {
     if (!me) return `<div class="hcard"><b>Героя пока нет.</b><p class="note">Напишите в чат стрима <b>!rpg</b> — герой появится, и вы увидите его здесь.</p></div>`;
     const cd = me.cd > 0 ? `через ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : 'можно';
-    const veg = Object.keys(VEG).map(k => `<span class="hv" title="${k}">${vegImg(k, VEG[k])}${me.veg && me.veg[k] || 0}</span>`).join('');
+    const veg = Object.keys(VEG).map(k => `<span class="hv" title="${k}">${vegImg(k, VEG[k])}${me.veg && me.veg[k] || 0}</span>`).join('') + (me.wd !== undefined ? `<span class="hv hwd" title="сорняки (для готовки и обмена)">🌿${+me.wd || 0}</span>` : ''); // v7panel25: сорняки
     const rw = me.rw || {}, cook = +rw.cook || 0;
     const today = [`поход ${cd === 'можно' ? '✓' : cd}`].concat(cook > 0 ? [`готовка ${cook}`] : []).concat(+rw.quest > 0 ? [`квест ${rw.quest}`] : []).concat(me.q ? ['есть квест'] : []);
     return `<div class="hcard"><div class="hname">★ ${esc(me.n)} <small>${esc(me.cn)} · ур. ${esc(me.lv)}</small></div>
@@ -235,7 +240,7 @@
     if (on && l === 'boss' && state.boss) { const b = state.boss; info += ' · ' + (b.ph === 'wait' ? `босс ${esc(b.name || '')} через ${Math.ceil(b.in / 60000)} мин` : b.ph === 'signup' ? `запись на босса: ${b.n}` : b.ph === 'fight' ? 'идёт бой с боссом!' : 'босс повержен'); }
     $('linfo').innerHTML = info;
     const ol = $('logl'), stick = !ol || ol.scrollTop + ol.clientHeight >= ol.scrollHeight - 8, oldTop = ol ? ol.scrollTop : 0;
-    $('hero').innerHTML = on ? card(state.me) + (tab === 'town' ? upHtml() : tab === 'garden' ? foodHtml(state.me) : '') + (tab === 'forest' || tab === 'boss' || tab === 'me' ? logHtml(state.me) : '') : '';
+    if (on && bcBusy()) bcHold = true; else $('hero').innerHTML = on ? card(state.me) + (tab === 'town' ? upHtml() : tab === 'garden' ? foodHtml(state.me) : '') + (tab === 'forest' || tab === 'boss' || tab === 'me' ? logHtml(state.me) : '') : '';
     if (window.PanelActions) PanelActions.render($('acts'), { online: !!on, tab, me: on ? state.me : null, ref: state && state.ref });
     const ll = $('logl'); if (ll) ll.scrollTop = stick ? ll.scrollHeight : oldTop; // прокрутка: внизу — следим за новыми, иначе остаёмся где читали
     draw();
@@ -254,7 +259,7 @@
       locs[l].push([n, p[0], p[1], cl, R(1, 20), sit ? 'sleep' : l, i === 9 ? 'nosuch_sprite' : key, /assassin|paladin/.test(cl) ? '' : HR[i % 8], i === 7 ? '#3a8ad8' : '', i % 3 === 1 ? 1 : 0, SC[l], g]); });
     state = { type: 'state', online: !/offline=1/.test(location.search), t: Date.now(), cam: 'camp', locs, boss: { ph: 'wait', name: 'Тролль', in: 540000, n: 0 },
       me: { n: 'demo_viewer', cls: 'warrior', cn: 'Воин', lv: 7, xp: 210, xpN: 350, hp: 86, mhp: 120, gold: 340, pot: 2, food: 3, sd: 4, sdp: 1, gd: 'Лунные тени', gid: 'moon', eqOwn: ['w_sword1'], eqOn: { weapon: 'w_sword1' }, tt: ['Огородник', 'Гроза крыс'], ttOn: 'Огородник', ttOn: 'Огородник', hair: 'black', of: ['plant2', 'carrot2', 'harv4'], pty: false, st: 'camp', loc: 'camp', mode: 'idle',
-        veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, rw: { hike: 1, cook: 1, quest: 2 }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null, iv: { m: [['🪵', 'Дерево', 12], ['🪨', 'Камень', 5], ['⛓️', 'Железо', 1]], f: [['🥗', 'Овощной салат', 1], ['crop_carrot', 'Тушёная морковь (активно)', 8]], p: [['❤️', 'Зелье лечения', 2]], c: [] } },
+        veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, wd: 7, rw: { hike: 1, cook: 1, quest: 2 }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null, iv: { m: [['🪵', 'Дерево', 12], ['🪨', 'Камень', 5], ['⛓️', 'Железо', 1]], f: [['🥗', 'Овощной салат', 1], ['crop_carrot', 'Тушёная морковь (активно)', 8]], p: [['❤️', 'Зелье лечения', 2]], c: [] } },
       ref: /bc=1/.test(location.search) ? Object.assign({}, MOCK_REF, { bc: 5 }) : MOCK_REF };
   }
   const MOCK_REF = { guilds: [['fire', 'Огненный клинок', '#d9482b'], ['silver', 'Серебряный лист', '#9fc7d6'], ['moon', 'Лунные тени', '#8a6ad8'], ['gold', 'Золотой колос', '#e8b830']],
