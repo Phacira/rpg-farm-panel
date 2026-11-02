@@ -203,7 +203,7 @@
   function logHtml(me) {
     const L = ((state && state.ref && state.ref.log) || []), nm = me && me.n ? String(me.n).toLowerCase() : '';
     const src = logMine && nm ? L.filter(e => String(e[1]).toLowerCase().includes(nm)) : L, out = [];
-    for (const e of src) { const p = out[out.length - 1]; if (p && p.x === e[1]) { p.n++; p.t = e[0]; } else out.push({ t: e[0], x: e[1], k: e[2], n: 1 }); }
+    for (const e of src) { const p = out[out.length - 1]; if (p && p.x === e[1]) { p.n += +e[3] || 1; p.t = e[0]; } else out.push({ t: e[0], x: e[1], k: e[2], n: +e[3] || 1 }); } // v7panel28: e[3] — сколько одинаковых строк игра сжала в одну
     const hm = t => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
     return `<div class="logbox"><div class="logh"><h2>📜 Журнал (15 мин)</h2><span class="logf"><button type="button" data-lf="0" class="${logMine ? '' : 'on'}">все</button><button type="button" data-lf="1" class="${logMine ? 'on' : ''}"${nm ? '' : ' disabled'}>мои</button></span></div>
       <div class="logl" id="logl">${out.length ? out.map(e => `<div class="lg ${e.k === 'b' ? 'lb' : 'le'}"><time>${hm(e.t)}</time> ${esc(e.x)}${e.n > 1 ? ` <b>×${e.n}</b>` : ''}</div>`).join('') : '<div class="lg le">за 15 минут событий нет</div>'}</div></div>`;
