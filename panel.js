@@ -191,6 +191,13 @@
   document.addEventListener('click', e => { const b = e.target.closest('button.bcgo'); if (!b || b.disabled) return; const i = +b.dataset.bci, sel = document.querySelector(`select[data-bcq="${i}"]`), q = sel ? sel.value : bcSel[i] || '1', r = ((state && state.ref && state.ref.recipes) || [])[i];
     if (r && window.PanelActions && PanelActions.fire) PanelActions.fire('готовить', `${i + 1} ${q}`, `Готовить · ${r[0]} × ${q}`); });
   // v7panel20 п.2: все характеристики героя (из игры: me.sr), что даёт надетое (me.eqS) и баффы (me.bf)
+  // v7panel32: задания на вкладке «Мой герой»: текущее (прогресс x/y, награда) и последние выполненные. Нет me.qs (старая игра) — блок не рисуется.
+  function questHtml(me) { const Q = me && me.qs; if (!Q || typeof Q !== 'object') return '';
+    const c = Array.isArray(Q.c) ? Q.c : null, l = Array.isArray(Q.l) ? Q.l : [];
+    const cur = c ? `<div class="qcur"><div class="qt">📜 ${esc(c[0])}</div>${bar(+c[1] || 0, +c[2] || 1, 'qp')}<div class="qrw">в процессе · награда: ${esc(c[3] || '')}</div></div>`
+      : `<div class="dim">Текущего задания нет — возьмите на вкладке «Город» (кнопка «Задание»)</div>`;
+    const done = l.length ? `<div class="qdl">${l.map(r => `<div class="qd">✔ ${esc(r[0])} <span>— выполнено · ${esc(r[1])}</span></div>`).join('')}</div>` : '';
+    return `<div class="hq"><h3>📜 Задания <small>выполнено всего: ${esc(+Q.d || 0)}</small></h3>${cur}${done}</div>`; }
   function statHtml(me) {
     const sr = (me.sr || []).filter(r => !/^(Семена|Готовка|Уровень|Золото)/.test(r[1]));
     const eq = me.eqS || [], bf = me.bf || [];
@@ -275,7 +282,7 @@
       <div class="hgrid"><span>💰 ${esc(me.gold)}</span><span>🌱 ${esc(me.sd || 0)} · ✨ ${esc(me.sdp || 0)}</span></div>
       <div class="hveg">${veg}</div>
       <div class="htoday">Сегодня: ${today.map(esc).join(' · ')}</div>
-      ${tab === 'me' ? statHtml(me) : ''}${invHtml(me)}</div>`;
+      ${tab === 'me' ? statHtml(me) + questHtml(me) : ''}${invHtml(me)}</div>`;
   }
   function render() {
     $('auth').innerHTML = user ? `<span class="who">Вы: <b>${esc(user.login)}</b> <small>(ID ${esc(user.id)})</small></span><button id="bout" class="small">Выйти</button>`
@@ -313,7 +320,7 @@
     if (/fight=1/.test(location.search)) { locs.forest.push(['demo_viewer', 1300, 1200, 'warrior', 7, 'forest', 'moon_m_warrior', 'black', '', 0, 120, 'm', 'goblin', 60], ['mira77', 1500, 1220, 'mage', 5, 'forest', 'fire_f_mage', 'red', '', 0, 120, 'f', 'wolf', 35], ['gnomik', 1700, 1180, 'priest', 3, 'forest', 'none_m_priest', 'blond', '', 0, 120, 'm', 'mimic', 90], ['oddone', 1900, 1180, 'archer', 2, 'forest', 'nosuch', '', '', 0, 120, 'm', 'dragon', 50]); locs.boss.push(['ironpaw', 1, 1, 'paladin', 9, 'boss', 'gold_f_paladin', '', '', 0, 120, 'f'], ['redhood', 1, 1, 'assassin', 8, 'boss', 'silver_m_assassin', '', '#3a8ad8', 0, 120, 'm']); }
     state = { type: 'state', online: !/offline=1/.test(location.search), t: Date.now(), cam: 'camp', locs, boss: /fight=1/.test(location.search) ? { ph: 'fight', name: 'Проклятый огр', key: 'ogre_boss', flt: 'hue-rotate(220deg) saturate(.8) brightness(.9)', hp: 4200, mhp: 9000, in: 0, n: 2 } : { ph: 'wait', name: 'Тролль', in: 540000, n: 0 },
       me: { k6: 'moon_m_warrior', dy: '', fm: /fight=1/.test(location.search) ? ['goblin', 'Гоблин', 31, 52, 0] : null, n: 'demo_viewer', cls: 'warrior', cn: 'Воин', lv: 7, xp: 210, xpN: 350, hp: 86, mhp: 120, gold: 340, pot: 2, food: 3, sd: 4, sdp: 1, gd: 'Лунные тени', gid: 'moon', eqOwn: ['w_sword1'], eqOn: { weapon: 'w_sword1' }, tt: ['Огородник', 'Гроза крыс'], ttOn: 'Огородник', ttOn: 'Огородник', hair: 'black', of: ['plant2', 'carrot2', 'harv4'], pty: false, st: 'camp', loc: 'camp', mode: 'idle',
-        veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, wd: 7, rw: { hike: 1, cook: 1, quest: 2 }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null, iv: { m: [['🪵', 'Дерево', 12], ['🪨', 'Камень', 5], ['⛓️', 'Железо', 1]], f: [['🥗', 'Овощной салат', 1], ['crop_carrot', 'Тушёная морковь (активно)', 8]], p: [['❤️', 'Зелье лечения', 2]], c: [] } },
+        veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, wd: 7, rw: { hike: 1, cook: 1, quest: 2 }, qs: /quest=0/.test(location.search) ? { c: 0, d: 0, l: [] } : { c: ['Сходить в 2 похода', 1, 2, '+30 золота, +20 опыта'], d: 3, l: [['Приготовить 2 блюда', '+20 золота, +10 опыта'], ['Посадить 2 грядки', '+15 золота, +5 опыта, +2 семян'], ['Победить 5 монстров', '+25 золота, +15 опыта']] }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null, iv: { m: [['🪵', 'Дерево', 12], ['🪨', 'Камень', 5], ['⛓️', 'Железо', 1]], f: [['🥗', 'Овощной салат', 1], ['crop_carrot', 'Тушёная морковь (активно)', 8]], p: [['❤️', 'Зелье лечения', 2]], c: [] } },
       ref: /bc=1/.test(location.search) ? Object.assign({}, MOCK_REF, { bc: 5 }) : MOCK_REF };
     { const m = /[?&]turn=(\d)/.exec(location.search); state.ref = Object.assign({}, state.ref, { ch: 'demo_channel', tl: 1 }); if (m) { state.ref.tb = 1; state.me.tu = +m[1] - 1; } } // v7panel31: ?turn=1 — флаг включён, ?turn=2 — лимит исчерпан
     { const m = /[?&]pty=(\w+)/.exec(location.search); if (m) { const v = m[1]; // v7panel30: макет пати — q (набор), go (в походе), none (пусто)

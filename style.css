@@ -141,3 +141,8 @@ img.vegi.ic{image-rendering:pixelated;width:22px;height:22px;vertical-align:-6px
 /* v7panel31: пояснение в окне «Сделать ход» */
 .snote{margin:0 0 10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.05);font-size:14px;line-height:1.35;white-space:normal}
 .snote b{color:#ffd27a}
+
+/* v7panel32: задания на «Мой герой» */
+.hq{margin:8px 0 2px;padding:8px 10px;border-radius:10px;background:rgba(255,215,120,.07);border:1px solid rgba(255,215,120,.22)}.hq h3{margin:0 0 6px;font-size:15px}.hq h3 small{font-weight:normal;opacity:.7;font-size:12px}
+.qcur .qt{font-weight:600;font-size:14px;overflow-wrap:anywhere}.qcur .qrw{font-size:12px;opacity:.85;margin-top:2px;overflow-wrap:anywhere}.qdl{margin-top:6px}.qd{font-size:13px;color:#a8e6a0;overflow-wrap:anywhere}.qd span{color:inherit;opacity:.75;font-size:12px}
+.bar.qp i{background:#c9a23a}
