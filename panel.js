@@ -315,6 +315,7 @@
       me: { k6: 'moon_m_warrior', dy: '', fm: /fight=1/.test(location.search) ? ['goblin', 'Гоблин', 31, 52, 0] : null, n: 'demo_viewer', cls: 'warrior', cn: 'Воин', lv: 7, xp: 210, xpN: 350, hp: 86, mhp: 120, gold: 340, pot: 2, food: 3, sd: 4, sdp: 1, gd: 'Лунные тени', gid: 'moon', eqOwn: ['w_sword1'], eqOn: { weapon: 'w_sword1' }, tt: ['Огородник', 'Гроза крыс'], ttOn: 'Огородник', ttOn: 'Огородник', hair: 'black', of: ['plant2', 'carrot2', 'harv4'], pty: false, st: 'camp', loc: 'camp', mode: 'idle',
         veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, wd: 7, rw: { hike: 1, cook: 1, quest: 2 }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null, iv: { m: [['🪵', 'Дерево', 12], ['🪨', 'Камень', 5], ['⛓️', 'Железо', 1]], f: [['🥗', 'Овощной салат', 1], ['crop_carrot', 'Тушёная морковь (активно)', 8]], p: [['❤️', 'Зелье лечения', 2]], c: [] } },
       ref: /bc=1/.test(location.search) ? Object.assign({}, MOCK_REF, { bc: 5 }) : MOCK_REF };
+    { const m = /[?&]turn=(\d)/.exec(location.search); state.ref = Object.assign({}, state.ref, { ch: 'demo_channel', tl: 1 }); if (m) { state.ref.tb = 1; state.me.tu = +m[1] - 1; } } // v7panel31: ?turn=1 — флаг включён, ?turn=2 — лимит исчерпан
     { const m = /[?&]pty=(\w+)/.exec(location.search); if (m) { const v = m[1]; // v7panel30: макет пати — q (набор), go (в походе), none (пусто)
       state.ref = Object.assign({}, state.ref, { pty: v === 'none' ? { sz: 3, mn: 2, wv: 3, q: [], qn: 0, left: -1, lane: 0, go: [] }
         : v === 'go' ? { sz: 3, mn: 2, wv: 3, q: ['lisa_fox'], qn: 1, left: 142, lane: 0, go: [[['demo_viewer', 'mira77', 'gnomik'], '110', 'fight', 2]] }
@@ -333,6 +334,7 @@
   };
   function mockReply(m) {
     const me = state.me, it = MOCK_REF.eq.find(i => i[0] === m.arg);
+    if (m.cmd === 'ход') { me.tu = (me.tu || 0) + 1; ['hike', 'cook', 'quest'].forEach(k => me.rw[k] = Math.min(3, me.rw[k] + 1)); return { id: m.id, ok: true, msg: `ход сделан! Запас: поход ${me.rw.hike}, готовка ${me.rw.cook}, квест ${me.rw.quest} (максимум 3). С пульта за стрим: ${me.tu} из 1. (демо)` }; }
     if (m.cmd === 'поход' && me.cd > 0) return { id: m.id, ok: false, msg: `поход: КД ещё ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` };
     if (m.cmd === 'готовить' && /\s/.test(m.arg)) { const [k, q] = m.arg.split(' '), r = MOCK_REF.recipes[+k - 1]; return { id: m.id, ok: true, msg: `готовит ${q === 'макс' ? 2 : q} × ${r ? r[0] : '…'} (демо)` }; }
     if (m.cmd === 'готовить') { const r = MOCK_REF.recipes[+m.arg - 1]; return { id: m.id, ok: true, msg: r ? `идёт к котлу готовить «${r[0]}» (демо)` : 'идёт к котлу: лучшее из доступного (демо)' }; }

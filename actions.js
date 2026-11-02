@@ -36,6 +36,12 @@
       const own = me && (me.eqOwn || []).includes(id), on = me && me.eqOn && me.eqOn[slot] === id;
       const ic = ref.ic ? id : ''; // v7panel21 п.1: иконка вещи на кнопке
       return own ? { ic, label: name, sub: (on ? 'надето' : 'есть — надеть') + (stt ? ' · ' + stt : ''), dis: on, arg: id, cmd: 'экип' } : { ic, label: name, sub: `${stt ? stt + ' · ' : ''}${price} з · ${SLOT_RU[slot] || slot}${bs > (ref.bsLv || 1) ? ' · кузница ур.' + bs : ''}`, dis: gold < price || bs > (ref.bsLv || 1), arg: id, confirm: `Купить «${name}» за ${price} золота?` }; });
+    // v7panel31: «Сделать ход». ref.tb=0 — только подсказка (без запроса: баллы Twitch списывает только Twitch); tb=1 — ход с пульта, лимит ref.tl за стрим
+    const tl = ref.tl || 1, tu = me && me.tu || 0, rw0 = me && me.rw || {}, stock = `поход ${rw0.hike || 0} · готовка ${rw0.cook || 0} · квест ${rw0.quest || 0}`;
+    const turnInfo = () => { const url = ref.ch ? 'https://www.twitch.tv/' + ref.ch : ''; return [{ label: `Ход — это награда «${ref.trn || 'Сделать ход'}» за баллы канала`, sub: 'Пульт не может тратить баллы. Откройте чат Twitch → значок баллов под чатом → «' + (ref.trn || 'Сделать ход') + '».', note: 1 },
+      { label: 'Сейчас в запасе', sub: stock + ' — тратятся кнопками «В поход», «Готовить», «Квест»', note: 1 }].concat(url ? [{ label: '↗ Открыть чат канала', sub: 'twitch.tv/' + ref.ch, url }] : []); };
+    const turnBtn = ref.tb ? ['🎲', 'Сделать ход', 'ход', '', tu >= tl ? `с пульта ${tu}/${tl} — дальше в чате` : `с пульта: ${tl - tu} из ${tl}`, `Сделать ход с пульта? +1 поход, готовка и квест. Осталось за стрим: ${tl - tu} из ${tl}.`, tu >= tl ? 1 : 0]
+      : ['🎲', 'Сделать ход', 'ход', turnInfo, 'награда за баллы канала'];
     const hair = () => (ref.hair || []).map(([id, n]) => ({ label: n, sub: me && me.hair === id ? 'сейчас' : `${ref.hairPrice || 250} з`, dis: (me && me.hair === id) || gold < (ref.hairPrice || 250), arg: n, confirm: `Покрасить волосы в «${n}» за ${ref.hairPrice || 250} золота?` }));
     const guilds = () => (ref.guilds || []).map(([id, n], i) => ({ label: n, sub: me && me.gid === id ? 'ваша гильдия' : '', dis: me && me.gid === id, arg: String(i + 1), confirm: `Вступить в гильдию «${n}»?` }));
     const quests = () => me && me.q ? [{ label: 'У вас уже есть задание', dis: true }] : (me && me.of || []).map((id, i) => ({ label: `${i + 1}. ${(ref.quests || {})[id] || id}`, arg: String(i + 1) })).concat([{ label: 'Показать список (без хода)', arg: '' }]);
@@ -64,11 +70,11 @@
         ['🍲', 'Готовить', 'готовить', recipes, me && me.rw && me.rw.cook > 0 ? `ходов: ${me.rw.cook}` : REWARD], ['💰', 'Продать', 'продать', () => crops, 'овощи'], ['🏗', 'Вклад', 'вклад', () => bldPick('garden'), 'в сарай']],
       camp: [['🏰', 'Гильдия', 'гильдия', guilds, me && me.gd ? me.gd : 'выбрать'],
         ['✔', 'Да', 'да', '', 'подтвердить гильдию'], ['✖', 'Нет', 'нет', '', 'отменить выбор'], ['🏗', 'Вклад', 'вклад', () => bldPick('camp'), 'костёр, палатка']],
-      forest: [['⚔', 'В поход', 'поход', '', hike], ['🛡', 'Пати-поход', 'пати', '', me && me.pty ? 'вы в очереди' : 'вместе с другими']],
+      forest: [['⚔', 'В поход', 'поход', '', hike], ...(me ? [turnBtn] : []), ['🛡', 'Пати-поход', 'пати', '', me && me.pty ? 'вы в очереди' : 'вместе с другими']],
       boss: bossOrder(me, [['☠', 'Записаться', 'босс', '', 'в отряд на босса'], ['👊', 'Удар', 'удар', '', 'до 4 в минуту'], ['💚', 'Лечить', 'лечить', '', 'раз в 30 с'],
         ['💫', 'Оглушить', 'оглушить', '', 'красный каст'], ['🕸', 'Связать', 'связать', '', 'жёлтый каст'], ['🔮', 'Очистить', 'очистить', '', 'фиолетовый каст'],
         ['🐌', 'Замедлить', 'замедлить', '', 'замедлить каст'], ['🛡', 'Заслон', 'заслон', '', 'щит отряду'], ['✝', 'Воскресить', 'воскресить', '', 'поднять союзника']]),
-      me: me ? [['🎒', 'Надеть', 'экип', wear, 'своё снаряжение'], ['🧤', 'Снять', 'снять', unwear, 'вещь со слота'], ['🏷', 'Титул', 'титул', titles, me.ttOn || 'выбрать'],
+      me: me ? [turnBtn, ['🎒', 'Надеть', 'экип', wear, 'своё снаряжение'], ['🧤', 'Снять', 'снять', unwear, 'вещь со слота'], ['🏷', 'Титул', 'титул', titles, me.ttOn || 'выбрать'],
         ...(me.pt && me.pt.length ? [['🐾', 'Питомец', 'экип', pets, ((me.pt.find(p => p[0] === me.ptOn) || [])[1]) || 'не взят']] : []),
         hairBtn, ['🏰', 'Гильдия', 'гильдия', guilds, me.gd || 'выбрать'], ['⚒', 'Кузница', 'купить', shop, 'купить вещь']]
         : [['🧙', 'Стать героем', 'вступить', '', 'нужна награда канала']]
@@ -100,7 +106,7 @@
   // окно выбора/подтверждения
   function sheet(title, opts) {
     const s = document.getElementById('sheet'); s.hidden = false;
-    s.innerHTML = `<div class="sbox"><h3>${esc(title)}</h3><div class="sopts">${opts.length ? opts.map((o, i) => `<button data-o="${i}"${o.dis ? ' disabled' : ''}><span class="al">${o.ic ? `<img class="oic" src="img/ic/${esc(o.ic)}.png" alt="">` : ''}${esc(o.label)}</span>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</button>`).join('') : '<p class="note">Выбрать пока нечего.</p>'}</div><button class="scancel" data-o="x">Отмена</button></div>`;
+    s.innerHTML = `<div class="sbox"><h3>${esc(title)}</h3><div class="sopts">${opts.length ? opts.map((o, i) => o.note ? `<p class="snote"><b>${esc(o.label)}</b><br>${esc(o.sub || '')}</p>` : `<button data-o="${i}"${o.dis ? ' disabled' : ''}><span class="al">${o.ic ? `<img class="oic" src="img/ic/${esc(o.ic)}.png" alt="">` : ''}${esc(o.label)}</span>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</button>`).join('') : '<p class="note">Выбрать пока нечего.</p>'}</div><button class="scancel" data-o="x">Отмена</button></div>`;
     s.onclick = e => { const b = e.target.closest('button'); if (!b && e.target !== s) return; if (e.target === s || b.dataset.o === 'x') return close(); const o = opts[+b.dataset.o]; if (o && o.go) o.go(); };
   }
   function close() { const s = document.getElementById('sheet'); s.hidden = true; s.innerHTML = ''; }
@@ -109,7 +115,7 @@
     close(); fire(cmd || d[2], arg, label);
   }
   function choose(d, opts, title) {
-    sheet(title, opts.map(o => Object.assign({}, o, { go: () => o.next ? choose(d, o.next, o.label) : ask(d, o.arg, d[1] + (o.label ? ' · ' + o.label : ''), o.confirm, o.cmd) })));
+    sheet(title, opts.map(o => Object.assign({}, o, { go: () => o.url ? window.open(o.url, '_blank', 'noopener') : o.next ? choose(d, o.next, o.label) : ask(d, o.arg, d[1] + (o.label ? ' · ' + o.label : ''), o.confirm, o.cmd) })));
   }
   function click(i) {
     const d = curList[i]; if (!d || d[6]) return; // v7panel10: выключенная кнопка команду не шлёт

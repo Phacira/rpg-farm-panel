@@ -137,3 +137,7 @@ img.vegi.ic{image-rendering:pixelated;width:22px;height:22px;vertical-align:-6px
 .pty{margin:10px 0;padding:8px 10px;background:rgba(120,170,255,.06);border-radius:10px}.pty h2{margin:0 0 6px;font-size:15px}
 .pty .pme{font-size:13px;color:#ffd27a;margin-bottom:6px}.pgrp{margin:6px 0;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.04)}
 .pgrp.mine{outline:1px solid #ffd27a}.pgrp .ph{font-size:12px;opacity:.9}.pm.mine em{color:#ffd27a;font-weight:700}.pm.out{opacity:.4;filter:grayscale(1)}.pm.free{opacity:.45}
+
+/* v7panel31: пояснение в окне «Сделать ход» */
+.snote{margin:0 0 10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.05);font-size:14px;line-height:1.35;white-space:normal}
+.snote b{color:#ffd27a}
