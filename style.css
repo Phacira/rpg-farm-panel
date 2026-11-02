@@ -118,3 +118,17 @@ img.vegi.ic{image-rendering:pixelated;width:22px;height:22px;vertical-align:-6px
 
 /* v7panel24: готовка пачкой */
 .bcq{display:inline-flex;gap:4px;margin-left:6px;vertical-align:middle}.bcq select{font:inherit;font-size:12px;padding:1px 2px}.bcgo{font:inherit;font-size:12px;padding:2px 6px;cursor:pointer}.bcgo:disabled{opacity:.5;cursor:default}.bcst{font-size:12px;opacity:.85;margin:2px 0 6px}
+
+/* v7panel26: картинки героев и мобов */
+.hhead{display:flex;gap:10px;align-items:center}
+.hpic{image-rendering:pixelated;height:56px;width:auto;object-fit:contain;flex:none}
+.hpic.big{height:84px}.hpic.sm{height:44px}
+.hpic.fb,.mpic.fb{display:inline-flex;align-items:center;justify-content:center;width:40px;height:44px;font-size:24px;background:rgba(255,255,255,.06);border-radius:8px}
+.mpic{height:52px;width:auto;object-fit:contain;flex:none}.mpic.sm{height:40px}.mpic.big{height:110px}
+.fights{margin:10px 0;padding:8px 10px;background:rgba(255,255,255,.04);border-radius:10px}.fights h2{margin:0 0 6px;font-size:15px}
+.fight{display:flex;align-items:center;gap:8px;padding:4px 0;border-top:1px solid rgba(255,255,255,.06)}.fight:first-of-type{border-top:0}
+.fight.mine em{color:#ffd27a}.fight.me{margin:8px 0;padding:6px 8px;background:rgba(255,80,60,.08);border-radius:8px;border:0}
+.fwho{display:flex;align-items:center;gap:6px;min-width:0;flex:1}.fwho em{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fvs{flex:none;opacity:.8}.fmob{display:flex;align-items:center;gap:6px;flex:1;min-width:0;flex-wrap:wrap}.fmob small{opacity:.8}
+.fhp{display:inline-block;flex:1;min-width:50px;max-width:140px;height:7px;background:#3a1a1a;border-radius:4px;overflow:hidden}.fhp i{display:block;height:100%;background:#d94a3a}
+.fteam{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.fteam span{display:flex;flex-direction:column;align-items:center;font-size:11px;max-width:64px}.fteam em{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:64px}

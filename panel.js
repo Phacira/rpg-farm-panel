@@ -111,7 +111,6 @@
     if (moving && !anim) anim = requestAnimationFrame(animStep); // ~кадры только во время движения
     stat.fs = fs / u; stat.sprites = SPRITES; stat.moving = moving; stat.draws = ((window.__mapStat && window.__mapStat.draws) || 0) + 1; window.__mapStat = stat; // для тестов: сколько спрайтов/точек/подписей и размер подписи в css-px
   }
-  if (SPRITES && window.HeroSprites) HeroSprites.onReady(() => draw());
   window.addEventListener('resize', () => draw());
   function bar(v, m, cls) { const p = Math.max(0, Math.min(100, m ? v / m * 100 : 0)); return `<div class="bar ${cls}"><i style="width:${p.toFixed(0)}%"></i><span>${v} / ${m}</span></div>`; }
   // v7panel8 п.9: инвентарь своего героя (данные от игры: me.iv + eqOn/eqOwn, названия вещей — ref.eq)
@@ -210,14 +209,47 @@
       <div class="logl" id="logl">${out.length ? out.map(e => `<div class="lg ${e.k === 'b' ? 'lb' : 'le'}"><time>${hm(e.t)}</time> ${esc(e.x)}${e.n > 1 ? ` <b>×${e.n}</b>` : ''}</div>`).join('') : '<div class="lg le">за 15 минут событий нет</div>'}</div></div>`;
   }
   document.addEventListener('click', e => { const b = e.target.closest('.logf button'); if (b && !b.disabled) { logMine = b.dataset.lf === '1'; render(); } });
+  // v7panel26: картинки героев (спрайт heroes6 из игры + волосы + окраска сета) и мобов в карточке и блоке боя. Нет картинки — значок, страница не ломается.
+  const CLS_IC = { warrior: '⚔️', archer: '🏹', mage: '🔮', priest: '✝️', paladin: '🛡️', assassin: '🗡️' };
+  const MOBS = ['goblin', 'slime', 'wolf', 'rat', 'tree_spirit', 'ogre_boss', 'queen_boss', 'treant_king_boss', 'mimic'];
+  const PIC = new Map();
+  function rampsOf() { const r = {}; ((state && state.ref && state.ref.hair) || []).forEach(z => { if (z[2]) r[z[0]] = z[2]; }); return r; }
+  function heroPic(k6, hid, dy, cls, cl) {
+    const fb = `<span class="hpic fb ${cl || ''}" title="${esc(cls || '')}">${CLS_IC[cls] || '🧝'}</span>`;
+    k6 = String(k6 || '').replace(/_sit$/, ''); const H = window.HeroSprites; if (!k6 || !H || !H.has(k6)) return fb;
+    const key = k6 + '|' + (hid || '') + '|' + (dy || '');
+    let u = PIC.get(key);
+    if (!u) { try { const sp = H.get(k6, hid, dy, rampsOf()); if (!sp) return fb; u = sp.c.toDataURL(); if (PIC.size > 300) PIC.clear(); PIC.set(key, u); } catch (e) { return fb; } }
+    return `<img class="hpic ${cl || ''}" src="${u}" alt="${esc(cls || '')}">`;
+  }
+  function mobPic(id, flt, cl) {
+    id = String(id || ''); if (!MOBS.includes(id)) return `<span class="mpic fb ${cl || ''}">👾</span>`;
+    return `<img class="mpic ${cl || ''}" src="img/mob/${id}.${id === 'mimic' ? 'png' : 'webp'}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'mpic fb',textContent:'👾'}))"${/^[a-z0-9().,\s-]*$/i.test(flt || '') && flt ? ` style="filter:${flt}"` : ''}>`;
+  }
+  const hpLine = (p) => `<span class="fhp"><i style="width:${Math.max(0, Math.min(100, +p || 0))}%"></i></span>`;
+  function myFight(me) {
+    const f = me && me.fm; if (!f) return '';
+    return `<div class="fight me"><span class="fwho">${heroPic(me.k6, me.hair, me.dy, me.cls)}</span><span class="fvs">⚔️</span><span class="fmob">${mobPic(f[0])}<b>${esc(f[1])}</b>${hpLine(f[2] / (f[3] || 1) * 100)}<small>${esc(f[2])} / ${esc(f[3])}${f[4] ? ' · отряд' : ''}</small></span></div>`;
+  }
+  function fightsHtml(l) {
+    if (l === 'boss') { const b = state.boss; if (!b || !b.key) return '';
+      const L = (state.locs && state.locs.boss) || [];
+      return `<div class="fights"><h2>👹 ${esc(b.name || 'Босс')}</h2><div class="fight boss">${mobPic(b.key, b.flt, 'big')}<span class="fmob">${b.mhp ? hpLine(b.hp / b.mhp * 100) + `<small>${esc(b.hp)} / ${esc(b.mhp)}</small>` : `<small>${b.ph === 'wait' ? 'ещё не пришёл' : b.ph === 'signup' ? 'идёт запись' : ''}</small>`}</span></div>`
+        + (L.length ? `<div class="fteam">${L.slice(0, 30).map(t => `<span title="${esc(t[0])}">${heroPic(t[6], t[7], t[8], t[3], 'sm')}<em>${esc(t[0])}</em></span>`).join('')}</div>` : '') + '</div>'; }
+    const L = ((state.locs && state.locs[l]) || []).filter(t => t[12]);
+    if (!L.length) return l === 'forest' ? '<div class="fights"><h2>⚔️ Бои</h2><div class="dim">сейчас никто не бьётся</div></div>' : '';
+    const me = user && user.login;
+    return `<div class="fights"><h2>⚔️ Бои</h2>${L.slice(0, 20).map(t => `<div class="fight${String(t[0]).toLowerCase() === me ? ' mine' : ''}"><span class="fwho">${heroPic(t[6], t[7], t[8], t[3], 'sm')}<em>${esc(t[0])}</em></span><span class="fvs">→</span><span class="fmob">${mobPic(t[12], '', 'sm')}${hpLine(t[13])}</span></div>`).join('')}</div>`;
+  }
+  if (window.HeroSprites) HeroSprites.onReady(() => { PIC.clear(); if (!SPRITES) { clearTimeout(window.__picT); window.__picT = setTimeout(() => { if (!bcBusy()) render(); }, 120); } else draw(); });
   function card(me) {
     if (!me) return `<div class="hcard"><b>Героя пока нет.</b><p class="note">Напишите в чат стрима <b>!rpg</b> — герой появится, и вы увидите его здесь.</p></div>`;
     const cd = me.cd > 0 ? `через ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : 'можно';
     const veg = Object.keys(VEG).map(k => `<span class="hv" title="${k}">${vegImg(k, VEG[k])}${me.veg && me.veg[k] || 0}</span>`).join('') + (me.wd !== undefined ? `<span class="hv hwd" title="сорняки (для готовки и обмена)">🌿${+me.wd || 0}</span>` : ''); // v7panel25: сорняки
     const rw = me.rw || {}, cook = +rw.cook || 0;
     const today = [`поход ${cd === 'можно' ? '✓' : cd}`].concat(cook > 0 ? [`готовка ${cook}`] : []).concat(+rw.quest > 0 ? [`квест ${rw.quest}`] : []).concat(me.q ? ['есть квест'] : []);
-    return `<div class="hcard"><div class="hname">★ ${esc(me.n)} <small>${esc(me.cn)} · ур. ${esc(me.lv)}</small></div>
-      <div class="hst">${esc(ST[me.st] || me.st)} · ${esc(LOCN[me.loc] || me.loc)}${me.gd ? ' · гильдия: ' + esc(me.gd) : ''}</div>
+    return `<div class="hcard"><div class="hhead">${heroPic(me.k6, me.hair, me.dy, me.cls, 'big')}<div><div class="hname">★ ${esc(me.n)} <small>${esc(me.cn)} · ур. ${esc(me.lv)}</small></div>
+      <div class="hst">${esc(ST[me.st] || me.st)} · ${esc(LOCN[me.loc] || me.loc)}${me.gd ? ' · гильдия: ' + esc(me.gd) : ''}</div></div></div>${myFight(me)}
       ${bar(me.hp, me.mhp, 'hp')}${me.mmp ? bar(me.mp || 0, me.mmp, 'mp') : ''}${bar(me.xp, me.xpN, 'xp')}
       <div class="hgrid"><span>💰 ${esc(me.gold)}</span><span>🌱 ${esc(me.sd || 0)} · ✨ ${esc(me.sdp || 0)}</span></div>
       <div class="hveg">${veg}</div>
@@ -240,7 +272,7 @@
     if (on && l === 'boss' && state.boss) { const b = state.boss; info += ' · ' + (b.ph === 'wait' ? `босс ${esc(b.name || '')} через ${Math.ceil(b.in / 60000)} мин` : b.ph === 'signup' ? `запись на босса: ${b.n}` : b.ph === 'fight' ? 'идёт бой с боссом!' : 'босс повержен'); }
     $('linfo').innerHTML = info;
     const ol = $('logl'), stick = !ol || ol.scrollTop + ol.clientHeight >= ol.scrollHeight - 8, oldTop = ol ? ol.scrollTop : 0;
-    if (on && bcBusy()) bcHold = true; else $('hero').innerHTML = on ? card(state.me) + (tab === 'town' ? upHtml() : tab === 'garden' ? foodHtml(state.me) : '') + (tab === 'forest' || tab === 'boss' || tab === 'me' ? logHtml(state.me) : '') : '';
+    if (on && bcBusy()) bcHold = true; else $('hero').innerHTML = on ? card(state.me) + fightsHtml(l) + (tab === 'town' ? upHtml() : tab === 'garden' ? foodHtml(state.me) : '') + (tab === 'forest' || tab === 'boss' || tab === 'me' ? logHtml(state.me) : '') : '';
     if (window.PanelActions) PanelActions.render($('acts'), { online: !!on, tab, me: on ? state.me : null, ref: state && state.ref });
     const ll = $('logl'); if (ll) ll.scrollTop = stick ? ll.scrollHeight : oldTop; // прокрутка: внизу — следим за новыми, иначе остаёмся где читали
     draw();
@@ -257,8 +289,9 @@
     names.forEach((n, i) => { const l = ls[i], cl = i === 0 ? 'warrior' : CL[i % 6], g = i % 2 ? 'f' : 'm', p = (pos[l] || [])[used[l] = (used[l] || 0)] || [R(300, 2260), R(1000, 1300)]; used[l]++;
       const sit = l === 'camp' && i === 4, key = (i === 0 ? 'moon' : GU[i % 6]) + '_' + g + '_' + cl + (sit ? '_sit' : '');
       locs[l].push([n, p[0], p[1], cl, R(1, 20), sit ? 'sleep' : l, i === 9 ? 'nosuch_sprite' : key, /assassin|paladin/.test(cl) ? '' : HR[i % 8], i === 7 ? '#3a8ad8' : '', i % 3 === 1 ? 1 : 0, SC[l], g]); });
-    state = { type: 'state', online: !/offline=1/.test(location.search), t: Date.now(), cam: 'camp', locs, boss: { ph: 'wait', name: 'Тролль', in: 540000, n: 0 },
-      me: { n: 'demo_viewer', cls: 'warrior', cn: 'Воин', lv: 7, xp: 210, xpN: 350, hp: 86, mhp: 120, gold: 340, pot: 2, food: 3, sd: 4, sdp: 1, gd: 'Лунные тени', gid: 'moon', eqOwn: ['w_sword1'], eqOn: { weapon: 'w_sword1' }, tt: ['Огородник', 'Гроза крыс'], ttOn: 'Огородник', ttOn: 'Огородник', hair: 'black', of: ['plant2', 'carrot2', 'harv4'], pty: false, st: 'camp', loc: 'camp', mode: 'idle',
+    if (/fight=1/.test(location.search)) { locs.forest.push(['demo_viewer', 1300, 1200, 'warrior', 7, 'forest', 'moon_m_warrior', 'black', '', 0, 120, 'm', 'goblin', 60], ['mira77', 1500, 1220, 'mage', 5, 'forest', 'fire_f_mage', 'red', '', 0, 120, 'f', 'wolf', 35], ['gnomik', 1700, 1180, 'priest', 3, 'forest', 'none_m_priest', 'blond', '', 0, 120, 'm', 'mimic', 90], ['oddone', 1900, 1180, 'archer', 2, 'forest', 'nosuch', '', '', 0, 120, 'm', 'dragon', 50]); locs.boss.push(['ironpaw', 1, 1, 'paladin', 9, 'boss', 'gold_f_paladin', '', '', 0, 120, 'f'], ['redhood', 1, 1, 'assassin', 8, 'boss', 'silver_m_assassin', '', '#3a8ad8', 0, 120, 'm']); }
+    state = { type: 'state', online: !/offline=1/.test(location.search), t: Date.now(), cam: 'camp', locs, boss: /fight=1/.test(location.search) ? { ph: 'fight', name: 'Проклятый огр', key: 'ogre_boss', flt: 'hue-rotate(220deg) saturate(.8) brightness(.9)', hp: 4200, mhp: 9000, in: 0, n: 2 } : { ph: 'wait', name: 'Тролль', in: 540000, n: 0 },
+      me: { k6: 'moon_m_warrior', dy: '', fm: /fight=1/.test(location.search) ? ['goblin', 'Гоблин', 31, 52, 0] : null, n: 'demo_viewer', cls: 'warrior', cn: 'Воин', lv: 7, xp: 210, xpN: 350, hp: 86, mhp: 120, gold: 340, pot: 2, food: 3, sd: 4, sdp: 1, gd: 'Лунные тени', gid: 'moon', eqOwn: ['w_sword1'], eqOn: { weapon: 'w_sword1' }, tt: ['Огородник', 'Гроза крыс'], ttOn: 'Огородник', ttOn: 'Огородник', hair: 'black', of: ['plant2', 'carrot2', 'harv4'], pty: false, st: 'camp', loc: 'camp', mode: 'idle',
         veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, wd: 7, rw: { hike: 1, cook: 1, quest: 2 }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null, iv: { m: [['🪵', 'Дерево', 12], ['🪨', 'Камень', 5], ['⛓️', 'Железо', 1]], f: [['🥗', 'Овощной салат', 1], ['crop_carrot', 'Тушёная морковь (активно)', 8]], p: [['❤️', 'Зелье лечения', 2]], c: [] } },
       ref: /bc=1/.test(location.search) ? Object.assign({}, MOCK_REF, { bc: 5 }) : MOCK_REF };
   }
