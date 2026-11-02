@@ -241,6 +241,27 @@
     const me = user && user.login;
     return `<div class="fights"><h2>⚔️ Бои</h2>${L.slice(0, 20).map(t => `<div class="fight${String(t[0]).toLowerCase() === me ? ' mine' : ''}"><span class="fwho">${heroPic(t[6], t[7], t[8], t[3], 'sm')}<em>${esc(t[0])}</em></span><span class="fvs">→</span><span class="fmob">${mobPic(t[12], '', 'sm')}${hpLine(t[13])}</span></div>`).join('')}</div>`;
   }
+  // v7panel30: блок «Пати» — набор (очередь), отряды в походе, свой герой подсвечен. Данные: state.ref.pty (game.js panelParty).
+  const PPH = { walk: 'идут в лес', approach: 'подходят к мобу', spawn: 'ищут моба', fight: 'бой', dying: 'моб падает', back: 'возвращаются' };
+  function partyHtml() {
+    const P = state && state.ref && state.ref.pty; if (P === undefined) return ''; const me = user && String(user.login).toLowerCase();
+    if (!P) return '<div class="pty"><h2>🛡 Пати</h2><div class="dim">пати-походы выключены</div></div>';
+    const tup = {}; Object.values(state.locs || {}).forEach(L => (L || []).forEach(t => { tup[String(t[0]).toLowerCase()] = t; }));
+    const mate = (n, dead) => { const t = tup[String(n).toLowerCase()], mine = String(n).toLowerCase() === me;
+      return `<span class="pm${mine ? ' mine' : ''}${dead ? ' out' : ''}" title="${esc(n)}${dead ? ' — выбыл' : ''}">${t ? heroPic(t[6], t[7], t[8], t[3], 'sm') : '<span class="hpic sm fb">🙂</span>'}<em>${esc(n)}</em></span>`; };
+    const q = P.q || [], qn = +P.qn || q.length, sz = +P.sz || 3, inQ = q.findIndex(n => String(n).toLowerCase() === me);
+    let h = '';
+    if (qn) { for (let i = 0; i < Math.max(q.length, 1); i += sz) { const sq = q.slice(i, i + sz), first = !i;
+        const st = first ? (P.lane ? 'отряд собран — ждёт свободную тропу' : qn >= sz ? 'отряд собран — уходит' : P.left > 0 ? `старт через ${Math.floor(P.left / 60)}:${String(P.left % 60).padStart(2, '0')} или когда наберётся ${sz}` : 'уходит сейчас') : 'ждёт, пока уйдёт первый отряд';
+        h += `<div class="pgrp q"><div class="ph">⏳ ${first ? 'Набор' : 'Следующий отряд'}: ${sq.length}/${sz} · ${st}</div><div class="fteam">${sq.map(n => mate(n)).join('')}${Array.from({ length: sz - sq.length }, () => '<span class="pm free"><span class="hpic sm fb">＋</span><em>место</em></span>').join('')}</div></div>`; }
+      if (qn > q.length) h += `<div class="dim">и ещё ${qn - q.length} в очереди</div>`; }
+    let myGo = -1;
+    (P.go || []).forEach((g, i) => { const us = g[0] || [], al = String(g[1] || ''); if (us.some(n => String(n).toLowerCase() === me)) myGo = i;
+      h += `<div class="pgrp go${myGo === i ? ' mine' : ''}"><div class="ph">⚔️ В походе · волна ${esc(g[3])}/${esc(P.wv || 3)} · ${esc(PPH[g[2]] || g[2] || '')}</div><div class="fteam">${us.map((n, j) => mate(n, al[j] === '0')).join('')}</div></div>`; });
+    const mine = inQ >= 0 ? `Вы в наборе: место ${inQ % sz + 1} из ${sz}${inQ >= sz ? ' (следующий отряд)' : ''}` : myGo >= 0 ? 'Ваш отряд в походе' : '';
+    if (!h) h = `<div class="dim">набор не идёт — нажмите «Пати-поход», чтобы начать (нужно от ${esc(P.mn || 2)} до ${sz})</div>`;
+    return `<div class="pty"><h2>🛡 Пати</h2>${mine ? `<div class="pme">★ ${mine}</div>` : ''}${h}</div>`;
+  }
   if (window.HeroSprites) HeroSprites.onReady(() => { PIC.clear(); if (!SPRITES) { clearTimeout(window.__picT); window.__picT = setTimeout(() => { if (!bcBusy()) render(); }, 120); } else draw(); });
   function card(me) {
     if (!me) return `<div class="hcard"><b>Героя пока нет.</b><p class="note">Напишите в чат стрима <b>!rpg</b> — герой появится, и вы увидите его здесь.</p></div>`;
@@ -272,7 +293,7 @@
     if (on && l === 'boss' && state.boss) { const b = state.boss; info += ' · ' + (b.ph === 'wait' ? `босс ${esc(b.name || '')} через ${Math.ceil(b.in / 60000)} мин` : b.ph === 'signup' ? `запись на босса: ${b.n}` : b.ph === 'fight' ? 'идёт бой с боссом!' : 'босс повержен'); }
     $('linfo').innerHTML = info;
     const ol = $('logl'), stick = !ol || ol.scrollTop + ol.clientHeight >= ol.scrollHeight - 8, oldTop = ol ? ol.scrollTop : 0;
-    if (on && bcBusy()) bcHold = true; else $('hero').innerHTML = on ? card(state.me) + fightsHtml(l) + (tab === 'town' ? upHtml() : tab === 'garden' ? foodHtml(state.me) : '') + (tab === 'forest' || tab === 'boss' || tab === 'me' ? logHtml(state.me) : '') : '';
+    if (on && bcBusy()) bcHold = true; else $('hero').innerHTML = on ? card(state.me) + fightsHtml(l) + (tab === 'forest' || tab === 'camp' || tab === 'me' ? partyHtml() : '') + (tab === 'town' ? upHtml() : tab === 'garden' ? foodHtml(state.me) : '') + (tab === 'forest' || tab === 'boss' || tab === 'me' ? logHtml(state.me) : '') : '';
     if (window.PanelActions) PanelActions.render($('acts'), { online: !!on, tab, me: on ? state.me : null, ref: state && state.ref });
     const ll = $('logl'); if (ll) ll.scrollTop = stick ? ll.scrollHeight : oldTop; // прокрутка: внизу — следим за новыми, иначе остаёмся где читали
     draw();
@@ -294,6 +315,10 @@
       me: { k6: 'moon_m_warrior', dy: '', fm: /fight=1/.test(location.search) ? ['goblin', 'Гоблин', 31, 52, 0] : null, n: 'demo_viewer', cls: 'warrior', cn: 'Воин', lv: 7, xp: 210, xpN: 350, hp: 86, mhp: 120, gold: 340, pot: 2, food: 3, sd: 4, sdp: 1, gd: 'Лунные тени', gid: 'moon', eqOwn: ['w_sword1'], eqOn: { weapon: 'w_sword1' }, tt: ['Огородник', 'Гроза крыс'], ttOn: 'Огородник', ttOn: 'Огородник', hair: 'black', of: ['plant2', 'carrot2', 'harv4'], pty: false, st: 'camp', loc: 'camp', mode: 'idle',
         veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, wd: 7, rw: { hike: 1, cook: 1, quest: 2 }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null, iv: { m: [['🪵', 'Дерево', 12], ['🪨', 'Камень', 5], ['⛓️', 'Железо', 1]], f: [['🥗', 'Овощной салат', 1], ['crop_carrot', 'Тушёная морковь (активно)', 8]], p: [['❤️', 'Зелье лечения', 2]], c: [] } },
       ref: /bc=1/.test(location.search) ? Object.assign({}, MOCK_REF, { bc: 5 }) : MOCK_REF };
+    { const m = /[?&]pty=(\w+)/.exec(location.search); if (m) { const v = m[1]; // v7panel30: макет пати — q (набор), go (в походе), none (пусто)
+      state.ref = Object.assign({}, state.ref, { pty: v === 'none' ? { sz: 3, mn: 2, wv: 3, q: [], qn: 0, left: -1, lane: 0, go: [] }
+        : v === 'go' ? { sz: 3, mn: 2, wv: 3, q: ['lisa_fox'], qn: 1, left: 142, lane: 0, go: [[['demo_viewer', 'mira77', 'gnomik'], '110', 'fight', 2]] }
+        : { sz: 3, mn: 2, wv: 3, q: ['ironpaw', 'demo_viewer', 'kotik_mag', 'sunny_bard'], qn: 4, left: 0, lane: 1, go: [[['oak_knight', 'redhood'], '11', 'walk', 1]] } }); } }
   }
   const MOCK_REF = { guilds: [['fire', 'Огненный клинок', '#d9482b'], ['silver', 'Серебряный лист', '#9fc7d6'], ['moon', 'Лунные тени', '#8a6ad8'], ['gold', 'Золотой колос', '#e8b830']],
     hair: [['black', 'чёрный', [[14, 12, 14], [40, 36, 42], [82, 76, 86]]], ['darkbrown', 'тёмно-каштановый', [[24, 14, 10], [60, 38, 26], [104, 72, 50]]], ['chestnut', 'каштановый', null], ['lightbrown', 'русый', [[70, 52, 34], [132, 106, 74], [190, 164, 122]]], ['blond', 'блонд', [[118, 86, 40], [202, 162, 86], [246, 224, 152]]], ['red', 'рыжий', [[88, 28, 10], [178, 72, 26], [238, 140, 66]]], ['grey', 'седой', [[78, 78, 84], [150, 150, 158], [216, 216, 224]]]], hairPrice: 250, bsLv: 1,
