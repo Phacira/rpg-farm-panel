@@ -60,7 +60,10 @@
   function curLoc() { const me = state && state.me; return tab === 'me' ? (me ? me.loc : (state && state.cam) || 'camp') : tab; }
   // v7panel3b: на превью — спрайты героев как в игре (класс, пол, волосы, окраска сета, взгляд), свой — со звёздочкой и подсветкой; нет спрайта → точка
   // v7panel4 п.11: спрайты на превью выключены (лагали и не совпадали по цвету с игрой) — цветные точки класса. Код спрайтов оставлен: SPRITES = true вернёт их.
-  const SPRITES = false;
+  // v7panel27: спрайты на карте снова включены — обрезанные по фигуре, фиксированного экранного размера, без наложения; нет спрайта → точка
+  const SPRITES = true;
+  const MOBS = ['goblin', 'slime', 'wolf', 'rat', 'tree_spirit', 'ogre_boss', 'queen_boss', 'treant_king_boss', 'mimic'];
+  const MIM = {};
   // плавное движение точек: позиция догоняет цель из снимка (~раз в секунду), кадры только пока кто-то движется
   const POS = {}; let anim = 0, lastL = '';
   function animStep() { anim = 0; draw(true); }
@@ -75,7 +78,7 @@
     const css = c.clientWidth || w, u = w / css; // пикселей холста на 1 css-пиксель — подписи всегда ~13 px на экране
     let moving = false; const seen = {};
     const ramps = {}; ((state.ref && state.ref.hair) || []).forEach(z => { if (z[2]) ramps[z[0]] = z[2]; });
-    const HS = SPRITES ? window.HeroSprites : null, labels = [], stat = { spr: 0, dot: 0, mine: 0, lab: 0, fs: 0 };
+    const HS = SPRITES ? window.HeroSprites : null, items = [], labels = [], stat = { spr: 0, dot: 0, mine: 0, lab: 0, fs: 0 };
     for (const t of list) {
       const [n, hx, hy, cls, lv, st, k6, hid, dy, fl, hh] = t, mine = String(n).toLowerCase() === me;
       let P = POS[n]; if (!P) P = POS[n] = { x: hx, y: hy }; seen[n] = 1;
@@ -83,24 +86,44 @@
       if (Math.abs(hx - P.x) > 2 || Math.abs(hy - P.y) > 2) moving = true; else { P.x = hx; P.y = hy; }
       const px = Math.round(P.x * k), py = Math.round(P.y * k);
       const sp = HS && k6 ? HS.get(k6, hid, dy, ramps) : null;
-      let top;
+      const mob = t[12], mim = mob && MOBS.includes(String(mob)) ? mobImg(mob) : null;
+      items.push({ n, px, py, cls, lv, st, fl, sp, mine, mob, mim, mhp: t[13] });
+    }
+    // раскладка без наложения: фиксированная высота фигуры ~34 css-px; при пересечении — сдвиг вбок/вверх
+    const HH = Math.round(Math.max(34 * u, h * .13)), boxes = [];
+    items.sort((a, b) => b.mine - a.mine);
+    for (const it of items) {
+      const sp = it.sp, wpx = sp ? Math.max(1, Math.round(sp.bb[2] * HH / sp.bb[3])) : 12 * u, hpx = sp ? HH : 12 * u;
+      let bx = it.px, by = it.py;
+      const hit = (X, Y) => boxes.some(o => X - wpx / 2 < o[2] && X + wpx / 2 > o[0] && Y - hpx < o[3] && Y > o[1]);
+      if (hit(bx, by)) { const st = Math.max(wpx * .8, 10 * u); let ok = false;
+        for (let ring = 1; ring < 7 && !ok; ring++) for (const [dx, dy2] of [[1, 0], [-1, 0], [.5, -.6], [-.5, -.6], [1, -.6], [-1, -.6], [0, -.9], [.5, .4], [-.5, .4]]) { const X = it.px + dx * st * ring, Y = it.py + dy2 * hpx * ring * .7; if (!hit(X, Y)) { bx = X; by = Y; ok = true; break; } } }
+      bx = Math.round(Math.max(wpx / 2, Math.min(w - wpx / 2, bx))); by = Math.round(Math.max(hpx + 16 * u, Math.min(h, by)));
+      boxes.push([bx - wpx / 2, by - hpx, bx + wpx / 2, by]);
+      const { mine, st } = it; let top;
       if (sp) {
-        const f = (hh || 120) * k / 240 / sp.sc, dw = Math.max(1, Math.round(sp.w * f)), dh = Math.max(1, Math.round(sp.h * f)), ax = sp.fx * f, ay = (sp.sit ? sp.sy : sp.fy) * f;
-        x.save(); x.globalAlpha = .28; x.fillStyle = '#1a0e06'; x.beginPath(); x.ellipse(px, py + 1, dw * .42, Math.max(2, dh * .06), 0, 0, 7); x.fill(); x.restore();
-        if (mine) { x.save(); x.strokeStyle = '#ffd27a'; x.lineWidth = Math.max(2, 2.5 * u); x.globalAlpha = .9; x.beginPath(); x.ellipse(px, py + 1, dw * .55, Math.max(4, dh * .1), 0, 0, 7); x.stroke(); x.restore(); }
-        x.save(); x.translate(px, sp.sit ? py : py); if (fl) x.scale(-1, 1); if (st === 'sleep') x.globalAlpha = .75;
-        if (mine) { x.shadowColor = '#ffd27a'; x.shadowBlur = 10 * u; }
-        x.drawImage(sp.c, Math.round(-ax), Math.round(-ay), dw, dh); x.restore();
-        top = py - ay; stat.spr++; if (mine) stat.mine = 1;
+        x.save(); x.globalAlpha = .3; x.fillStyle = '#1a0e06'; x.beginPath(); x.ellipse(bx, by, wpx * .45, Math.max(2, 3 * u), 0, 0, 7); x.fill(); x.restore();
+        if (mine) { x.save(); x.strokeStyle = '#ffd27a'; x.lineWidth = Math.max(2, 2 * u); x.beginPath(); x.ellipse(bx, by, wpx * .6, Math.max(4, 5 * u), 0, 0, 7); x.stroke(); x.restore(); }
+        x.save(); x.translate(bx, by); if (it.fl) x.scale(-1, 1); if (st === 'sleep') x.globalAlpha = .7;
+        if (mine) { x.shadowColor = '#ffd27a'; x.shadowBlur = 8 * u; }
+        x.drawImage(sp.crop, Math.round(-wpx / 2), -hpx, wpx, hpx); x.restore();
+        top = by - hpx; stat.spr++; if (mine) stat.mine = 1;
       } else {
         const r = (mine ? 7 : 5) * Math.max(1, u * .8);
-        x.beginPath(); x.arc(px, py - r, r, 0, 7); x.fillStyle = mine ? '#ffd27a' : st === 'sleep' ? '#8a8aa8' : (CLSC[cls] || '#ffffff'); x.fill(); x.lineWidth = 2; x.strokeStyle = '#000'; x.stroke();
-        top = py - 2 * r; stat.dot++; if (mine) stat.mine = 1;
+        x.beginPath(); x.arc(bx, by - r, r, 0, 7); x.fillStyle = mine ? '#ffd27a' : st === 'sleep' ? '#8a8aa8' : (CLSC[it.cls] || '#ffffff'); x.fill(); x.lineWidth = 2; x.strokeStyle = '#000'; x.stroke();
+        top = by - 2 * r; stat.dot++; if (mine) stat.mine = 1;
       }
-      labels.push({ mine, t: (mine ? '★ ' : '') + n + ' · ' + (/^\d+$/.test(String(lv)) ? 'ур.' + lv : lv), x: px, y: top - 4 * u });
+      // моб, с которым бьётся герой — маленький спрайт рядом (сторона по взгляду)
+      if (it.mob) { const mh = Math.round(HH * .75), side = it.fl ? -1 : 1, mx = bx + side * (wpx / 2 + 4 * u), m = it.mim;
+        if (m && m.complete && m.naturalWidth) { const mw = Math.round(m.naturalWidth * mh / m.naturalHeight), X0 = side > 0 ? mx : mx - mw; x.drawImage(m, X0, by - mh, mw, mh); stat.mob = (stat.mob || 0) + 1;
+          const p = Math.max(0, Math.min(100, +it.mhp || 0)); x.fillStyle = 'rgba(0,0,0,.7)'; x.fillRect(X0, by + 2 * u, mw, 3 * u); x.fillStyle = '#e04a3a'; x.fillRect(X0, by + 2 * u, mw * p / 100, 3 * u); }
+        else { x.font = `${Math.round(16 * u)}px system-ui`; x.textAlign = side > 0 ? 'left' : 'right'; x.textBaseline = 'bottom'; x.fillText('👾', mx, by); } }
+      const { n, lv } = it;
+      const px = bx;
+      labels.push({ mine, t: (mine ? '★ ' : '') + n + ' · ' + (/^\d+$/.test(String(lv)) ? 'ур.' + lv : lv), x: px, y: top - 3 * u });
     }
     // подписи поверх всех героев; свой — всегда, чужие — если не налезают на уже нарисованные
-    const fs = Math.round(13 * u), placed = []; x.font = `600 ${fs}px system-ui, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'bottom'; x.lineJoin = 'round';
+    const fs = Math.round(11 * u), placed = []; x.font = `600 ${fs}px system-ui, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'bottom'; x.lineJoin = 'round';
     labels.sort((a, b) => b.mine - a.mine);
     for (const L of labels) {
       const tw = x.measureText(L.t).width, r = [L.x - tw / 2 - 3 * u, L.y - fs - 2 * u, L.x + tw / 2 + 3 * u, L.y + 2 * u];
@@ -211,15 +234,15 @@
   document.addEventListener('click', e => { const b = e.target.closest('.logf button'); if (b && !b.disabled) { logMine = b.dataset.lf === '1'; render(); } });
   // v7panel26: картинки героев (спрайт heroes6 из игры + волосы + окраска сета) и мобов в карточке и блоке боя. Нет картинки — значок, страница не ломается.
   const CLS_IC = { warrior: '⚔️', archer: '🏹', mage: '🔮', priest: '✝️', paladin: '🛡️', assassin: '🗡️' };
-  const MOBS = ['goblin', 'slime', 'wolf', 'rat', 'tree_spirit', 'ogre_boss', 'queen_boss', 'treant_king_boss', 'mimic'];
   const PIC = new Map();
+  function mobImg(id) { if (!MIM[id]) { const i = new Image(); i.onload = () => draw(); i.src = 'img/mob/' + id + (id === 'mimic' ? '.png' : '.webp'); MIM[id] = i; } return MIM[id]; }
   function rampsOf() { const r = {}; ((state && state.ref && state.ref.hair) || []).forEach(z => { if (z[2]) r[z[0]] = z[2]; }); return r; }
   function heroPic(k6, hid, dy, cls, cl) {
     const fb = `<span class="hpic fb ${cl || ''}" title="${esc(cls || '')}">${CLS_IC[cls] || '🧝'}</span>`;
     k6 = String(k6 || '').replace(/_sit$/, ''); const H = window.HeroSprites; if (!k6 || !H || !H.has(k6)) return fb;
     const key = k6 + '|' + (hid || '') + '|' + (dy || '');
     let u = PIC.get(key);
-    if (!u) { try { const sp = H.get(k6, hid, dy, rampsOf()); if (!sp) return fb; u = sp.c.toDataURL(); if (PIC.size > 300) PIC.clear(); PIC.set(key, u); } catch (e) { return fb; } }
+    if (!u) { try { const sp = H.get(k6, hid, dy, rampsOf()); if (!sp) return fb; u = (sp.crop || sp.c).toDataURL(); if (PIC.size > 300) PIC.clear(); PIC.set(key, u); } catch (e) { return fb; } }
     return `<img class="hpic ${cl || ''}" src="${u}" alt="${esc(cls || '')}">`;
   }
   function mobPic(id, flt, cl) {
@@ -241,7 +264,7 @@
     const me = user && user.login;
     return `<div class="fights"><h2>⚔️ Бои</h2>${L.slice(0, 20).map(t => `<div class="fight${String(t[0]).toLowerCase() === me ? ' mine' : ''}"><span class="fwho">${heroPic(t[6], t[7], t[8], t[3], 'sm')}<em>${esc(t[0])}</em></span><span class="fvs">→</span><span class="fmob">${mobPic(t[12], '', 'sm')}${hpLine(t[13])}</span></div>`).join('')}</div>`;
   }
-  if (window.HeroSprites) HeroSprites.onReady(() => { PIC.clear(); if (!SPRITES) { clearTimeout(window.__picT); window.__picT = setTimeout(() => { if (!bcBusy()) render(); }, 120); } else draw(); });
+  if (window.HeroSprites) HeroSprites.onReady(() => { PIC.clear(); draw(); clearTimeout(window.__picT); window.__picT = setTimeout(() => { if (!bcBusy()) render(); }, 120); });
   function card(me) {
     if (!me) return `<div class="hcard"><b>Героя пока нет.</b><p class="note">Напишите в чат стрима <b>!rpg</b> — герой появится, и вы увидите его здесь.</p></div>`;
     const cd = me.cd > 0 ? `через ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : 'можно';

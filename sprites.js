@@ -36,7 +36,13 @@
     if (!ok(im) || (mk && !ok(mk) && !mk.bad)) return null;
     let c = canvasOf(im);
     try { if (dy) dye(c, dy); if (mk && ok(mk)) hair(c, mk, ramp); } catch (e) { c = canvasOf(im); }
-    const r = { c, w: m[0], h: m[1], fx: m[2], fy: m[3], sy: m[4], sit: /_sit$/.test(k), sc: window.HERO_SPR.sc };
+    // v7panel27: рамка фигуры без пустых полей (по непрозрачным пикселям)
+    let bb = null; try { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
+      for (let y = 0; y < c.height; y++) for (let xx = 0; xx < c.width; xx++) if (d[(y * c.width + xx) * 4 + 3] > 24) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      if (x1 >= x0) bb = [x0, y0, x1 + 1 - x0, y1 + 1 - y0]; } catch (e) {}
+    if (!bb) bb = [0, 0, c.width, c.height];
+    const cc = document.createElement('canvas'); cc.width = bb[2]; cc.height = bb[3]; const cx = cc.getContext('2d'); cx.imageSmoothingEnabled = false; cx.drawImage(c, bb[0], bb[1], bb[2], bb[3], 0, 0, bb[2], bb[3]);
+    const r = { c, crop: cc, bb, w: m[0], h: m[1], fx: m[2], fy: m[3], sy: m[4], sit: /_sit$/.test(k), sc: window.HERO_SPR.sc };
     if (OUT.size > 400) OUT.clear(); OUT.set(key, r); return r;
   }
   window.HeroSprites = { get, onReady: f => { onReady = f; }, has: k => !!meta(k) };
