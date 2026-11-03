@@ -176,8 +176,9 @@
   function bedHtml(me) {
     const b = me && me.bed;
     if (!b) return `<div class="upbox"><h2>🌱 Грядка</h2><div class="dim" style="padding:6px 10px;font-size:15px">данные грядки ещё не пришли (обновите пульт)</div></div>`;
-    const ic = b.st === 2 ? '🌾' : b.st === 1 ? '🌱' : '🟫';
-    return `<div class="upbox"><h2>${ic} Грядка</h2><div class="dim" style="padding:6px 10px;font-size:15px">${esc(b.txt || '')}</div></div>`;
+    const ic = b.bugs ? '🐞' : b.st === 2 ? '🌾' : b.st === 1 ? '🌱' : '🟫';
+    const style = b.bugs ? 'color:#ff9c7a;font-weight:600' : '';
+    return `<div class="upbox"><h2>${ic} Грядка</h2><div class="dim" style="padding:6px 10px;font-size:15px;${style}">${esc(b.txt || '')}</div></div>`;
   }
   function foodHtml(me) {
     const ref = (state && state.ref) || {}, L = ref.recipes || [];
