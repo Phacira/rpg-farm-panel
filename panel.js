@@ -114,7 +114,7 @@
   window.addEventListener('resize', () => draw());
   function bar(v, m, cls) { const p = Math.max(0, Math.min(100, m ? v / m * 100 : 0)); return `<div class="bar ${cls}"><i style="width:${p.toFixed(0)}%"></i><span>${v} / ${m}</span></div>`; }
   // v7panel8 п.9: инвентарь своего героя (данные от игры: me.iv + eqOn/eqOwn, названия вещей — ref.eq)
-  const SLOT_IC = { weapon: '⚔️', armor: '🥋', offhand: '🛡️', trinket: '📿', helm: '⛑️' };
+  const SLOT_IC = { weapon: '⚔️', armor: '🥋', offhand: '🛡️', trinket: '📿', ring1: '💍', ring2: '💍', helm: '⛑️' };
   // v7panel11: коды спрайтов из игры (crop_carrot…) → смайлики; «(активно)» — отдельной пометкой
   const ICON_MAP = { crop_carrot: '🥕', crop_cucumber: '🥒', crop_eggplant: '🍆', crop_pumpkin: '🎃', crop_tomato: '🍅', potion: '🧪', food: '🍲' };
   const VEG_BY_EMO = { '🥒': 'cucumber', '🍅': 'tomato', '🥕': 'carrot', '🍆': 'eggplant', '🎃': 'pumpkin' }; // v7panel11: овощи — настоящими спрайтами игры (img/veg/*.png из assets/crops)
@@ -173,6 +173,12 @@
   const FSH = [[/ \(само при HP < 35%\)/, ' (авто <35%)'], [/после каждой волны/, 'за волну'], [/после волны/, 'за волну'], [/до конца боя/, 'на бой'], [/ и сундук на ступень лучше/, ', сундук лучше'], [/шанс сундука/, 'сундук']];
   function shortFx(t) { let s = String(t || ''); FSH.forEach(([r, x]) => { s = s.replace(r, x); }); return s; }
   window.__shortFx = shortFx;
+  function bedHtml(me) {
+    const b = me && me.bed;
+    if (!b) return `<div class="upbox"><h2>🌱 Грядка</h2><div class="dim" style="padding:6px 10px;font-size:15px">данные грядки ещё не пришли (обновите пульт)</div></div>`;
+    const ic = b.st === 2 ? '🌾' : b.st === 1 ? '🌱' : '🟫';
+    return `<div class="upbox"><h2>${ic} Грядка</h2><div class="dim" style="padding:6px 10px;font-size:15px">${esc(b.txt || '')}</div></div>`;
+  }
   function foodHtml(me) {
     const ref = (state && state.ref) || {}, L = ref.recipes || [];
     if (!L.length) return '';
@@ -300,7 +306,7 @@
     if (on && l === 'boss' && state.boss) { const b = state.boss; info += ' · ' + (b.ph === 'wait' ? `босс ${esc(b.name || '')} через ${Math.ceil(b.in / 60000)} мин` : b.ph === 'signup' ? `запись на босса: ${b.n}` : b.ph === 'fight' ? 'идёт бой с боссом!' : 'босс повержен'); }
     $('linfo').innerHTML = info;
     const ol = $('logl'), stick = !ol || ol.scrollTop + ol.clientHeight >= ol.scrollHeight - 8, oldTop = ol ? ol.scrollTop : 0;
-    if (on && bcBusy()) bcHold = true; else $('hero').innerHTML = on ? card(state.me) + fightsHtml(l) + (tab === 'forest' || tab === 'camp' || tab === 'me' ? partyHtml() : '') + (tab === 'town' ? upHtml() : tab === 'garden' ? foodHtml(state.me) : '') + (tab === 'forest' || tab === 'boss' || tab === 'me' ? logHtml(state.me) : '') : '';
+    if (on && bcBusy()) bcHold = true; else $('hero').innerHTML = on ? card(state.me) + fightsHtml(l) + (tab === 'forest' || tab === 'camp' || tab === 'me' ? partyHtml() : '') + (tab === 'town' ? upHtml() : tab === 'garden' ? bedHtml(state.me) + foodHtml(state.me) : '') + (tab === 'forest' || tab === 'boss' || tab === 'me' ? logHtml(state.me) : '') : '';
     if (window.PanelActions) PanelActions.render($('acts'), { online: !!on, tab, me: on ? state.me : null, ref: state && state.ref });
     const ll = $('logl'); if (ll) ll.scrollTop = stick ? ll.scrollHeight : oldTop; // прокрутка: внизу — следим за новыми, иначе остаёмся где читали
     draw();
