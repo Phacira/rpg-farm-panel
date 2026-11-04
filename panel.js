@@ -44,16 +44,23 @@
     if (!CFG.RELAY_URL) { state = { online: false, nocfg: true }; return render(); }
     try { ws = new WebSocket(CFG.RELAY_URL.replace(/\/+$/, '') + '/viewer'); } catch (e) { return later(); }
     const me = ws;
-    ws.onopen = () => me.send(JSON.stringify({ type: 'auth', token: sessionStorage.getItem('tw_token') }));
+    ws.onopen = () => { lastMsg = Date.now(); me.send(JSON.stringify({ type: 'auth', token: sessionStorage.getItem('tw_token') })); };
     ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      lastMsg = Date.now(); if (m.type === 'pong') return;
+      if (m.type === 'hello' || m.type === 'state' || m.type === 'offline') { retry = 1500; if (m.type !== 'hello') msg(''); }
       if (m.type === 'cmd-res') { if (window.PanelActions) PanelActions.done(m); return; }
       if (m.type === 'state') state = m; else if (m.type === 'offline') state = { online: false, lastAt: m.lastAt };
-      else if (m.type === 'error') { if (m.code === 'bad-token') { logout(); msg('Вход устарел — войдите снова.'); } else msg(m.code === 'too-many' ? 'Пульт открыт в слишком многих вкладках.' : 'Ошибка: ' + m.code); }
+      else if (m.type === 'error') { if (m.code === 'bad-token') { logout(); msg('Вход устарел — войдите снова.'); } else msg(m.code === 'too-many' ? 'Эта вкладка отключена: пульт открыт в нескольких местах сразу. Обновите страницу, чтобы вернуть связь здесь.' : 'Ошибка: ' + m.code); }
       render(); };
-    ws.onclose = e => { if (ws !== me) return; ws = null; if (user && e.code !== 4003) later(); };
+    ws.onclose = e => { if (ws !== me) return; ws = null; if (user && e.code !== 4003 && e.code !== 4010) later(); };
   }
-  function later() { setTimeout(connect, retry); retry = Math.min(30000, retry * 2); }
-  setInterval(() => { if (ws && ws.readyState === 1) ws.send('{"type":"ping"}'); else retry = Math.max(1500, retry); }, 25000);
+  let lastMsg = Date.now(), laterT = 0;
+  function later() { if (laterT) return; laterT = setTimeout(() => { laterT = 0; connect(); }, retry); retry = Math.min(8000, Math.round(retry * 1.7)); }
+  // мёртвое соединение (сон, смена сети): сервер молчит дольше минуты — переподключаемся сами; ping каждые 20 с
+  const ensureConn = () => { if (mock || !user) return; if (ws && ws.readyState === 1 && Date.now() - lastMsg > 65000) { try { ws.close(); } catch (e) {} } if (!ws) { clearTimeout(laterT); laterT = 0; retry = 1500; connect(); } };
+  setInterval(() => { if (ws && ws.readyState === 1) ws.send('{"type":"ping"}'); ensureConn(); }, 20000);
+  ['online', 'focus', 'pageshow'].forEach(ev => window.addEventListener(ev, ensureConn));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) ensureConn(); });
 
   // ---------- Отрисовка ----------
   function img(l) { if (!imgs[l]) { imgs[l] = new Image(); imgs[l].onload = draw; imgs[l].src = 'img/' + l + '.jpg'; } return imgs[l]; }
