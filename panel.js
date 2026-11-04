@@ -185,7 +185,7 @@
     if (!L.length) return '';
     const bc = +ref.bc || 0, cook = me && me.rw ? +me.rw.cook || 0 : 0; // v7panel24: готовка пачкой — только если игра прислала ref.bc (флаг batchCook включён)
     const rows = L.map(([n, kind, need, lv, txt, ick], i) => { const f = me && me.rcp ? me.rcp[i] || 0 : 1, ok = me && (f & 3) === 3;
-      const q = bc && ok ? `<span class="bcq"><input type="number" data-bcq="${i}" min="1" max="10" value="${bcSel[i] || 1}" style="width:40px" aria-label="Сколько порций"><button type="button" class="bcgo" data-bci="${i}">Приготовить</button></span>` : '';
+      const q = bc && ok ? `<span class="bcq"><input type="number" data-bcq="${i}" min="1" max="${bc}" value="${Math.min(bc, bcSel[i] || 1)}" style="width:40px" title="Не больше ${bc} за раз" aria-label="Сколько порций, максимум ${bc}"><span class="dim" style="font-size:13px">из ${bc}</span><button type="button" class="bcgo" data-bci="${i}">Приготовить</button></span>` : '';
       return `<div class="upr2${f & 1 ? '' : ' off'}"${f & 1 ? '' : ` title="откроется с ур.${esc(lv)}"`}><span class="upi">${ick ? icImg(ick) : kind === 'potion' ? '🧪' : '🍲'}</span><b class="upn">${esc(n)}</b><span class="upe" title="${esc(txt || '')}">${esc(shortFx(txt) || '—')}</span><span class="upp">${f & 1 ? esc(need) : 'с ур.' + esc(lv)}${q}</span></div>`; }).join('');
     const ds = bc && me && me.iv ? (me.iv.f || []).filter(x => !x[3]).reduce((a, x) => a + (+x[2] || 0), 0) : 0, ps = bc && me && me.iv ? (me.iv.p || []).reduce((a, x) => a + (+x[2] || 0), 0) : 0;
     return `<div class="upbox"><h2>🍲 Еда и зелья</h2>${bc ? `<div class="bcst">Запас: 🍲 ${ds} · 🧪 ${ps} · токенов готовки ${cook}</div>` : ''}<div class="upt upt-f"><div class="upr2 uph"><span></span><span>Название</span><span>Эффект</span><span>Состав</span></div>${rows}</div></div>`;
@@ -196,7 +196,7 @@
   const bcSave = e => { const s = e.target.closest && e.target.closest('select[data-bcq],input[data-bcq]'); if (s) bcSel[s.dataset.bcq] = s.value; };
   document.addEventListener('change', bcSave); document.addEventListener('input', bcSave);
   document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('select[data-bcq],input[data-bcq]')) setTimeout(() => { if (bcHold && !bcBusy()) { bcHold = false; render(); } }, 400); });
-  document.addEventListener('click', e => { const b = e.target.closest('button.bcgo'); if (!b || b.disabled) return; const i = +b.dataset.bci, sel = document.querySelector(`[data-bcq="${i}"]`), q = String(Math.max(1, Math.min(10, parseInt(sel ? sel.value : bcSel[i], 10) || 1))), r = ((state && state.ref && state.ref.recipes) || [])[i];
+  document.addEventListener('click', e => { const b = e.target.closest('button.bcgo'); if (!b || b.disabled) return; const i = +b.dataset.bci, sel = document.querySelector(`[data-bcq="${i}"]`), bcm = +((state && state.ref && state.ref.bc) || 10), q = String(Math.max(1, Math.min(bcm, parseInt(sel ? sel.value : bcSel[i], 10) || 1))), r = ((state && state.ref && state.ref.recipes) || [])[i];
     if (r && window.PanelActions && PanelActions.fire) PanelActions.fire('готовить', `${i + 1} ${q}`, `Готовить · ${r[0]} × ${q}`); });
   // v7panel20 п.2: все характеристики героя (из игры: me.sr), что даёт надетое (me.eqS) и баффы (me.bf)
   // v7panel32: задания на вкладке «Мой герой»: текущее (прогресс x/y, награда) и последние выполненные. Нет me.qs (старая игра) — блок не рисуется.
