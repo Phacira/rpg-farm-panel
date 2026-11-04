@@ -56,7 +56,7 @@
     const magicSub = !mg ? 'волшебное семечко' : !mg.seeds ? 'нет волшебных семян' : !mg.left ? `0/${mg.max}, завтра` : mg.cd > 0 ? `${mg.left}/${mg.max} · КД ${mmss(mg.cd)}` : `${mg.left}/${mg.max} · готово`;
     const saladSub = !sal ? '🥒5 🍅5 🥕5 🍆5 🎃1' : !sal.left ? `0/${sal.max} · ${dhm(sal.reset)}` : `${sal.left}/${sal.max}${sal.can ? ' · можно' : ' · мало 🥕'}`;
     const saladAsk = 'Приготовить салат? Спишется 🥒5 🍅5 🥕5 🍆5 🎃1' + (sal ? ` (осталось ${sal.left}/${sal.max} за 30 дн.${sal.reset ? ', сброс через ' + dhm(sal.reset) : ''})` : '');
-    const hike = me && me.cd > 0 ? `КД ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : (me && me.rw && me.rw.hike > 0 ? `ходов: ${me.rw.hike}` : REWARD);
+    const hike = me && me.cd > 0 ? `КД ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : 'можно';
     // v7panel10: парикмахер виден, но неактивен, пока HAIR_AVAILABLE=false и игра не прислала ref.hairOn (CONFIG.hairRecolor.enabled в игре)
     const hairOk = (HAIR_AVAILABLE || ref.hairOn === true) && (ref.hair || []).length > 0;
     const hairBtn = hairOk ? ['💈', 'Парикмахер', 'парикмахер', hair, `${ref.hairPrice || 250} з`] : ['💈', 'Парикмахер', 'парикмахер', '', HAIR_OFF_TEXT, null, true];
