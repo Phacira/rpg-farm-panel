@@ -59,7 +59,7 @@
     const hike = me && me.cd > 0 ? `КД ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : 'можно';
     // v7panel10: парикмахер виден, но неактивен, пока HAIR_AVAILABLE=false и игра не прислала ref.hairOn (CONFIG.hairRecolor.enabled в игре)
     const hairOk = (HAIR_AVAILABLE || ref.hairOn === true) && (ref.hair || []).length > 0;
-    const sellEq = () => (me && me.eqOwn || []).filter(id => !(me.eqOn && Object.values(me.eqOn).includes(id))).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, , , price]) => ({ ic: ref.ic ? id : '', label: n, sub: `продать за ${Math.round((price || 0) * 0.3)} з`, arg: id, confirm: `Продать «${n}» за ${Math.round((price || 0) * 0.3)} золота?` }));
+    const sellEq = () => (me && me.eqOwn || []).filter(id => !(me.eqOn && Object.values(me.eqOn).includes(id))).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, price]) => ({ ic: ref.ic ? id : '', label: n, sub: `продать за ${Math.round((price || 0) * 0.3)} з`, arg: id, confirm: `Продать «${n}» за ${Math.round((price || 0) * 0.3)} золота?` }));
     const hairBtn = hairOk ? ['💈', 'Парикмахер', 'парикмахер', hair, `${ref.hairPrice || 250} з`] : ['💈', 'Парикмахер', 'парикмахер', '', HAIR_OFF_TEXT, null, true];
     return {
       town: [['📜', 'Задание', 'квест', quests, me && me.rw && me.rw.quest > 0 ? `осталось: ${me.rw.quest}` : 'квесты кончились'],
