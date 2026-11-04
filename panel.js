@@ -282,7 +282,8 @@
     const cd = me.cd > 0 ? `через ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : 'можно';
     const veg = Object.keys(VEG).map(k => `<span class="hv" title="${k}">${vegImg(k, VEG[k])}${me.veg && me.veg[k] || 0}</span>`).join('') + (me.wd !== undefined ? `<span class="hv hwd" title="сорняки (для готовки и обмена)">🌿${+me.wd || 0}</span>` : ''); // v7panel25: сорняки
     const rw = me.rw || {}, cook = +rw.cook || 0;
-    const today = [`поход ${cd === 'можно' ? '✓' : cd}`].concat(cook > 0 ? [`готовка ${cook}`] : []).concat(+rw.quest > 0 ? [`квест ${rw.quest}`] : []).concat(me.q ? ['есть квест'] : []);
+    const ccd = me.ccd > 0 ? `через ${Math.floor(me.ccd / 60)}:${String(me.ccd % 60).padStart(2, '0')}` : 'можно';
+    const today = [`поход ${cd === 'можно' ? '✓' : cd}`, `готовка ${ccd === 'можно' ? '✓' : ccd}`].concat(+rw.quest > 0 ? [`квестов осталось: ${rw.quest}`] : ['квесты кончились']).concat(me.q ? [`квест: ${me.q} (${me.qp || 0}/${me.qn || '?'})`] : []);
     return `<div class="hcard"><div class="hhead">${heroPic(me.k6, me.hair, me.dy, me.cls, 'big')}<div><div class="hname">★ ${esc(me.n)} <small>${esc(me.cn)} · ур. ${esc(me.lv)}</small></div>
       <div class="hst">${esc(ST[me.st] || me.st)} · ${esc(LOCN[me.loc] || me.loc)}${me.gd ? ' · гильдия: ' + esc(me.gd) : ''}</div></div></div>${myFight(me)}
       ${bar(me.hp, me.mhp, 'hp')}${me.mmp ? bar(me.mp || 0, me.mmp, 'mp') : ''}${bar(me.xp, me.xpN, 'xp')}
