@@ -110,13 +110,20 @@
       placed.push(r); x.lineWidth = 4 * u; x.strokeStyle = 'rgba(0,0,0,.85)'; x.strokeText(L.t, L.x, L.y); x.fillStyle = L.mine ? '#ffd27a' : '#fff'; x.fillText(L.t, L.x, L.y); stat.lab++;
     }
     for (const n in POS) if (!seen[n]) delete POS[n];
-    // мобы на карте
-    const mobs = state.mobs || [];
+    // мобы на карте спрайтами
+    const mobs = state.mobs || [], mobImgs = window.__mobImgs || (window.__mobImgs = {});
     for (const [id, mx, my, hp] of mobs) {
       const px = Math.round(mx * k), py = Math.round(my * k);
-      x.fillStyle = hp > 50 ? '#ff6a6a' : hp > 25 ? '#ffaa6a' : '#ff4444';
-      x.beginPath(); x.arc(px, py - 12, 14, 0, 7); x.fill(); x.strokeStyle = '#000'; x.lineWidth = 2; x.stroke();
-      x.fillStyle = '#fff'; x.font = `600 ${Math.round(12 * u)}px system-ui`; x.textAlign = 'center'; x.fillText(hp + '%', px, py - 22);
+      if (!mobImgs[id]) { const im = new Image(); im.src = `img/mob/${id}.${id === 'mimic' ? 'png' : 'webp'}`; mobImgs[id] = im; }
+      const im = mobImgs[id];
+      if (im.complete && im.naturalWidth) {
+        const sz = Math.round(60 * k);
+        x.drawImage(im, px - sz/2, py - sz, sz, sz);
+        x.fillStyle = hp > 50 ? '#7dff9a' : hp > 25 ? '#ffaa6a' : '#ff6a6a';
+        x.font = `600 ${Math.round(11 * u)}px system-ui`; x.textAlign = 'center'; x.fillText(hp + '%', px, py - sz - 4);
+      } else {
+        x.fillStyle = '#ff6a6a'; x.beginPath(); x.arc(px, py - 12, 14, 0, 7); x.fill();
+      }
     }
     if (moving && !anim) anim = requestAnimationFrame(animStep); // ~кадры только во время движения
     stat.fs = fs / u; stat.sprites = SPRITES; stat.moving = moving; stat.draws = ((window.__mapStat && window.__mapStat.draws) || 0) + 1; window.__mapStat = stat; // для тестов: сколько спрайтов/точек/подписей и размер подписи в css-px
