@@ -123,6 +123,7 @@ img.vegi.ic{image-rendering:pixelated;width:22px;height:22px;vertical-align:-6px
 .hhead{display:flex;gap:10px;align-items:center}
 .hpic{image-rendering:pixelated;height:56px;width:auto;object-fit:contain;flex:none}
 .hpic.big{height:84px}.hpic.sm{height:44px}
+.hpet{font-size:20px;margin-left:-8px;margin-top:50px}
 .hpic.fb,.mpic.fb{display:inline-flex;align-items:center;justify-content:center;width:40px;height:44px;font-size:24px;background:rgba(255,255,255,.06);border-radius:8px}
 .mpic{height:52px;width:auto;object-fit:contain;flex:none}.mpic.sm{height:40px}.mpic.big{height:110px}
 .fights{margin:10px 0;padding:8px 10px;background:rgba(255,255,255,.04);border-radius:10px}.fights h2{margin:0 0 6px;font-size:15px}
