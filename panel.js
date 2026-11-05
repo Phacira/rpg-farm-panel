@@ -316,9 +316,9 @@
     const live = $('live'), body = $('pbody');
     body.hidden = !user;
     if (!user) return;
-    const on = state && state.online;
+    const on = state && state.online && state.stream;
     live.className = 'live ' + (on ? 'on' : 'off');
-    live.textContent = !state ? 'Подключение…' : state.nocfg ? 'Пульт ещё не подключён к серверу (RELAY_URL пуст)' : on ? '● Стрим идёт' : 'Стрим не идёт';
+    live.textContent = !state ? 'Подключение…' : state.nocfg ? 'Пульт ещё не подключён к серверу (RELAY_URL пуст)' : on ? '● Стрим идёт' : 'Стрим не идёт — ждём Twitch';
     $('tabs').innerHTML = TABS.map(([id, t]) => `<button data-t="${id}" class="tab${id === tab ? ' on' : ''}" aria-pressed="${id === tab}">${t}</button>`).join('');
     const l = curLoc(), list = on && state.locs ? (state.locs[l] || []) : [];
     let info = on ? `${LOCN[l] || l}: героев ${list.length}` : 'Когда стример запустит игру, здесь появится карта.';
