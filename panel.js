@@ -93,7 +93,18 @@
         if (mine) { x.shadowColor = '#ffd27a'; x.shadowBlur = 10 * u; }
         x.drawImage(sp.c, Math.round(-ax), Math.round(-ay), dw, dh); x.restore();
         // пет рядом со своим героем
-        if (mine && me && me.ptOn) { const psz = Math.max(10, dh * 0.25); x.fillStyle = '#ffd27a'; x.beginPath(); x.arc(px + dw * 0.35, py - psz, psz * 0.5, 0, 7); x.fill(); x.fillStyle = '#000'; x.font = `${Math.round(psz)}px system-ui`; x.textAlign = 'center'; x.fillText('🐾', px + dw * 0.35, py - psz * 0.3); }
+        if (mine && me && me.ptOn) { 
+          const petImgs = window.__petImgs || (window.__petImgs = {});
+          const pid = me.ptOn;
+          if (!petImgs[pid]) { const im = new Image(); im.src = `img/pet/${pid}.png`; petImgs[pid] = im; }
+          const pim = petImgs[pid];
+          const psz = Math.max(16, dh * 0.3);
+          if (pim.complete && pim.naturalWidth) {
+            x.drawImage(pim, px + dw * 0.3, py - psz, psz, psz);
+          } else {
+            x.fillStyle = '#ffd27a'; x.beginPath(); x.arc(px + dw * 0.35, py - psz, psz * 0.5, 0, 7); x.fill();
+          }
+        }
         top = py - ay; stat.spr++; if (mine) stat.mine = 1;
       } else {
         const r = (mine ? 7 : 5) * Math.max(1, u * .8);
@@ -215,7 +226,7 @@
   const bcBusy = () => { const a = document.activeElement; return !!(a && a.matches && (a.matches('select[data-bcq]') || a.matches('input[data-bcq]'))); };
   document.addEventListener('change', e => { const s = e.target.closest && e.target.closest('select[data-bcq]'); if (s) bcSel[s.dataset.bcq] = s.value; });
   document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('select[data-bcq], input[data-bcq]')) setTimeout(() => { if (bcHold && !bcBusy()) { bcHold = false; render(); } }, 0); });
-  document.addEventListener('click', e => { const b = e.target.closest('button.bcgo'); if (!b || b.disabled) return; const i = +b.dataset.bci, sel = document.querySelector(`select[data-bcq="${i}"]`), q = sel ? sel.value : bcSel[i] || '1', r = ((state && state.ref && state.ref.recipes) || [])[i];
+  document.addEventListener('click', e => { const b = e.target.closest('button.bcgo'); if (!b || b.disabled) return; const i = +b.dataset.bci, inp = document.querySelector(`input[data-bcq="${i}"]`), q = inp ? inp.value : bcSel[i] || '1', r = ((state && state.ref && state.ref.recipes) || [])[i];
     if (r && window.PanelActions && PanelActions.fire) PanelActions.fire('готовить', `${i + 1} ${q}`, `Готовить · ${r[0]} × ${q}`); });
   // v7panel20 п.2: все характеристики героя (из игры: me.sr), что даёт надетое (me.eqS) и баффы (me.bf)
   // v7panel32: задания на вкладке «Мой герой»: текущее (прогресс x/y, награда) и последние выполненные. Нет me.qs (старая игра) — блок не рисуется.
@@ -304,7 +315,7 @@
     const rw = me.rw || {}, cook = +rw.cook || 0;
     const ccd = me.ccd > 0 ? `через ${Math.floor(me.ccd / 60)}:${String(me.ccd % 60).padStart(2, '0')}` : 'можно';
     const today = [`поход ${cd === 'можно' ? '✓' : cd}`, `готовка ${ccd === 'можно' ? '✓' : ccd}`].concat(+rw.quest > 0 ? [`квестов осталось: ${rw.quest}`] : ['квесты кончились']).concat(me.q ? [`квест: ${me.q} (${me.qp || 0}/${me.qn || '?'})`] : []);
-    return `<div class="hcard"><div class="hhead">${heroPic(me.k6, me.hair, me.dy, me.cls, 'big')}${me.ptOn ? `<span class="hpet" title="${esc((me.pt.find(p => p[0] === me.ptOn) || [])[1] || 'пет')}">🐾</span>` : ''}<div><div class="hname">★ ${esc(me.n)} <small>${esc(me.cn)} · ур. ${esc(me.lv)}</small></div>
+    return `<div class="hcard"><div class="hhead">${heroPic(me.k6, me.hair, me.dy, me.cls, 'big')}${me.ptOn ? `<img class="hpet" src="img/pet/${me.ptOn}.png" title="${esc((me.pt.find(p => p[0] === me.ptOn) || [])[1] || 'пет')}" alt="пет">` : ''}<div><div class="hname">★ ${esc(me.n)} <small>${esc(me.cn)} · ур. ${esc(me.lv)}</small></div>
       <div class="hst">${esc(ST[me.st] || me.st)} · ${esc(LOCN[me.loc] || me.loc)}${me.gd ? ' · гильдия: ' + esc(me.gd) : ''}</div></div></div>${myFight(me)}
       ${bar(me.hp, me.mhp, 'hp')}${me.mmp ? bar(me.mp || 0, me.mmp, 'mp') : ''}${bar(me.xp, me.xpN, 'xp')}
       <div class="hgrid"><span>💰 ${esc(me.gold)}</span><span>🌱 ${esc(me.sd || 0)} · ✨ ${esc(me.sdp || 0)}</span></div>
