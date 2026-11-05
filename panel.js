@@ -85,7 +85,7 @@
       const sp = HS && k6 && mine ? HS.get(k6, hid, dy, ramps) : null;
       let top;
       if (sp) {
-        const f = (hh || 120) * k / 240 / sp.sc, dw = Math.max(1, Math.round(sp.w * f)), dh = Math.max(1, Math.round(sp.h * f)), ax = sp.fx * f, ay = (sp.sit ? sp.sy : sp.fy) * f;
+        const f = (mine ? 180 : (hh || 120)) * k / 240 / sp.sc, dw = Math.max(1, Math.round(sp.w * f)), dh = Math.max(1, Math.round(sp.h * f)), ax = sp.fx * f, ay = (sp.sit ? sp.sy : sp.fy) * f;
         x.save(); x.globalAlpha = .28; x.fillStyle = '#1a0e06'; x.beginPath(); x.ellipse(px, py + 1, dw * .42, Math.max(2, dh * .06), 0, 0, 7); x.fill(); x.restore();
         if (mine) { x.save(); x.strokeStyle = '#ffd27a'; x.lineWidth = Math.max(2, 2.5 * u); x.globalAlpha = .9; x.beginPath(); x.ellipse(px, py + 1, dw * .55, Math.max(4, dh * .1), 0, 0, 7); x.stroke(); x.restore(); }
         x.save(); x.translate(px, sp.sit ? py : py); if (fl) x.scale(-1, 1); if (st === 'sleep') x.globalAlpha = .75;
@@ -106,7 +106,7 @@
     labels.sort((a, b) => b.mine - a.mine);
     for (const L of labels) {
       const tw = x.measureText(L.t).width, r = [L.x - tw / 2 - 3 * u, L.y - fs - 2 * u, L.x + tw / 2 + 3 * u, L.y + 2 * u];
-      if (!L.mine && (list.length > 40 || placed.some(o => r[0] < o[2] && r[2] > o[0] && r[1] < o[3] && r[3] > o[1]))) continue;
+      if (!L.mine && (list.length > 15 || placed.some(o => r[0] < o[2] && r[2] > o[0] && r[1] < o[3] && r[3] > o[1]))) continue;
       placed.push(r); x.lineWidth = 4 * u; x.strokeStyle = 'rgba(0,0,0,.85)'; x.strokeText(L.t, L.x, L.y); x.fillStyle = L.mine ? '#ffd27a' : '#fff'; x.fillText(L.t, L.x, L.y); stat.lab++;
     }
     for (const n in POS) if (!seen[n]) delete POS[n];
