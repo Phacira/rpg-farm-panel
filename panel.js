@@ -77,7 +77,8 @@
     const ramps = {}; ((state.ref && state.ref.hair) || []).forEach(z => { if (z[2]) ramps[z[0]] = z[2]; });
     const HS = SPRITES ? window.HeroSprites : null, labels = [], stat = { spr: 0, dot: 0, mine: 0, lab: 0, fs: 0 };
     for (const t of list) {
-      const [n, hx, hy, cls, lv, st, k6, hid, dy, fl, hh] = t, mine = String(n).toLowerCase() === me;
+      const [n, hx, hy, cls, lv, st, k6, hid, dy, fl, hh, , , , lastAct] = t, mine = String(n).toLowerCase() === me;
+      const active = mine || (Date.now() - (lastAct || 0) < 600000);
       let P = POS[n]; if (!P) P = POS[n] = { x: hx, y: hy }; seen[n] = 1;
       if (fromAnim) { P.x += (hx - P.x) * .18; P.y += (hy - P.y) * .18; }
       if (Math.abs(hx - P.x) > 2 || Math.abs(hy - P.y) > 2) moving = true; else { P.x = hx; P.y = hy; }
@@ -99,14 +100,14 @@
         x.beginPath(); x.arc(px, py - r, r, 0, 7); x.fillStyle = mine ? '#ffd27a' : st === 'sleep' ? '#8a8aa8' : (CLSC[cls] || '#ffffff'); x.fill(); x.lineWidth = 2; x.strokeStyle = '#000'; x.stroke();
         top = py - 2 * r; stat.dot++; if (mine) stat.mine = 1;
       }
-      labels.push({ mine, t: (mine ? '★ ' : '') + n + ' · ' + (/^\d+$/.test(String(lv)) ? 'ур.' + lv : lv), x: px, y: top - 4 * u });
+      labels.push({ mine, active, t: (mine ? '★ ' : '') + n + ' · ' + (/^\d+$/.test(String(lv)) ? 'ур.' + lv : lv), x: px, y: top - 4 * u });
     }
     // подписи поверх всех героев; свой — всегда, чужие — если не налезают на уже нарисованные
     const fs = Math.round(13 * u), placed = []; x.font = `600 ${fs}px system-ui, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'bottom'; x.lineJoin = 'round';
     labels.sort((a, b) => b.mine - a.mine);
     for (const L of labels) {
       const tw = x.measureText(L.t).width, r = [L.x - tw / 2 - 3 * u, L.y - fs - 2 * u, L.x + tw / 2 + 3 * u, L.y + 2 * u];
-      if (!L.mine && list.length > 8 && placed.some(o => r[0] < o[2] && r[2] > o[0] && r[1] < o[3] && r[3] > o[1])) continue;
+      if (!L.active) continue;
       placed.push(r); x.lineWidth = 4 * u; x.strokeStyle = 'rgba(0,0,0,.85)'; x.strokeText(L.t, L.x, L.y); x.fillStyle = L.mine ? '#ffd27a' : '#fff'; x.fillText(L.t, L.x, L.y); stat.lab++;
     }
     for (const n in POS) if (!seen[n]) delete POS[n];
