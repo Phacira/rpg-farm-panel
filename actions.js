@@ -2,7 +2,7 @@
 // Ответа в чат нет: результат или ошибка показываются здесь, под кнопками.
 (function () {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const SLOT_RU = { weapon: 'оружие', armor: 'броня', offhand: 'щит', trinket: 'амулет' };
+  const SLOT_RU = { weapon: 'оружие', armor: 'броня', offhand: 'щит', trinket: 'амулет' , ring1: 'кольцо', ring2: 'кольцо'};
   const REWARD = 'нужен ход от награды канала';
   const HAIR_AVAILABLE = false; // v7panel10: true — включить кнопку «Парикмахер» (или игра включит сама через ref.hairOn)
   const HAIR_OFF_TEXT = 'Цирюльника пока нет на месте';
@@ -34,7 +34,7 @@
       label: (kind === 'potion' ? '🧪 ' : '🍲 ') + n, sub: !open ? `закрыт: нужен ур. ${lv}` : (can ? 'хватает: ' : 'не хватает: ') + need, dis: !open, arg: String(i + 1) + (ref.bc ? ' 1' : ''), confirm: `${kind === 'potion' ? 'Сварить' : 'Приготовить'} «${n}»?` }; }));
     const shop = () => (ref.eq || []).filter(i => !i[4] || (me && i[4].includes(me.cls))).map(([id, name, price, slot, , bs, stt]) => { // v7panel20 п.2: + статы вещи
       const own = me && (me.eqOwn || []).includes(id), on = me && me.eqOn && me.eqOn[slot] === id;
-      const ic = ref.ic ? id : ''; // v7panel21 п.1: иконка вещи на кнопке
+      const ic = ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : ''; // v7panel21 п.1: иконка вещи на кнопке
       return own ? { ic, label: name, sub: (on ? 'надето' : 'есть — надеть') + (stt ? ' · ' + stt : ''), dis: on, arg: id, cmd: 'экип' } : { ic, label: name, sub: `${stt ? stt + ' · ' : ''}${price} з · ${SLOT_RU[slot] || slot}${bs > (ref.bsLv || 1) ? ' · кузница ур.' + bs : ''}`, dis: gold < price || bs > (ref.bsLv || 1), arg: id, confirm: `Купить «${name}» за ${price} золота?` }; });
     // v7panel31: «Сделать ход». ref.tb=0 — только подсказка (без запроса: баллы Twitch списывает только Twitch); tb=1 — ход с пульта, лимит ref.tl за стрим
     const tl = ref.tl || 1, tu = me && me.tu || 0, rw0 = me && me.rw || {}, stock = `поход ${rw0.hike || 0} · готовка ${rw0.cook || 0} · квест ${rw0.quest || 0}`;
@@ -45,7 +45,7 @@
     const hair = () => (ref.hair || []).map(([id, n]) => ({ label: n, sub: me && me.hair === id ? 'сейчас' : `${ref.hairPrice || 250} з`, dis: (me && me.hair === id) || gold < (ref.hairPrice || 250), arg: n, confirm: `Покрасить волосы в «${n}» за ${ref.hairPrice || 250} золота?` }));
     const guilds = () => (ref.guilds || []).map(([id, n], i) => ({ label: n, sub: me && me.gid === id ? 'ваша гильдия' : '', dis: me && me.gid === id, arg: String(i + 1), confirm: `Вступить в гильдию «${n}»?` }));
     const quests = () => me && me.q ? [{ label: 'У вас уже есть задание', dis: true }] : (me && me.of || []).map((id, i) => ({ label: `${i + 1}. ${(ref.quests || {})[id] || id}`, arg: String(i + 1) })).concat([{ label: 'Показать список (без хода)', arg: '' }]);
-    const wear = () => (me && me.eqOwn || []).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, , slot, , , stt]) => ({ ic: ref.ic ? id : '', label: n, sub: (me.eqOn && me.eqOn[slot] === id ? 'надето' : SLOT_RU[slot] || slot) + (stt ? ' · ' + stt : ''), dis: me.eqOn && me.eqOn[slot] === id, arg: id, confirm: `Надеть «${n}»?` }));
+    const wear = () => (me && me.eqOwn || []).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, , slot, , , stt]) => ({ ic: ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : '', label: n, sub: (me.eqOn && me.eqOn[slot] === id ? 'надето' : SLOT_RU[slot] || slot) + (stt ? ' · ' + stt : ''), dis: me.eqOn && me.eqOn[slot] === id, arg: id, confirm: `Надеть «${n}»?` }));
     const unwear = () => Object.entries(me && me.eqOn || {}).filter(([, v]) => v).map(([slot, id]) => { const i = (ref.eq || []).find(x => x[0] === id); return { label: `${SLOT_RU[slot] || slot}: ${i ? i[1] : id}`, arg: slot, confirm: `Снять ${i ? '«' + i[1] + '»' : SLOT_RU[slot]}?` }; });
     const pets = () => (me && me.pt || []).map(([id, n]) => ({ label: n, sub: me.ptOn === id ? 'с героем' : '', dis: me.ptOn === id, arg: id, cmd: 'экип', confirm: `Взять питомца «${n}»?` })).concat(me && me.ptOn ? [{ label: 'Убрать питомца', arg: 'питомец', cmd: 'снять', confirm: 'Убрать питомца?' }] : []); // v7panel12 п.7
     const titles = () => (me && me.tt || []).map((t, i) => ({ label: t, sub: me.ttOn === t ? 'надет' : '', dis: me.ttOn === t, arg: String(i + 1), confirm: `Надеть титул «${t}»?` })).concat(me && me.ttOn ? [{ label: 'Снять титул', arg: 'снять', confirm: 'Снять титул?' }] : []);
@@ -59,7 +59,7 @@
     const hike = me && me.cd > 0 ? `КД ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : 'можно';
     // v7panel10: парикмахер виден, но неактивен, пока HAIR_AVAILABLE=false и игра не прислала ref.hairOn (CONFIG.hairRecolor.enabled в игре)
     const hairOk = (HAIR_AVAILABLE || ref.hairOn === true) && (ref.hair || []).length > 0;
-    const sellEq = () => (me && me.eqOwn || []).filter(id => !(me.eqOn && Object.values(me.eqOn).includes(id))).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, price]) => ({ ic: ref.ic ? id : '', label: n, sub: `продать за ${Math.round((price || 0) * 0.3)} з`, arg: id, confirm: `Продать «${n}» за ${Math.round((price || 0) * 0.3)} золота?` }));
+    const sellEq = () => (me && me.eqOwn || []).filter(id => !(me.eqOn && Object.values(me.eqOn).includes(id))).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, price]) => ({ ic: ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : '', label: n, sub: `продать за ${Math.round((price || 0) * 0.3)} з`, arg: id, confirm: `Продать «${n}» за ${Math.round((price || 0) * 0.3)} золота?` }));
     const hairBtn = hairOk ? ['💈', 'Парикмахер', 'парикмахер', hair, `${ref.hairPrice || 250} з`] : ['💈', 'Парикмахер', 'парикмахер', '', HAIR_OFF_TEXT, null, true];
     return {
       town: [['📜', 'Задание', 'квест', quests, me && me.rw && me.rw.quest > 0 ? `осталось: ${me.rw.quest}` : 'квесты кончились'],
@@ -108,7 +108,7 @@
   // окно выбора/подтверждения
   function sheet(title, opts) {
     const s = document.getElementById('sheet'); s.hidden = false;
-    s.innerHTML = `<div class="sbox"><h3>${esc(title)}</h3><div class="sopts">${opts.length ? opts.map((o, i) => o.note ? `<p class="snote"><b>${esc(o.label)}</b><br>${esc(o.sub || '')}</p>` : `<button data-o="${i}"${o.dis ? ' disabled' : ''}><span class="al">${o.ic ? `<img class="oic" src="img/ic/${esc(o.ic)}.png" alt="">` : ''}${esc(o.label)}</span>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</button>`).join('') : '<p class="note">Выбрать пока нечего.</p>'}</div><button class="scancel" data-o="x">Отмена</button></div>`;
+    s.innerHTML = `<div class="sbox"><h3>${esc(title)}</h3><div class="sopts">${opts.length ? opts.map((o, i) => o.note ? `<p class="snote"><b>${esc(o.label)}</b><br>${esc(o.sub || '')}</p>` : `<button data-o="${i}"${o.dis ? ' disabled' : ''}><span class="al">${o.ic ? `<img class="oic" src="img/ic/${esc(String(o.ic).split('~')[0])}.png" alt=""${+String(o.ic).split('~')[1] ? ` style="filter:hue-rotate(${+String(o.ic).split('~')[1]}deg)"` : ''} onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'oic icfb',textContent:'${/^ring/.test(o.ic) ? '💍' : /^(amu|t\d)/.test(o.ic) ? '📿' : '🎒'}'}))">` : ''}${esc(o.label)}</span>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</button>`).join('') : '<p class="note">Выбрать пока нечего.</p>'}</div><button class="scancel" data-o="x">Отмена</button></div>`;
     s.onclick = e => { const b = e.target.closest('button'); if (!b && e.target !== s) return; if (e.target === s || b.dataset.o === 'x') return close(); const o = opts[+b.dataset.o]; if (o && o.go) o.go(); };
   }
   function close() { const s = document.getElementById('sheet'); s.hidden = true; s.innerHTML = ''; }

@@ -160,10 +160,15 @@
   // v7panel20 п.7: железо — серый слиток (тот же пиксельный набор, что в игре) вместо ⛓️
   const INGOT = '<img class="vegi" src="img/ingot.png" alt="железо">';
   // v7panel21 п.1: иконки DCSS/Idylwild (img/ic/<ключ>.png) — когда игра включила их (ref.ic); 'ic:<ключ>' в инвентаре
-  const icImg = k => `<img class="vegi ic" src="img/ic/${esc(k)}.png" alt="">`;
+  // v7panel37: 'ключ~оттенок' (hue-rotate), запасной значок вместо битой картинки
+  const IC_FB = k => /^ring/.test(k) ? '💍' : /^amu|^t\d/.test(k) ? '📿' : /^pot/.test(k) ? '🧪' : '🎒';
+  const icImg = k0 => { const [k, hue] = String(k0 || '').split('~'); return `<img class="vegi ic" src="img/ic/${esc(k)}.png" alt=""${+hue ? ` style="filter:hue-rotate(${+hue}deg)"` : ''} onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'vegi icfb',textContent:'${IC_FB(k)}'}))">`; };
+  // ключ иконки вещи: ref.eq[i][7] от игры (v7panel37), иначе id (старая игра)
+  const eqIcK = id => { const e = ((state && state.ref && state.ref.eq) || []).find(x => x[0] === id); return e && e[7] !== undefined ? e[7] : id; };
+  window.__eqIcK = eqIcK;
   const icOn = () => !!(state && state.ref && state.ref.ic);
   window.__icImg = icImg; window.__icOn = icOn;
-  const icoH = ic => { ic = String(ic || ''); if (/^ic:[a-z0-9_]+$/.test(ic)) return icImg(ic.slice(3)); return ic === '⛓️' || ic === '⛓' ? (icOn() ? icImg('iron') : INGOT) : esc(ic); };
+  const icoH = ic => { ic = String(ic || ''); if (/^ic:[a-z0-9_]+(~\d+)?$/.test(ic)) return icImg(ic.slice(3)); return ic === '⛓️' || ic === '⛓' ? (icOn() ? icImg('iron') : INGOT) : esc(ic); };
   function invIcon(ic, def) { ic = String(ic || ''); if (!ic) return def; if (/^[a-z0-9_]+$/i.test(ic)) return ICON_MAP[ic] || def; return ic; }
   function invItem(x, def) { let nm = String(x[1] || ''), act = !!x[3]; nm = nm.replace(/^[a-z0-9_]+\s+(?=[А-ЯЁа-яё])/i, ''); if (/\s*\(активно\)\s*$/.test(nm)) { act = true; nm = nm.replace(/\s*\(активно\)\s*$/, ''); } const ic = invIcon(x[0], def), vm = /^crop_([a-z]+)$/.exec(String(x[0] || '')); return { ic, nm, n: x[2], act, veg: vm ? vm[1] : VEG_BY_EMO[ic] }; }
   window.__panelInvItem = invItem;
@@ -175,14 +180,41 @@
     const L = (a, def) => (a || []).map(x => chip(invItem(x, def), +x[2] > 0));
     const eqOn = me.eqOn || {}, spare = (me.eqOwn || []).filter(id => !Object.values(eqOn).includes(id));
     const eqT = {}; (ref.eq || []).forEach(e => eqT[e[0]] = e[6] || ''); // v7panel20 п.2: что даёт вещь
-    const gear = Object.keys(eqOn).filter(s => eqOn[s]).map(s => chip({ ic: icOn() ? 'ic:' + eqOn[s] : SLOT_IC[s] || '▫️', nm: (eqN[eqOn[s]] || eqOn[s]) + (eqT[eqOn[s]] ? ' — ' + eqT[eqOn[s]] : ''), act: false }))
-      .concat(spare.map(id => chip({ ic: icOn() ? 'ic:' + id : '🎒', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : '') })));
+    const gear = Object.keys(eqOn).filter(s => eqOn[s]).map(s => chip({ ic: icOn() && eqIcK(eqOn[s]) ? 'ic:' + eqIcK(eqOn[s]) : SLOT_IC[s] || '▫️', nm: (eqN[eqOn[s]] || eqOn[s]) + (eqT[eqOn[s]] ? ' — ' + eqT[eqOn[s]] : ''), act: false }))
+      .concat(spare.map(id => chip({ ic: icOn() && eqIcK(id) ? 'ic:' + eqIcK(id) : '🎒', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : '') })));
     // v7panel12: блок «Косметика» убран (косметика выключена до утверждения Tim); титул — в «Снаряжении»
     const ttl = me.ttOn ? [chip({ ic: '🏷️', nm: 'титул: ' + me.ttOn, act: true, tag: 'надето' })] : [];
     const pet = (me.pt || []).map(([id, n]) => chip({ ic: '🐾', nm: 'питомец: ' + n, act: me.ptOn === id, tag: 'надет' })); // v7panel12 п.7
     const body = [row('Снаряжение', gear.concat(ttl, pet)), row('Материалы', L(iv.m, '🪨')), row('Еда', L(iv.f, '🍲')), row('Зелья', L(iv.p, '🧪'))].join('');
     return `<div class="hinv${invOpen ? ' open' : ''}"><button type="button" class="ivh" aria-expanded="${invOpen}">🎒 Инвентарь ${invOpen ? '▴' : '▾'}</button>${invOpen ? `<div class="ivb">${body || '<span class="ivn">пусто</span>'}</div>` : ''}</div>`;
   }
+  // v7panel37: инвентарь «как в OBS» (портрет + слоты + характеристики + вкладки с сеткой ячеек). За переключателем: ?inv=obs (запоминается), ?inv=old — вернуть; или PANEL_CONFIG.inv = 'obs'. Умолчание — старый список.
+  const INV_OBS = (() => { try { const m = /[?&]inv=(obs|old)/.exec(location.search); if (m) localStorage.setItem('panel_inv', m[1]); return (localStorage.getItem('panel_inv') || CFG.inv || 'old') === 'obs'; } catch (e) { return /[?&]inv=obs/.test(location.search) || CFG.inv === 'obs'; } })();
+  let obsTab = 'mat';
+  const OBS_SLOTS = [['weapon', 'Оружие'], ['armor', 'Броня'], ['offhand', 'Левая рука'], ['trinket', 'Амулет'], ['ring1', 'Кольцо 1'], ['ring2', 'Кольцо 2']];
+  function invObsHtml(me) {
+    const ref = (state && state.ref) || {}, iv = me.iv || {}, E = {}; (ref.eq || []).forEach(e => E[e[0]] = e);
+    const eqOn = me.eqOn || {}, icOf = id => icOn() && eqIcK(id) ? icImg(eqIcK(id)) : `<span class="vegi icfb">${SLOT_IC[(E[id] || [])[3]] || '🎒'}</span>`;
+    const slot = ([s, n]) => { const id = eqOn[s], e = E[id]; return `<div class="ob-slot${id ? '' : ' ob-none'}" title="${esc(id ? `${n}: ${e ? e[1] : id}${e && e[6] ? ' — ' + e[6] : ''}` : n + ': пусто')}">${id ? icOf(id) : `<span class="ob-ph">${SLOT_IC[s] || '▫️'}</span>`}<small>${esc(id ? (e ? e[1] : id) : n)}</small></div>`; };
+    const sr = me.sr && me.sr.length ? me.sr : [['❤', 'Здоровье', `${me.hp}/${me.mhp}`], ['🌱', 'Семена', `${me.sd || 0} · ✨ ${me.sdp || 0}`], ['⭐', 'Уровень', `${me.lv} · ${me.xp || 0}/${me.xpN || '?'} XP`], ['💰', 'Золото', String(me.gold)]];
+    const cell = o => `<span class="ob-c${o.n === 0 || o.n === '0' ? ' zero' : ''}${o.act ? ' on' : ''}" title="${esc(o.nm + (o.tip ? ' — ' + o.tip : ''))}">${o.html}${o.n !== '' && o.n != null ? `<i>${esc(o.n)}</i>` : ''}</span>`;
+    const fromIv = (a, def) => (a || []).map(x => { const o = invItem(x, def); return { html: o.veg ? vegImg(o.veg, o.ic) : icoH(o.ic), n: o.n, nm: o.nm, act: o.act, tip: o.act ? 'активно' : '' }; });
+    const T = {
+      mat: ['Материалы', fromIv(iv.m, '🪨')],
+      food: ['Еда', fromIv(iv.f, '🍲').concat(Object.entries(me.veg || {}).map(([k, n]) => ({ html: vegImg(k), n, nm: k })))],
+      pot: ['Зелья', fromIv(iv.p, '🧪')],
+      seed: ['Семена', [{ html: '<span class="vegi icfb">🌱</span>', n: me.sd || 0, nm: 'Семена' }, { html: '<span class="vegi icfb">✨</span>', n: me.sdp || 0, nm: 'Волшебные семена' }]],
+      gear: ['Снаряжение', (me.eqOwn || []).map(id => { const e = E[id], on = Object.values(eqOn).includes(id); return { html: icOf(id), n: on ? '✓' : '', nm: e ? e[1] : id, act: on, tip: (e && e[6] || '') + (on ? ' · надето' : '') }; })
+        .concat(me.ttOn ? [{ html: '<span class="vegi icfb">🏷️</span>', n: '', nm: 'титул: ' + me.ttOn, act: 1 }] : [], (me.pt || []).map(([id, n]) => ({ html: '<span class="vegi icfb">🐾</span>', n: me.ptOn === id ? '✓' : '', nm: 'питомец: ' + n, act: me.ptOn === id })))]
+    };
+    const cur = T[obsTab] || T.mat, cells = cur[1].map(cell), pad = Math.max(0, (cells.length <= 12 ? 12 : Math.ceil(cells.length / 6) * 6) - cells.length);
+    return `<div class="obsinv"><div class="ob-top"><div class="ob-left"><div class="ob-port">${heroPic(me.k6, me.hair, me.dy, me.cls, 'big')}<div><b>${esc(me.n)}</b><small>${esc(me.cn || '')} · ур. ${esc(me.lv)}</small></div></div>
+      <div class="ob-slots">${OBS_SLOTS.map(slot).join('')}</div></div>
+      <table class="ob-st">${sr.map(r => `<tr><td>${esc(r[0])}</td><th>${esc(r[1])}</th><td>${esc(r[2])}</td></tr>`).join('')}</table></div>
+      <div class="ob-tabs">${Object.entries(T).map(([k, v]) => `<button type="button" data-obt="${k}"${k === obsTab ? ' class="on"' : ''}>${esc(v[0])}</button>`).join('')}</div>
+      <div class="ob-grid">${cells.join('')}${'<span class="ob-c ob-e"></span>'.repeat(pad)}</div></div>`;
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('[data-obt]'); if (b) { obsTab = b.dataset.obt; render(); } });
   document.addEventListener('mousedown', e => { if (e.target.closest('.hinv, .qcur, .log, .bcgo, input[data-bcq]')) bcHold = true; });
   document.addEventListener('click', e => { const b = e.target.closest('.ivh'); if (b) { invOpen = !invOpen; render(); } });
   document.addEventListener('mouseup', () => { if (bcHold) setTimeout(() => { bcHold = false; }, 100); });
@@ -249,7 +281,7 @@
     const sr = (me.sr || []).filter(r => !/^(Семена|Готовка|Уровень|Золото)/.test(r[1]));
     const eq = me.eqS || [], bf = me.bf || [];
     return `<div class="hstats">${sr.map(([i, n, v]) => `<span><em>${esc(i)} ${esc(n)}</em> ${esc(v)}</span>`).join('')}</div>`
-      + `<div class="hlist"><b>Надето:</b> ${eq.length ? eq.map(([sn, n, t, id]) => `<span>${icOn() && id ? icImg(id) : ''}${esc(sn)}: ${esc(n)} — ${esc(t)}</span>`).join('') : '<span class="dim">ничего</span>'}</div>`
+      + `<div class="hlist"><b>Надето:</b> ${eq.length ? eq.map(([sn, n, t, id]) => `<span>${icOn() && id && eqIcK(id) ? icImg(eqIcK(id)) : ''}${esc(sn)}: ${esc(n)} — ${esc(t)}</span>`).join('') : '<span class="dim">ничего</span>'}</div>`
       + `<div class="hlist"><b>Баффы:</b> ${bf.length ? bf.map(([n, t, c]) => `<span>${esc(n)}: ${esc(t)} (×${esc(c)})</span>`).join('') : '<span class="dim">нет активных</span>'}</div>`;
   }
   // v7panel20 п.8: журнал боя на пульте — последние 15 мин (ref.log от игры), прокрутка, фильтр «мои/все», повторы подряд — «×N»
@@ -330,7 +362,7 @@
       <div class="hgrid"><span>💰 ${esc(me.gold)}</span><span>🌱 ${esc(me.sd || 0)} · ✨ ${esc(me.sdp || 0)}</span></div>
       <div class="hveg">${veg}</div>
       <div class="htoday">Сегодня: ${today.map(esc).join(' · ')}</div>
-      ${tab === 'me' ? statHtml(me) + questHtml(me) : ''}${invHtml(me)}</div>`;
+      ${tab === 'me' ? statHtml(me) + questHtml(me) : ''}${INV_OBS ? invObsHtml(me) : invHtml(me)}</div>`;
   }
   function render() {
     $('auth').innerHTML = user ? `<span class="who">Вы: <b>${esc(user.login)}</b> <small>(ID ${esc(user.id)})</small></span><button id="bout" class="small">Выйти</button>`
@@ -340,8 +372,9 @@
     body.hidden = !user;
     if (!user) return;
     const on = state && state.online && (state.stream || (state.ref && state.ref.stream));
-    live.className = 'live ' + (on ? 'on' : 'off');
-    live.textContent = !state ? 'Подключение…' : state.nocfg ? 'Пульт ещё не подключён к серверу (RELAY_URL пуст)' : on ? '● Стрим идёт' : 'Стрим не идёт — ждём Twitch';
+    const tst = !!(on && state.test); // v7panel37: тестовый режим — relay присылает test:true только владельцу канала
+    live.className = 'live ' + (tst ? 'on test' : on ? 'on' : 'off');
+    live.textContent = !state ? 'Подключение…' : state.nocfg ? 'Пульт ещё не подключён к серверу (RELAY_URL пуст)' : tst ? '🧪 Тестовый режим (виден только вам)' : on ? '● Стрим идёт' : 'Стрим не идёт';
     $('tabs').innerHTML = TABS.map(([id, t]) => `<button data-t="${id}" class="tab${id === tab ? ' on' : ''}" aria-pressed="${id === tab}">${t}</button>`).join('');
     const l = curLoc(), list = on && state.locs ? (state.locs[l] || []) : [];
     let info = on ? `${LOCN[l] || l}: героев ${list.length}` : 'Когда стример запустит игру, здесь появится карта.';
@@ -367,10 +400,10 @@
       locs[l].push([n, p[0], p[1], cl, R(1, 20), sit ? 'sleep' : l, i === 9 ? 'nosuch_sprite' : key, /assassin|paladin/.test(cl) ? '' : HR[i % 8], i === 7 ? '#3a8ad8' : '', i % 3 === 1 ? 1 : 0, SC[l], g]); });
     if (/fight=1/.test(location.search)) { locs.forest.push(['demo_viewer', 1300, 1200, 'warrior', 7, 'forest', 'moon_m_warrior', 'black', '', 0, 120, 'm', 'goblin', 60], ['mira77', 1500, 1220, 'mage', 5, 'forest', 'fire_f_mage', 'red', '', 0, 120, 'f', 'wolf', 35], ['gnomik', 1700, 1180, 'priest', 3, 'forest', 'none_m_priest', 'blond', '', 0, 120, 'm', 'mimic', 90], ['oddone', 1900, 1180, 'archer', 2, 'forest', 'nosuch', '', '', 0, 120, 'm', 'dragon', 50]); locs.boss.push(['ironpaw', 1, 1, 'paladin', 9, 'boss', 'gold_f_paladin', '', '', 0, 120, 'f'], ['redhood', 1, 1, 'assassin', 8, 'boss', 'silver_m_assassin', '', '#3a8ad8', 0, 120, 'm']); }
     state = { type: 'state', online: !/offline=1/.test(location.search), t: Date.now(), cam: 'camp', locs, boss: /fight=1/.test(location.search) ? { ph: 'fight', name: 'Проклятый огр', key: 'ogre_boss', flt: 'hue-rotate(220deg) saturate(.8) brightness(.9)', hp: 4200, mhp: 9000, in: 0, n: 2 } : { ph: 'wait', name: 'Тролль', in: 540000, n: 0 },
-      me: { k6: 'moon_m_warrior', dy: '', fm: /fight=1/.test(location.search) ? ['goblin', 'Гоблин', 31, 52, 0] : null, n: 'demo_viewer', cls: 'warrior', cn: 'Воин', lv: 7, xp: 210, xpN: 350, hp: 86, mhp: 120, gold: 340, pot: 2, food: 3, sd: 4, sdp: 1, gd: 'Лунные тени', gid: 'moon', eqOwn: ['w_sword1'], eqOn: { weapon: 'w_sword1' }, tt: ['Огородник', 'Гроза крыс'], ttOn: 'Огородник', ttOn: 'Огородник', hair: 'black', of: ['plant2', 'carrot2', 'harv4'], pty: false, st: 'camp', loc: 'camp', mode: 'idle',
+      me: { k6: 'moon_m_warrior', dy: '', fm: /fight=1/.test(location.search) ? ['goblin', 'Гоблин', 31, 52, 0] : null, n: 'demo_viewer', cls: 'warrior', cn: 'Воин', lv: 7, xp: 210, xpN: 350, hp: 86, mhp: 120, gold: 340, pot: 2, food: 3, sd: 4, sdp: 1, gd: 'Лунные тени', gid: 'moon', eqOwn: ['w_sword1', 'r_str', 'r_def', 'a_light', 'r_hp'], eqOn: { weapon: 'w_sword1', ring1: 'r_str', ring2: 'r_def', trinket: 'a_light' }, sr: [['❤', 'Здоровье', '86/120 (+15)'], ['⚔', 'Урон', '14 (+2)'], ['🛡', 'Защита', '9 (+2)'], ['🔮', 'Магия', '+3 к урону'], ['💖', 'Лечение', '—'], ['🥋', 'Броня', 'нет'], ['🌱', 'Семена', '4 · ✨ волшебные 1'], ['🍲', 'Готовка (наград сегодня)', '1'], ['⭐', 'Уровень', '7 · 210/350 XP'], ['💰', 'Золото', '340']], tt: ['Огородник', 'Гроза крыс'], ttOn: 'Огородник', ttOn: 'Огородник', hair: 'black', of: ['plant2', 'carrot2', 'harv4'], pty: false, st: 'camp', loc: 'camp', mode: 'idle',
         veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, wd: 7, rw: { hike: 1, cook: 1, quest: 2 }, qs: /quest=0/.test(location.search) ? { c: 0, d: 0, l: [] } : { c: ['Сходить в 2 похода', 1, 2, '+30 золота, +20 опыта'], d: 3, l: [['Приготовить 2 блюда', '+20 золота, +10 опыта'], ['Посадить 2 грядки', '+15 золота, +5 опыта, +2 семян'], ['Победить 5 монстров', '+25 золота, +15 опыта']] }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null, iv: { m: [['🪵', 'Дерево', 12], ['🪨', 'Камень', 5], ['⛓️', 'Железо', 1]], f: [['🥗', 'Овощной салат', 1], ['crop_carrot', 'Тушёная морковь (активно)', 8]], p: [['❤️', 'Зелье лечения', 2]], c: [] } },
       ref: /bc=1/.test(location.search) ? Object.assign({}, MOCK_REF, { bc: 5 }) : MOCK_REF };
-    state.stream = !/offline=1/.test(location.search); // v7panel35: макет — стрим идёт (иначе с v7panel32 пульт в ?mock=1 пустой)
+    state.stream = !/offline=1/.test(location.search); state.test = /ptest=1/.test(location.search); // v7panel37: макет тест-режима // v7panel35: макет — стрим идёт (иначе с v7panel32 пульт в ?mock=1 пустой)
     { const m = /[?&]pet=(\w+)/.exec(location.search); if (m) { state.me.pt = [['slime', 'Слизень'], ['fairy', 'Фея'], ['cat', 'Котёнок'], ['dragon', 'Дракончик']]; state.me.ptOn = m[1]; } } // v7panel35: ?pet=dragon — макет питомца
     { const m = /[?&]turn=(\d)/.exec(location.search); state.ref = Object.assign({}, state.ref, { ch: 'demo_channel', tl: 1 }); if (m) { state.ref.tb = 1; state.me.tu = +m[1] - 1; } } // v7panel31: ?turn=1 — флаг включён, ?turn=2 — лимит исчерпан
     { const m = /[?&]pty=(\w+)/.exec(location.search); if (m) { const v = m[1]; // v7panel30: макет пати — q (набор), go (в походе), none (пусто)
@@ -379,8 +412,10 @@
         : { sz: 3, mn: 2, wv: 3, q: ['ironpaw', 'demo_viewer', 'kotik_mag', 'sunny_bard'], qn: 4, left: 0, lane: 1, go: [[['oak_knight', 'redhood'], '11', 'walk', 1]] } }); } }
   }
   const MOCK_REF = { guilds: [['fire', 'Огненный клинок', '#d9482b'], ['silver', 'Серебряный лист', '#9fc7d6'], ['moon', 'Лунные тени', '#8a6ad8'], ['gold', 'Золотой колос', '#e8b830']],
-    hair: [['black', 'чёрный', [[14, 12, 14], [40, 36, 42], [82, 76, 86]]], ['darkbrown', 'тёмно-каштановый', [[24, 14, 10], [60, 38, 26], [104, 72, 50]]], ['chestnut', 'каштановый', null], ['lightbrown', 'русый', [[70, 52, 34], [132, 106, 74], [190, 164, 122]]], ['blond', 'блонд', [[118, 86, 40], [202, 162, 86], [246, 224, 152]]], ['red', 'рыжий', [[88, 28, 10], [178, 72, 26], [238, 140, 66]]], ['grey', 'седой', [[78, 78, 84], [150, 150, 158], [216, 216, 224]]]], hairPrice: 250, bsLv: 1,
-    eq: [['w_sword1', 'Железный меч', 120, 'weapon', null, 1], ['a_leather', 'Кожаная броня', 150, 'armor', null, 1], ['o_shield', 'Деревянный щит', 90, 'offhand', ['warrior', 'paladin'], 1], ['t_amulet', 'Амулет силы', 400, 'trinket', null, 2]],
+    hair: [['black', 'чёрный', [[14, 12, 14], [40, 36, 42], [82, 76, 86]]], ['darkbrown', 'тёмно-каштановый', [[24, 14, 10], [60, 38, 26], [104, 72, 50]]], ['chestnut', 'каштановый', null], ['lightbrown', 'русый', [[70, 52, 34], [132, 106, 74], [190, 164, 122]]], ['blond', 'блонд', [[118, 86, 40], [202, 162, 86], [246, 224, 152]]], ['red', 'рыжий', [[88, 28, 10], [178, 72, 26], [238, 140, 66]]], ['grey', 'седой', [[78, 78, 84], [150, 150, 158], [216, 216, 224]]]], hairPrice: 250, bsLv: 3, ic: 1,
+    eq: [['w_sword1', 'Железный меч', 120, 'weapon', null, 1], ['a_leather', 'Кожаная броня', 150, 'armor', null, 1], ['o_shield', 'Деревянный щит', 90, 'offhand', ['warrior', 'paladin'], 1], ['t_amulet', 'Амулет силы', 400, 'trinket', null, 2],
+      /* v7panel37: кольца и амулеты с ключом иконки [7] */ ['r_str', 'Кольцо Силы', 300, 'ring1', null, 1, '+2 атк', 'ring_atk'], ['r_def', 'Кольцо Защиты', 300, 'ring1', null, 1, '+2 защ', 'ring_def'], ['r_hp', 'Кольцо Жизни', 300, 'ring1', null, 1, '+15 hp', 'ring_hp'], ['r_dodge', 'Кольцо Уклона', 450, 'ring1', null, 2, '+4% уклон', 'ring_dodge'], ['r_str2', 'Кольцо Силы II', 700, 'ring1', null, 3, '+4 атк', 'ring_atk~67'],
+      ['a_light', 'Амулет Света', 500, 'trinket', null, 2, '+3 маг', 'amu_mag'], ['a_shadow', 'Амулет Тени', 500, 'trinket', null, 2, '+5% крит', 'amu_crit'], ['a_first', 'Амулет Первого выстрела', 600, 'trinket', null, 3, '+3 атк', 'amu_atk'], ['a_cleave', 'Амулет Клива', 650, 'trinket', ['warrior'], 3, '+2 атк, +10 hp', 'amu_b3'], ['a_aura', 'Амулет Ауры', 650, 'trinket', ['paladin'], 3, '+20 hp', 'amu_hp'], ['t3', 'Амулет героя', 850, 'trinket', null, 3, '+2 атк, +15 hp', 't3'], ['r_missing', 'Кольцо (нет файла)', 100, 'ring1', null, 1, 'проверка запасного значка', 'ring_nofile']],
     bld: [['campfire', 'Костёр', 1, 4, 140, 'camp'], ['tents', 'Палатка', 2, 4, 400, 'camp'], ['blacksmith', 'Кузница', 1, 4, 250, 'town'], ['market', 'Рынок', 1, 4, 200, 'town'], ['shed', 'Сарай', 1, 4, 150, 'garden']],
     quests: { plant2: 'Посадить 2 семечка', carrot2: 'Собрать 2 морковки', harv4: 'Собрать 4 урожая' }, recipes: [['Овощной салат', 'food', 'огурец 2, помидор 1', 1], ['Морковный суп', 'food', 'морковь 3', 1], ['Рагу', 'food', 'баклажан 2, морковь 2', 4], ['Тыквенный пирог', 'food', 'тыква 1, морковь 2', 7], ['Зелье лечения', 'potion', 'помидор 2', 1], ['Зелье удачи', 'potion', 'тыква 1, огурец 3', 4]],
     crops: [['cucumber', 'Огурец'], ['tomato', 'Помидор'], ['carrot', 'Морковь'], ['eggplant', 'Баклажан'], ['pumpkin', 'Тыква']] };

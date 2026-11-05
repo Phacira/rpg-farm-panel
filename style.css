@@ -148,3 +148,20 @@ img.hpet{width:36px;height:36px;object-fit:contain;align-self:flex-end}
 .hq{margin:8px 0 2px;padding:8px 10px;border-radius:10px;background:rgba(255,215,120,.07);border:1px solid rgba(255,215,120,.22)}.hq h3{margin:0 0 6px;font-size:15px}.hq h3 small{font-weight:normal;opacity:.7;font-size:12px}
 .qcur .qt{font-weight:600;font-size:14px;overflow-wrap:anywhere}.qcur .qrw{font-size:12px;opacity:.85;margin-top:2px;overflow-wrap:anywhere}.qdl{margin-top:6px}.qd{font-size:13px;color:#a8e6a0;overflow-wrap:anywhere}.qd span{color:inherit;opacity:.75;font-size:12px}
 .bar.qp i{background:#c9a23a}
+/* v7panel37: инвентарь «как в OBS» (?inv=obs) */
+.vegi.icfb{display:inline-block;width:22px;text-align:center;font-style:normal}.oic.icfb{display:inline-block;width:20px;text-align:center}
+.obsinv{margin:8px 0;background:rgba(20,14,8,.55);border:2px solid #6b4a2a;border-radius:10px;padding:10px;font-size:13px}
+.obsinv{container-type:inline-size}.ob-top{display:grid;grid-template-columns:1fr;gap:10px}@container (min-width:520px){.ob-tabs button{font-size:12px}.ob-top{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.ob-grid{grid-template-columns:repeat(8,minmax(0,1fr))!important}}
+.ob-port{display:flex;align-items:center;gap:8px;margin-bottom:8px}.ob-port b{display:block;color:#ffd27a}.ob-port small{opacity:.8}
+.ob-slots{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.ob-slot{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;background:rgba(0,0,0,.35);border:1px solid #8a6a3a;border-radius:6px;min-height:58px;text-align:center}
+.ob-slot.ob-none{opacity:.55;border-style:dashed}.ob-slot small{font-size:10px;line-height:1.15;overflow:hidden;max-height:2.3em}
+.ob-slot img.vegi.ic,.ob-c img.vegi.ic,.ob-c img.vegi{width:32px;height:32px;vertical-align:0}.ob-ph,.ob-slot .icfb,.ob-c .icfb{font-size:22px;line-height:32px;width:auto}
+.ob-st{width:100%;border-collapse:collapse;font-size:12px}.ob-st td,.ob-st th{padding:3px 4px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-weight:400}.ob-st th{opacity:.8}.ob-st td:last-child{text-align:right;color:#ffe6b0}
+.ob-tabs{display:flex;flex-wrap:wrap;gap:4px;margin:10px 0 6px}.ob-tabs button{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(0,0,0,.35);color:inherit;border:1px solid #6b4a2a;border-radius:6px;padding:5px 6px;cursor:pointer;font-size:12px}.ob-tabs button.on{background:#6b4a2a;color:#ffd27a}
+.ob-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}
+.ob-c{position:relative;display:flex;min-height:44px;align-items:center;justify-content:center;aspect-ratio:1;background:rgba(0,0,0,.35);border:1px solid #5a4028;border-radius:5px}
+.ob-c.zero{opacity:.4}.ob-c.on{outline:2px solid rgba(255,210,122,.7)}.ob-c i{position:absolute;right:2px;bottom:0;font-style:normal;font-size:11px;color:#ffd27a;text-shadow:0 0 2px #000}
+@media (max-width:520px){.ob-tabs button{font-size:11px;padding:5px 1px}}
+@container (max-width:519px){.ob-tabs button{font-size:10.5px;padding:5px 1px}}
+.live.test{background:rgba(120,90,200,.25);color:#d8c8ff;border-color:rgba(160,130,255,.6)} /* v7panel37 */
