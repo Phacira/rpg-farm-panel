@@ -175,7 +175,7 @@
     const body = [row('Снаряжение', gear.concat(ttl, pet)), row('Материалы', L(iv.m, '🪨')), row('Еда', L(iv.f, '🍲')), row('Зелья', L(iv.p, '🧪'))].join('');
     return `<div class="hinv${invOpen ? ' open' : ''}"><button type="button" class="ivh" aria-expanded="${invOpen}">🎒 Инвентарь ${invOpen ? '▴' : '▾'}</button>${invOpen ? `<div class="ivb">${body || '<span class="ivn">пусто</span>'}</div>` : ''}</div>`;
   }
-  document.addEventListener('mousedown', e => { if (e.target.closest('.hinv, .qcur, .log')) bcHold = true; });
+  document.addEventListener('mousedown', e => { if (e.target.closest('.hinv, .qcur, .log, .bcgo, input[data-bcq]')) bcHold = true; });
   document.addEventListener('click', e => { const b = e.target.closest('.ivh'); if (b) { invOpen = !invOpen; render(); } });
   document.addEventListener('mouseup', () => { if (bcHold) setTimeout(() => { bcHold = false; }, 100); });
   // v7panel22 п.1: «Улучшения» и «Еда и зелья» — ровные колонки (CSS grid + subgrid), короткие тексты, на телефоне — две строки
@@ -224,7 +224,8 @@
   // v7panel25 п.2: выбранное количество хранится в памяти пульта; пока список открыт/в фокусе, карточку не перерисовываем (иначе выбор закрывался)
   const bcSel = {}; let bcHold = false;
   const bcBusy = () => { const a = document.activeElement; return !!(a && a.matches && (a.matches('select[data-bcq]') || a.matches('input[data-bcq]'))); };
-  document.addEventListener('change', e => { const s = e.target.closest && e.target.closest('select[data-bcq]'); if (s) bcSel[s.dataset.bcq] = s.value; });
+  document.addEventListener('input', e => { const s = e.target.closest && e.target.closest('input[data-bcq]'); if (s) bcSel[s.dataset.bcq] = s.value; });
+  document.addEventListener('change', e => { const s = e.target.closest && e.target.closest('select[data-bcq], input[data-bcq]'); if (s) bcSel[s.dataset.bcq] = s.value; });
   document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('select[data-bcq], input[data-bcq]')) setTimeout(() => { if (bcHold && !bcBusy()) { bcHold = false; render(); } }, 0); });
   document.addEventListener('click', e => { const b = e.target.closest('button.bcgo'); if (!b || b.disabled) return; const i = +b.dataset.bci, inp = document.querySelector(`input[data-bcq="${i}"]`), q = inp ? inp.value : bcSel[i] || '1', r = ((state && state.ref && state.ref.recipes) || [])[i];
     if (r && window.PanelActions && PanelActions.fire) PanelActions.fire('готовить', `${i + 1} ${q}`, `Готовить · ${r[0]} × ${q}`); });
