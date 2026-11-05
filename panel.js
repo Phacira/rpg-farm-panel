@@ -110,6 +110,14 @@
       placed.push(r); x.lineWidth = 4 * u; x.strokeStyle = 'rgba(0,0,0,.85)'; x.strokeText(L.t, L.x, L.y); x.fillStyle = L.mine ? '#ffd27a' : '#fff'; x.fillText(L.t, L.x, L.y); stat.lab++;
     }
     for (const n in POS) if (!seen[n]) delete POS[n];
+    // мобы на карте
+    const mobs = state.mobs || [];
+    for (const [id, mx, my, hp] of mobs) {
+      const px = Math.round(mx * k), py = Math.round(my * k);
+      x.fillStyle = hp > 50 ? '#ff6a6a' : hp > 25 ? '#ffaa6a' : '#ff4444';
+      x.beginPath(); x.arc(px, py - 8, 8, 0, 7); x.fill(); x.strokeStyle = '#000'; x.lineWidth = 2; x.stroke();
+      x.fillStyle = '#fff'; x.font = `600 ${Math.round(10 * u)}px system-ui`; x.textAlign = 'center'; x.fillText(hp + '%', px, py - 16);
+    }
     if (moving && !anim) anim = requestAnimationFrame(animStep); // ~кадры только во время движения
     stat.fs = fs / u; stat.sprites = SPRITES; stat.moving = moving; stat.draws = ((window.__mapStat && window.__mapStat.draws) || 0) + 1; window.__mapStat = stat; // для тестов: сколько спрайтов/точек/подписей и размер подписи в css-px
   }
