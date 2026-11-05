@@ -316,7 +316,7 @@
     if (!h) h = `<div class="dim">набор не идёт — нажмите «Пати-поход», чтобы начать (нужно от ${esc(P.mn || 2)} до ${sz})</div>`;
     return `<div class="pty"><h2>🛡 Пати</h2>${mine ? `<div class="pme">★ ${mine}</div>` : ''}${h}</div>`;
   }
-  if (window.HeroSprites) HeroSprites.onReady(() => { PIC.clear(); if (!SPRITES) { clearTimeout(window.__picT); window.__picT = setTimeout(() => { if (!bcBusy()) render(); }, 120); } else draw(); });
+  if (window.HeroSprites) HeroSprites.onReady(() => { PIC.clear(); clearTimeout(window.__picT); window.__picT = setTimeout(() => { if (!bcBusy()) render(); }, 120); if (SPRITES) draw(); }); // v7panel35: портреты в карточке и при спрайтах на карте
   function card(me) {
     if (!me) return `<div class="hcard"><b>Героя пока нет.</b><p class="note">Напишите в чат стрима <b>!rpg</b> — герой появится, и вы увидите его здесь.</p></div>`;
     const cd = me.cd > 0 ? `через ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : 'можно';
