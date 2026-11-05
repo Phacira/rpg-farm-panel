@@ -44,30 +44,23 @@
     if (!CFG.RELAY_URL) { state = { online: false, nocfg: true }; return render(); }
     try { ws = new WebSocket(CFG.RELAY_URL.replace(/\/+$/, '') + '/viewer'); } catch (e) { return later(); }
     const me = ws;
-    ws.onopen = () => { lastMsg = Date.now(); me.send(JSON.stringify({ type: 'auth', token: sessionStorage.getItem('tw_token') })); };
+    ws.onopen = () => me.send(JSON.stringify({ type: 'auth', token: sessionStorage.getItem('tw_token') }));
     ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; }
-      lastMsg = Date.now(); if (m.type === 'pong') return;
-      if (m.type === 'hello' || m.type === 'state' || m.type === 'offline') { retry = 1500; if (m.type !== 'hello') msg(''); }
       if (m.type === 'cmd-res') { if (window.PanelActions) PanelActions.done(m); return; }
       if (m.type === 'state') state = m; else if (m.type === 'offline') state = { online: false, lastAt: m.lastAt };
-      else if (m.type === 'error') { if (m.code === 'bad-token') { logout(); msg('Вход устарел — войдите снова.'); } else msg(m.code === 'too-many' ? 'Эта вкладка отключена: пульт открыт в нескольких местах сразу. Обновите страницу, чтобы вернуть связь здесь.' : 'Ошибка: ' + m.code); }
+      else if (m.type === 'error') { if (m.code === 'bad-token') { logout(); msg('Вход устарел — войдите снова.'); } else msg(m.code === 'too-many' ? 'Пульт открыт в слишком многих вкладках.' : 'Ошибка: ' + m.code); }
       render(); };
-    ws.onclose = e => { if (ws !== me) return; ws = null; if (user && e.code !== 4003 && e.code !== 4010) later(); };
+    ws.onclose = e => { if (ws !== me) return; ws = null; if (user && e.code !== 4003) later(); };
   }
-  let lastMsg = Date.now(), laterT = 0;
-  function later() { if (laterT) return; laterT = setTimeout(() => { laterT = 0; connect(); }, retry); retry = Math.min(8000, Math.round(retry * 1.7)); }
-  // мёртвое соединение (сон, смена сети): сервер молчит дольше минуты — переподключаемся сами; ping каждые 20 с
-  const ensureConn = () => { if (mock || !user) return; if (ws && ws.readyState === 1 && Date.now() - lastMsg > 65000) { try { ws.close(); } catch (e) {} } if (!ws) { clearTimeout(laterT); laterT = 0; retry = 1500; connect(); } };
-  setInterval(() => { if (ws && ws.readyState === 1) ws.send('{"type":"ping"}'); ensureConn(); }, 20000);
-  ['online', 'focus', 'pageshow'].forEach(ev => window.addEventListener(ev, ensureConn));
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) ensureConn(); });
+  function later() { setTimeout(connect, retry); retry = Math.min(30000, retry * 2); }
+  setInterval(() => { if (ws && ws.readyState === 1) ws.send('{"type":"ping"}'); else retry = Math.max(1500, retry); }, 25000);
 
   // ---------- Отрисовка ----------
   function img(l) { if (!imgs[l]) { imgs[l] = new Image(); imgs[l].onload = draw; imgs[l].src = 'img/' + l + '.jpg'; } return imgs[l]; }
   function curLoc() { const me = state && state.me; return tab === 'me' ? (me ? me.loc : (state && state.cam) || 'camp') : tab; }
   // v7panel3b: на превью — спрайты героев как в игре (класс, пол, волосы, окраска сета, взгляд), свой — со звёздочкой и подсветкой; нет спрайта → точка
   // v7panel4 п.11: спрайты на превью выключены (лагали и не совпадали по цвету с игрой) — цветные точки класса. Код спрайтов оставлен: SPRITES = true вернёт их.
-  const SPRITES = false; // v7panel28: по просьбе Tim на карте снова точки (спрайты v7panel27 убраны); бои — в списке под картой
+  const SPRITES = true; // v7panel34: свой герой спрайтом, остальные — точки
   // плавное движение точек: позиция догоняет цель из снимка (~раз в секунду), кадры только пока кто-то движется
   const POS = {}; let anim = 0, lastL = '';
   function animStep() { anim = 0; draw(true); }
@@ -89,7 +82,7 @@
       if (fromAnim) { P.x += (hx - P.x) * .18; P.y += (hy - P.y) * .18; }
       if (Math.abs(hx - P.x) > 2 || Math.abs(hy - P.y) > 2) moving = true; else { P.x = hx; P.y = hy; }
       const px = Math.round(P.x * k), py = Math.round(P.y * k);
-      const sp = HS && k6 ? HS.get(k6, hid, dy, ramps) : null;
+      const sp = HS && k6 && mine ? HS.get(k6, hid, dy, ramps) : null;
       let top;
       if (sp) {
         const f = (hh || 120) * k / 240 / sp.sc, dw = Math.max(1, Math.round(sp.w * f)), dh = Math.max(1, Math.round(sp.h * f)), ax = sp.fx * f, ay = (sp.sit ? sp.sy : sp.fy) * f;
@@ -98,6 +91,8 @@
         x.save(); x.translate(px, sp.sit ? py : py); if (fl) x.scale(-1, 1); if (st === 'sleep') x.globalAlpha = .75;
         if (mine) { x.shadowColor = '#ffd27a'; x.shadowBlur = 10 * u; }
         x.drawImage(sp.c, Math.round(-ax), Math.round(-ay), dw, dh); x.restore();
+        // пет рядом со своим героем
+        if (mine && me && me.ptOn) { const psz = Math.max(10, dh * 0.25); x.fillStyle = '#ffd27a'; x.beginPath(); x.arc(px + dw * 0.35, py - psz, psz * 0.5, 0, 7); x.fill(); x.fillStyle = '#000'; x.font = `${Math.round(psz)}px system-ui`; x.textAlign = 'center'; x.fillText('🐾', px + dw * 0.35, py - psz * 0.3); }
         top = py - ay; stat.spr++; if (mine) stat.mine = 1;
       } else {
         const r = (mine ? 7 : 5) * Math.max(1, u * .8);
@@ -192,18 +187,17 @@
     if (!L.length) return '';
     const bc = +ref.bc || 0, cook = me && me.rw ? +me.rw.cook || 0 : 0; // v7panel24: готовка пачкой — только если игра прислала ref.bc (флаг batchCook включён)
     const rows = L.map(([n, kind, need, lv, txt, ick], i) => { const f = me && me.rcp ? me.rcp[i] || 0 : 1, ok = me && (f & 3) === 3;
-      const q = bc && ok ? `<span class="bcq"><input type="number" data-bcq="${i}" min="1" max="${bc}" value="${Math.min(bc, bcSel[i] || 1)}" style="width:40px" title="Не больше ${bc} за раз" aria-label="Сколько порций, максимум ${bc}"><span class="dim" style="font-size:13px">из ${bc}</span><button type="button" class="bcgo" data-bci="${i}">Приготовить</button></span>` : '';
+      const q = bc && ok ? `<span class="bcq"><input type="number" data-bcq="${i}" min="1" max="10" value="${bcSel[i] || 1}" style="width:40px" aria-label="Сколько порций"><button type="button" class="bcgo" data-bci="${i}">Приготовить</button></span>` : '';
       return `<div class="upr2${f & 1 ? '' : ' off'}"${f & 1 ? '' : ` title="откроется с ур.${esc(lv)}"`}><span class="upi">${ick ? icImg(ick) : kind === 'potion' ? '🧪' : '🍲'}</span><b class="upn">${esc(n)}</b><span class="upe" title="${esc(txt || '')}">${esc(shortFx(txt) || '—')}</span><span class="upp">${f & 1 ? esc(need) : 'с ур.' + esc(lv)}${q}</span></div>`; }).join('');
-    const as = bc && me && me.iv ? (me.iv.f || []).filter(x => x[3]).reduce((a, x) => a + (+x[2] || 0), 0) : 0, ds = bc && me && me.iv ? (me.iv.f || []).filter(x => !x[3]).reduce((a, x) => a + (+x[2] || 0), 0) : 0, ps = bc && me && me.iv ? (me.iv.p || []).reduce((a, x) => a + (+x[2] || 0), 0) : 0;
-    return `<div class="upbox"><h2>🍲 Еда и зелья</h2>${bc ? `<div class="bcst">Запас: 🍲 ${ds}${as ? ` <span class="dim">(+${as} уже в действии)</span>` : ''} · 🧪 ${ps} · токенов готовки ${cook}</div>` : ''}<div class="upt upt-f"><div class="upr2 uph"><span></span><span>Название</span><span>Эффект</span><span>Состав</span></div>${rows}</div></div>`;
+    const ds = bc && me && me.iv ? (me.iv.f || []).filter(x => !x[3]).reduce((a, x) => a + (+x[2] || 0), 0) : 0, ps = bc && me && me.iv ? (me.iv.p || []).reduce((a, x) => a + (+x[2] || 0), 0) : 0;
+    return `<div class="upbox"><h2>🍲 Еда и зелья</h2>${bc ? `<div class="bcst">Запас: 🍲 ${ds} · 🧪 ${ps} · токенов готовки ${cook}</div>` : ''}<div class="upt upt-f"><div class="upr2 uph"><span></span><span>Название</span><span>Эффект</span><span>Состав</span></div>${rows}</div></div>`;
   }
   // v7panel25 п.2: выбранное количество хранится в памяти пульта; пока список открыт/в фокусе, карточку не перерисовываем (иначе выбор закрывался)
   const bcSel = {}; let bcHold = false;
-  const bcBusy = () => { const a = document.activeElement; return !!(a && a.matches && a.matches('select[data-bcq],input[data-bcq]')); };
-  const bcSave = e => { const s = e.target.closest && e.target.closest('select[data-bcq],input[data-bcq]'); if (s) bcSel[s.dataset.bcq] = s.value; };
-  document.addEventListener('change', bcSave); document.addEventListener('input', bcSave);
-  document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('select[data-bcq],input[data-bcq]')) setTimeout(() => { if (bcHold && !bcBusy()) { bcHold = false; render(); } }, 400); });
-  document.addEventListener('click', e => { const b = e.target.closest('button.bcgo'); if (!b || b.disabled) return; const i = +b.dataset.bci, sel = document.querySelector(`[data-bcq="${i}"]`), bcm = +((state && state.ref && state.ref.bc) || 10), q = String(Math.max(1, Math.min(bcm, parseInt(sel ? sel.value : bcSel[i], 10) || 1))), r = ((state && state.ref && state.ref.recipes) || [])[i];
+  const bcBusy = () => { const a = document.activeElement; return !!(a && a.matches && a.matches('select[data-bcq]')); };
+  document.addEventListener('change', e => { const s = e.target.closest && e.target.closest('select[data-bcq]'); if (s) bcSel[s.dataset.bcq] = s.value; });
+  document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('select[data-bcq]')) setTimeout(() => { if (bcHold && !bcBusy()) { bcHold = false; render(); } }, 0); });
+  document.addEventListener('click', e => { const b = e.target.closest('button.bcgo'); if (!b || b.disabled) return; const i = +b.dataset.bci, sel = document.querySelector(`select[data-bcq="${i}"]`), q = sel ? sel.value : bcSel[i] || '1', r = ((state && state.ref && state.ref.recipes) || [])[i];
     if (r && window.PanelActions && PanelActions.fire) PanelActions.fire('готовить', `${i + 1} ${q}`, `Готовить · ${r[0]} × ${q}`); });
   // v7panel20 п.2: все характеристики героя (из игры: me.sr), что даёт надетое (me.eqS) и баффы (me.bf)
   // v7panel32: задания на вкладке «Мой герой»: текущее (прогресс x/y, награда) и последние выполненные. Нет me.qs (старая игра) — блок не рисуется.
@@ -292,7 +286,7 @@
     const rw = me.rw || {}, cook = +rw.cook || 0;
     const ccd = me.ccd > 0 ? `через ${Math.floor(me.ccd / 60)}:${String(me.ccd % 60).padStart(2, '0')}` : 'можно';
     const today = [`поход ${cd === 'можно' ? '✓' : cd}`, `готовка ${ccd === 'можно' ? '✓' : ccd}`].concat(+rw.quest > 0 ? [`квестов осталось: ${rw.quest}`] : ['квесты кончились']).concat(me.q ? [`квест: ${me.q} (${me.qp || 0}/${me.qn || '?'})`] : []);
-    return `<div class="hcard"><div class="hhead">${heroPic(me.k6, me.hair, me.dy, me.cls, 'big')}<div><div class="hname">★ ${esc(me.n)} <small>${esc(me.cn)} · ур. ${esc(me.lv)}</small></div>
+    return `<div class="hcard"><div class="hhead">${heroPic(me.k6, me.hair, me.dy, me.cls, 'big')}${me.ptOn ? `<span class="hpet" title="${esc((me.pt.find(p => p[0] === me.ptOn) || [])[1] || 'пет')}">🐾</span>` : ''}<div><div class="hname">★ ${esc(me.n)} <small>${esc(me.cn)} · ур. ${esc(me.lv)}</small></div>
       <div class="hst">${esc(ST[me.st] || me.st)} · ${esc(LOCN[me.loc] || me.loc)}${me.gd ? ' · гильдия: ' + esc(me.gd) : ''}</div></div></div>${myFight(me)}
       ${bar(me.hp, me.mhp, 'hp')}${me.mmp ? bar(me.mp || 0, me.mmp, 'mp') : ''}${bar(me.xp, me.xpN, 'xp')}
       <div class="hgrid"><span>💰 ${esc(me.gold)}</span><span>🌱 ${esc(me.sd || 0)} · ✨ ${esc(me.sdp || 0)}</span></div>
