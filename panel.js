@@ -44,16 +44,23 @@
     if (!CFG.RELAY_URL) { state = { online: false, nocfg: true }; return render(); }
     try { ws = new WebSocket(CFG.RELAY_URL.replace(/\/+$/, '') + '/viewer'); } catch (e) { return later(); }
     const me = ws;
-    ws.onopen = () => me.send(JSON.stringify({ type: 'auth', token: sessionStorage.getItem('tw_token') }));
+    ws.onopen = () => { lastMsg = Date.now(); me.send(JSON.stringify({ type: 'auth', token: sessionStorage.getItem('tw_token') })); };
     ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      lastMsg = Date.now(); if (m.type === 'pong') return;
+      if (m.type === 'hello' || m.type === 'state' || m.type === 'offline') { retry = 1500; if (m.type !== 'hello') msg(''); }
       if (m.type === 'cmd-res') { if (window.PanelActions) PanelActions.done(m); return; }
       if (m.type === 'state') state = m; else if (m.type === 'offline') state = { online: false, lastAt: m.lastAt };
-      else if (m.type === 'error') { if (m.code === 'bad-token') { logout(); msg('Вход устарел — войдите снова.'); } else msg(m.code === 'too-many' ? 'Пульт открыт в слишком многих вкладках.' : 'Ошибка: ' + m.code); }
+      else if (m.type === 'error') { if (m.code === 'bad-token') { logout(); msg('Вход устарел — войдите снова.'); } else msg(m.code === 'too-many' ? 'Эта вкладка отключена: пульт открыт в нескольких местах сразу. Обновите страницу, чтобы вернуть связь здесь.' : 'Ошибка: ' + m.code); }
       render(); };
-    ws.onclose = e => { if (ws !== me) return; ws = null; if (user && e.code !== 4003) later(); };
+    ws.onclose = e => { if (ws !== me) return; ws = null; if (user && e.code !== 4003 && e.code !== 4010) later(); };
   }
-  function later() { setTimeout(connect, retry); retry = Math.min(30000, retry * 2); }
-  setInterval(() => { if (ws && ws.readyState === 1) ws.send('{"type":"ping"}'); else retry = Math.max(1500, retry); }, 25000);
+  let lastMsg = Date.now(), laterT = 0;
+  function later() { if (laterT) return; laterT = setTimeout(() => { laterT = 0; connect(); }, retry); retry = Math.min(8000, Math.round(retry * 1.7)); }
+  // мёртвое соединение (сон, смена сети): сервер молчит дольше минуты — переподключаемся сами; ping каждые 20 с
+  const ensureConn = () => { if (mock || !user) return; if (ws && ws.readyState === 1 && Date.now() - lastMsg > 65000) { try { ws.close(); } catch (e) {} } if (!ws) { clearTimeout(laterT); laterT = 0; retry = 1500; connect(); } };
+  setInterval(() => { if (ws && ws.readyState === 1) ws.send('{"type":"ping"}'); ensureConn(); }, 20000);
+  ['online', 'focus', 'pageshow'].forEach(ev => window.addEventListener(ev, ensureConn));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) ensureConn(); });
 
   // ---------- Отрисовка ----------
   function img(l) { if (!imgs[l]) { imgs[l] = new Image(); imgs[l].onload = draw; imgs[l].src = 'img/' + l + '.jpg'; } return imgs[l]; }
@@ -93,16 +100,17 @@
         if (mine) { x.shadowColor = '#ffd27a'; x.shadowBlur = 10 * u; }
         x.drawImage(sp.c, Math.round(-ax), Math.round(-ay), dw, dh); x.restore();
         // пет рядом со своим героем
-        if (mine && me && me.ptOn) { 
-          const petImgs = window.__petImgs || (window.__petImgs = {});
-          const pid = me.ptOn;
-          if (!petImgs[pid]) { const im = new Image(); im.src = `img/pet/${pid}.png`; petImgs[pid] = im; }
+        if (mine && state.me && state.me.ptOn) { // v7panel35: me здесь — логин (строка), питомец берём из state.me
+
+          const PET_EMO = { slime: '🟢', fairy: '🧚', cat: '🐱', dragon: '🐉', unicorn: '🦄' }; const petImgs = window.__petImgs || (window.__petImgs = {});
+          const pid = state.me.ptOn;
+          if (!petImgs[pid]) { const im = new Image(); im.onload = () => draw(); im.onerror = () => draw(); im.src = `img/pet/${pid}.png`; petImgs[pid] = im; } // v7panel35: перерисовать, когда картинка загрузилась
           const pim = petImgs[pid];
           const psz = Math.max(16, dh * 0.3);
-          if (pim.complete && pim.naturalWidth) {
-            x.drawImage(pim, px + dw * 0.3, py - psz, psz, psz);
-          } else {
-            x.fillStyle = '#ffd27a'; x.beginPath(); x.arc(px + dw * 0.35, py - psz, psz * 0.5, 0, 7); x.fill();
+          if (pim.complete && pim.naturalWidth) { // v7panel35: пропорции картинки, низ пета — на земле
+            const pw = psz * pim.naturalWidth / pim.naturalHeight; x.drawImage(pim, px + dw * 0.3, py - psz, pw, psz);
+          } else { // v7panel35: нет файла — эмодзи вместо жёлтого кружка
+            x.save(); x.font = `${Math.round(psz)}px serif`; x.textBaseline = 'bottom'; x.fillText(PET_EMO[String(pid).replace(/^pet_/, '')] || '🐾', px + dw * 0.3, py); x.restore();
           }
         }
         top = py - ay; stat.spr++; if (mine) stat.mine = 1;
@@ -216,18 +224,18 @@
     if (!L.length) return '';
     const bc = +ref.bc || 0, cook = me && me.rw ? +me.rw.cook || 0 : 0; // v7panel24: готовка пачкой — только если игра прислала ref.bc (флаг batchCook включён)
     const rows = L.map(([n, kind, need, lv, txt, ick], i) => { const f = me && me.rcp ? me.rcp[i] || 0 : 1, ok = me && (f & 3) === 3;
-      const q = bc && ok ? `<span class="bcq"><input type="number" data-bcq="${i}" min="1" max="10" value="${bcSel[i] || 1}" style="width:40px" aria-label="Сколько порций"><button type="button" class="bcgo" data-bci="${i}">Приготовить</button></span>` : '';
+      const q = bc && ok ? `<span class="bcq"><input type="number" data-bcq="${i}" min="1" max="${bc}" value="${Math.min(bc, bcSel[i] || 1)}" style="width:40px" title="Не больше ${bc} за раз" aria-label="Сколько порций, максимум ${bc}"><span class="dim" style="font-size:13px">из ${bc}</span><button type="button" class="bcgo" data-bci="${i}">Приготовить</button></span>` : '';
       return `<div class="upr2${f & 1 ? '' : ' off'}"${f & 1 ? '' : ` title="откроется с ур.${esc(lv)}"`}><span class="upi">${ick ? icImg(ick) : kind === 'potion' ? '🧪' : '🍲'}</span><b class="upn">${esc(n)}</b><span class="upe" title="${esc(txt || '')}">${esc(shortFx(txt) || '—')}</span><span class="upp">${f & 1 ? esc(need) : 'с ур.' + esc(lv)}${q}</span></div>`; }).join('');
-    const ds = bc && me && me.iv ? (me.iv.f || []).filter(x => !x[3]).reduce((a, x) => a + (+x[2] || 0), 0) : 0, ps = bc && me && me.iv ? (me.iv.p || []).reduce((a, x) => a + (+x[2] || 0), 0) : 0;
-    return `<div class="upbox"><h2>🍲 Еда и зелья</h2>${bc ? `<div class="bcst">Запас: 🍲 ${ds} · 🧪 ${ps} · токенов готовки ${cook}</div>` : ''}<div class="upt upt-f"><div class="upr2 uph"><span></span><span>Название</span><span>Эффект</span><span>Состав</span></div>${rows}</div></div>`;
+    const as = bc && me && me.iv ? (me.iv.f || []).filter(x => x[3]).reduce((a, x) => a + (+x[2] || 0), 0) : 0, ds = bc && me && me.iv ? (me.iv.f || []).filter(x => !x[3]).reduce((a, x) => a + (+x[2] || 0), 0) : 0, ps = bc && me && me.iv ? (me.iv.p || []).reduce((a, x) => a + (+x[2] || 0), 0) : 0;
+    return `<div class="upbox"><h2>🍲 Еда и зелья</h2>${bc ? `<div class="bcst">Запас: 🍲 ${ds}${as ? ` <span class="dim">(+${as} уже в действии)</span>` : ''} · 🧪 ${ps} · токенов готовки ${cook}</div>` : ''}<div class="upt upt-f"><div class="upr2 uph"><span></span><span>Название</span><span>Эффект</span><span>Состав</span></div>${rows}</div></div>`;
   }
   // v7panel25 п.2: выбранное количество хранится в памяти пульта; пока список открыт/в фокусе, карточку не перерисовываем (иначе выбор закрывался)
   const bcSel = {}; let bcHold = false;
-  const bcBusy = () => { const a = document.activeElement; return !!(a && a.matches && (a.matches('select[data-bcq]') || a.matches('input[data-bcq]'))); };
-  document.addEventListener('input', e => { const s = e.target.closest && e.target.closest('input[data-bcq]'); if (s) bcSel[s.dataset.bcq] = s.value; });
-  document.addEventListener('change', e => { const s = e.target.closest && e.target.closest('select[data-bcq], input[data-bcq]'); if (s) bcSel[s.dataset.bcq] = s.value; });
-  document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('select[data-bcq], input[data-bcq]')) setTimeout(() => { if (bcHold && !bcBusy()) { bcHold = false; render(); } }, 0); });
-  document.addEventListener('click', e => { const b = e.target.closest('button.bcgo'); if (!b || b.disabled) return; const i = +b.dataset.bci, inp = document.querySelector(`input[data-bcq="${i}"]`), q = inp ? inp.value : bcSel[i] || '1', r = ((state && state.ref && state.ref.recipes) || [])[i];
+  const bcBusy = () => { const a = document.activeElement; return !!(a && a.matches && a.matches('select[data-bcq],input[data-bcq]')); };
+  const bcSave = e => { const s = e.target.closest && e.target.closest('select[data-bcq],input[data-bcq]'); if (s) bcSel[s.dataset.bcq] = s.value; };
+  document.addEventListener('change', bcSave); document.addEventListener('input', bcSave);
+  document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('select[data-bcq],input[data-bcq]')) setTimeout(() => { if (bcHold && !bcBusy()) { bcHold = false; render(); } }, 400); });
+  document.addEventListener('click', e => { const b = e.target.closest('button.bcgo'); if (!b || b.disabled) return; const i = +b.dataset.bci, sel = document.querySelector(`[data-bcq="${i}"]`), bcm = +((state && state.ref && state.ref.bc) || 10), q = String(Math.max(1, Math.min(bcm, parseInt(sel ? sel.value : bcSel[i], 10) || 1))), r = ((state && state.ref && state.ref.recipes) || [])[i];
     if (r && window.PanelActions && PanelActions.fire) PanelActions.fire('готовить', `${i + 1} ${q}`, `Готовить · ${r[0]} × ${q}`); });
   // v7panel20 п.2: все характеристики героя (из игры: me.sr), что даёт надетое (me.eqS) и баффы (me.bf)
   // v7panel32: задания на вкладке «Мой герой»: текущее (прогресс x/y, награда) и последние выполненные. Нет me.qs (старая игра) — блок не рисуется.
@@ -316,7 +324,7 @@
     const rw = me.rw || {}, cook = +rw.cook || 0;
     const ccd = me.ccd > 0 ? `через ${Math.floor(me.ccd / 60)}:${String(me.ccd % 60).padStart(2, '0')}` : 'можно';
     const today = [`поход ${cd === 'можно' ? '✓' : cd}`, `готовка ${ccd === 'можно' ? '✓' : ccd}`].concat(+rw.quest > 0 ? [`квестов осталось: ${rw.quest}`] : ['квесты кончились']).concat(me.q ? [`квест: ${me.q} (${me.qp || 0}/${me.qn || '?'})`] : []);
-    return `<div class="hcard"><div class="hhead">${heroPic(me.k6, me.hair, me.dy, me.cls, 'big')}${me.ptOn ? `<img class="hpet" src="img/pet/${me.ptOn}.png" title="${esc((me.pt.find(p => p[0] === me.ptOn) || [])[1] || 'пет')}" alt="пет">` : ''}<div><div class="hname">★ ${esc(me.n)} <small>${esc(me.cn)} · ур. ${esc(me.lv)}</small></div>
+    return `<div class="hcard"><div class="hhead">${heroPic(me.k6, me.hair, me.dy, me.cls, 'big')}${me.ptOn ? `<img class="hpet" src="img/pet/${esc(me.ptOn)}.png" onerror="this.outerHTML='<span class=hpet>🐾</span>'" title="${esc((me.pt.find(p => p[0] === me.ptOn) || [])[1] || 'пет')}" alt="пет">` : ''}<div><div class="hname">★ ${esc(me.n)} <small>${esc(me.cn)} · ур. ${esc(me.lv)}</small></div>
       <div class="hst">${esc(ST[me.st] || me.st)} · ${esc(LOCN[me.loc] || me.loc)}${me.gd ? ' · гильдия: ' + esc(me.gd) : ''}</div></div></div>${myFight(me)}
       ${bar(me.hp, me.mhp, 'hp')}${me.mmp ? bar(me.mp || 0, me.mmp, 'mp') : ''}${bar(me.xp, me.xpN, 'xp')}
       <div class="hgrid"><span>💰 ${esc(me.gold)}</span><span>🌱 ${esc(me.sd || 0)} · ✨ ${esc(me.sdp || 0)}</span></div>
@@ -362,6 +370,8 @@
       me: { k6: 'moon_m_warrior', dy: '', fm: /fight=1/.test(location.search) ? ['goblin', 'Гоблин', 31, 52, 0] : null, n: 'demo_viewer', cls: 'warrior', cn: 'Воин', lv: 7, xp: 210, xpN: 350, hp: 86, mhp: 120, gold: 340, pot: 2, food: 3, sd: 4, sdp: 1, gd: 'Лунные тени', gid: 'moon', eqOwn: ['w_sword1'], eqOn: { weapon: 'w_sword1' }, tt: ['Огородник', 'Гроза крыс'], ttOn: 'Огородник', ttOn: 'Огородник', hair: 'black', of: ['plant2', 'carrot2', 'harv4'], pty: false, st: 'camp', loc: 'camp', mode: 'idle',
         veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, wd: 7, rw: { hike: 1, cook: 1, quest: 2 }, qs: /quest=0/.test(location.search) ? { c: 0, d: 0, l: [] } : { c: ['Сходить в 2 похода', 1, 2, '+30 золота, +20 опыта'], d: 3, l: [['Приготовить 2 блюда', '+20 золота, +10 опыта'], ['Посадить 2 грядки', '+15 золота, +5 опыта, +2 семян'], ['Победить 5 монстров', '+25 золота, +15 опыта']] }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null, iv: { m: [['🪵', 'Дерево', 12], ['🪨', 'Камень', 5], ['⛓️', 'Железо', 1]], f: [['🥗', 'Овощной салат', 1], ['crop_carrot', 'Тушёная морковь (активно)', 8]], p: [['❤️', 'Зелье лечения', 2]], c: [] } },
       ref: /bc=1/.test(location.search) ? Object.assign({}, MOCK_REF, { bc: 5 }) : MOCK_REF };
+    state.stream = !/offline=1/.test(location.search); // v7panel35: макет — стрим идёт (иначе с v7panel32 пульт в ?mock=1 пустой)
+    { const m = /[?&]pet=(\w+)/.exec(location.search); if (m) { state.me.pt = [['slime', 'Слизень'], ['fairy', 'Фея'], ['cat', 'Котёнок'], ['dragon', 'Дракончик']]; state.me.ptOn = m[1]; } } // v7panel35: ?pet=dragon — макет питомца
     { const m = /[?&]turn=(\d)/.exec(location.search); state.ref = Object.assign({}, state.ref, { ch: 'demo_channel', tl: 1 }); if (m) { state.ref.tb = 1; state.me.tu = +m[1] - 1; } } // v7panel31: ?turn=1 — флаг включён, ?turn=2 — лимит исчерпан
     { const m = /[?&]pty=(\w+)/.exec(location.search); if (m) { const v = m[1]; // v7panel30: макет пати — q (набор), go (в походе), none (пусто)
       state.ref = Object.assign({}, state.ref, { pty: v === 'none' ? { sz: 3, mn: 2, wv: 3, q: [], qn: 0, left: -1, lane: 0, go: [] }
