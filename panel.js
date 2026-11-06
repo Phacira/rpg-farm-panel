@@ -1,4 +1,4 @@
-/* v42repair: panel durability UI */
+/* v42repair: panel durability UI | locations-final-v1 */
 // Пульт зрителя: вход через Twitch, просмотр и (v7panel3) кнопки-действия — см. actions.js.
 (function () {
   const CFG = window.PANEL_CONFIG || {}, $ = id => document.getElementById(id);
@@ -64,7 +64,7 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden) ensureConn(); });
 
   // ---------- Отрисовка ----------
-  function img(l) { if (!imgs[l]) { imgs[l] = new Image(); imgs[l].onload = draw; imgs[l].src = 'img/' + l + '.jpg'; } return imgs[l]; }
+  function img(l) { if (!imgs[l]) { imgs[l] = new Image(); imgs[l].onload = draw; imgs[l].src = 'img/' + l + '.jpg?v=locations-final-v1'; } return imgs[l]; }
   function curLoc() { const me = state && state.me; return tab === 'me' ? (me ? me.loc : (state && state.cam) || 'camp') : tab; }
   // v7panel3b: на превью — спрайты героев как в игре (класс, пол, волосы, окраска сета, взгляд), свой — со звёздочкой и подсветкой; нет спрайта → точка
   // v7panel4 п.11: спрайты на превью выключены (лагали и не совпадали по цвету с игрой) — цветные точки класса. Код спрайтов оставлен: SPRITES = true вернёт их.
