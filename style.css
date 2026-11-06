@@ -65,7 +65,7 @@ details.chatcmds header{position:static}
 .ivb{padding:0 8px 6px}.ivr{display:grid;grid-template-columns:92px 1fr;gap:6px;align-items:start;margin:3px 0}
 .ivr>em{font-style:normal;opacity:.65;font-size:12px;padding-top:2px}.ivv{display:flex;flex-wrap:wrap;gap:3px 4px;min-width:0}
 .ivi{display:inline-flex;align-items:center;flex-wrap:wrap;gap:3px 6px;white-space:normal;max-width:100%;min-width:0;overflow:visible;padding:2px 6px;border-radius:6px;background:rgba(0,0,0,.25);line-height:1.35;box-sizing:border-box}
-.ivi.on{outline:1px solid rgba(255,210,122,.6)}button.ivi{border:0;color:inherit;font:inherit;cursor:pointer;text-align:left}button.ivfix{outline-color:rgba(255,120,80,.75)}.ivi b{color:#ffd27a;font-weight:600}
+.ivi.on{outline:1px solid rgba(255,210,122,.6)}button.ivi{border:0;color:inherit;font:inherit;cursor:pointer;text-align:left}button.ivfix{outline-color:rgba(255,120,80,.75)}button.ivsell{outline-color:rgba(255,210,122,.75)}.ivi b{color:#ffd27a;font-weight:600}
 /* v7panel42: % и цена починки не обрезать — отдельный nowrap-блок, можно на новую строку */
 .ivact{font-style:normal;font-size:11px;opacity:.9;color:#9fe08a;flex:0 0 auto;white-space:nowrap}.ivn{opacity:.45}
 .htoday{font-size:13px;opacity:.85;margin:4px 0}

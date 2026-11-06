@@ -66,7 +66,15 @@
     const hike = me && me.cd > 0 ? `КД ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : 'можно';
     // v7panel10: парикмахер виден, но неактивен, пока HAIR_AVAILABLE=false и игра не прислала ref.hairOn (CONFIG.hairRecolor.enabled в игре)
     const hairOk = (HAIR_AVAILABLE || ref.hairOn === true) && (ref.hair || []).length > 0;
-    const sellEq = () => (me && me.eqOwn || []).filter(id => !(me.eqOn && Object.values(me.eqOn).includes(id))).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, price]) => ({ ic: ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : '', label: n, sub: `продать за ${Math.round((price || 0) * 0.3)} з`, arg: id, confirm: `Продать «${n}» за ${Math.round((price || 0) * 0.3)} золота?` }));
+    // v7panel44: кузня (eqOwn снятое, 30%) + лут сундука (rpg_gear / me.lgs|lg+ref.gear, 40*tier). Без ref.gear и lgs — старая игра, лут в списке не показываем.
+    const sellSmith = () => (me && me.eqOwn || []).filter(id => !(me.eqOn && Object.values(me.eqOn).includes(id))).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, price]) => ({ ic: ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : '', label: n, sub: `кузня · ${Math.round((price || 0) * 0.3)} з`, arg: id, confirm: `Продать «${n}» за ${Math.round((price || 0) * 0.3)} золота?` }));
+    const sellLootRows = () => {
+      if (!(ref.gear && ref.gear.length) && !(me && me.lgs && me.lgs.length)) return [];
+      const rows = (me && me.lgs && me.lgs.length) ? me.lgs : (me && me.lg || []).map(id => { const g = (ref.gear || []).find(x => x[0] === id); return g || null; }).filter(Boolean);
+      return rows.map(r => { const id = r[0], n = r[1], price = r[3], bonus = r[4] || 'пассив сундука';
+        return { label: 'лут: ' + n, sub: `пассив · ${price} з · ${bonus}`, arg: 'лут ' + id, confirm: `Продать лут «${n}» за ${price} золота?\nПотеряете пассив: ${bonus}.\nЭто не кузнечная вещь.` }; });
+    };
+    const sellEq = () => sellSmith().concat(sellLootRows());
     const hairBtn = hairOk ? ['💈', 'Парикмахер', 'парикмахер', hair, `${ref.hairPrice || 250} з`] : ['💈', 'Парикмахер', 'парикмахер', '', HAIR_OFF_TEXT, null, true];
     return {
       town: [['📜', 'Задание', 'квест', quests, me && me.rw && me.rw.quest > 0 ? `осталось: ${me.rw.quest}` : 'квесты кончились'],
@@ -83,7 +91,7 @@
       boss: bossOrder(me, [['☠', 'Записаться', 'босс', '', 'в отряд на босса'], ['👊', 'Удар', 'удар', '', 'до 4 в минуту'], ['💚', 'Лечить', 'лечить', '', 'раз в 30 с'],
         ['💫', 'Оглушить', 'оглушить', '', 'красный каст'], ['🕸', 'Связать', 'связать', '', 'жёлтый каст'], ['🔮', 'Очистить', 'очистить', '', 'фиолетовый каст'],
         ['🐌', 'Замедлить', 'замедлить', '', 'замедлить каст'], ['🛡', 'Заслон', 'заслон', '', 'щит отряду'], ['✝', 'Воскресить', 'воскресить', '', 'поднять союзника']]),
-      me: me ? [turnBtn, ['🎒', 'Надеть', 'экип', wear, 'своё снаряжение'], ['🧤', 'Снять', 'снять', unwear, 'вещь со слота'], ['💰', 'Продать вещь', 'продать', sellEq, 'за 30%'], ['🏷', 'Титул', 'титул', titles, me.ttOn || 'выбрать'],
+      me: me ? [turnBtn, ['🎒', 'Надеть', 'экип', wear, 'своё снаряжение'], ['🧤', 'Снять', 'снять', unwear, 'вещь со слота'], ['💰', 'Продать вещь', 'продать', sellEq, 'кузня 30% · лут'], ['🏷', 'Титул', 'титул', titles, me.ttOn || 'выбрать'],
         ...(me.pt && me.pt.length ? [['🐾', 'Питомец', 'экип', pets, ((me.pt.find(p => p[0] === me.ptOn) || [])[1]) || 'не взят']] : []),
         hairBtn, ['🏰', 'Гильдия', 'гильдия', guilds, me.gd || 'выбрать'], ['⚒', 'Кузница', 'купить', shop, 'купить вещь'], ...(me.dr && me.dr.i && me.dr.i.length ? [['🔧', 'Починить', 'чинить', repair, 'у кузницы · ' + me.dr.t + ' з']] : [])]
         : [['🧙', 'Стать героем', 'вступить', '', 'нужна награда канала']]
@@ -140,5 +148,5 @@
   function push(r) { results = [r].concat(results.filter(x => x.id !== r.id)).slice(0, 4); window.__panel && window.__panel.render(); }
   function done(m) { const p = pend[m.id]; if (!p) return; delete pend[m.id]; push({ id: m.id, label: p.label, msg: m.msg || (m.ok ? 'готово' : 'не получилось'), ok: !!m.ok }); }
   document.addEventListener('click', e => { const b = e.target.closest('button.act'); if (b && !b.disabled) click(+b.dataset.a); });
-  window.PanelActions = { render, done, defs, fire };
+  window.PanelActions = { render, done, defs, fire, sellList: ctx => { const d = defs(ctx).me || []; const b = d.find(x => x[2] === 'продать'); return b && typeof b[3] === 'function' ? b[3]() : []; } };
 })();

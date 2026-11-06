@@ -177,10 +177,11 @@
   function invHtml(me) {
     const ref = (state && state.ref) || {}, iv = me.iv || {}, eqN = {}; (ref.eq || []).forEach(e => eqN[e[0]] = e[1]);
     // v7panel42: chip — %/цена починки у надетых; кнопка чинит слот (диалог «Починить» остаётся для списка)
-    const chip = (o, cnt) => { const tip = esc(o.nm) + (o.tag ? ' — ' + esc(o.tag) : '') + (o.repair ? ` · клик: починить ${o.cost} з` : '');
+    const chip = (o, cnt) => { const tip = esc(o.nm) + (o.tag ? ' — ' + esc(o.tag) : '') + (o.repair ? ` · клик: починить ${o.cost} з` : '') + (o.sellLoot ? ` · клик: продать лут ${o.sellPrice} з` : '');
       const inner = `${o.veg ? vegImg(o.veg, o.ic) : icoH(o.ic)} ${esc(o.nm)}${cnt ? ` <b>×${esc(o.n)}</b>` : ''}${o.tag ? ` <i class="ivact">${esc(o.tag)}</i>` : ''}`;
-      return o.repair ? `<button type="button" class="ivi on ivfix" data-rep="${esc(o.repair)}" data-cost="${+o.cost || 0}" title="${tip}">${inner}</button>`
-        : `<span class="ivi${o.act ? ' on' : ''}" title="${tip}">${inner}</span>`; };
+      if (o.repair) return `<button type="button" class="ivi on ivrf" data-rep="${esc(o.repair)}" data-cost="${+o.cost || 0}" title="${tip}">${inner}</button>`;
+      if (o.sellLoot) return `<button type="button" class="ivi on ivsell" data-sellloot="${esc(o.sellLoot)}" data-sellprice="${+o.sellPrice || 0}" data-sellbonus="${esc(o.sellBonus || '')}" data-sellname="${esc(o.nm)}" title="${tip}">${inner}</button>`;
+      return `<span class="ivi${o.act ? ' on' : ''}" title="${tip}">${inner}</span>`; };
     const row = (t, arr) => arr.length ? `<div class="ivr"><em>${t}</em><div class="ivv">${arr.join('')}</div></div>` : '';
     const L = (a, def) => (a || []).map(x => chip(invItem(x, def), +x[2] > 0));
     const eqOn = me.eqOn || {}, spare = (me.eqOwn || []).filter(id => !Object.values(eqOn).includes(id));
@@ -189,7 +190,9 @@
     const gear = Object.keys(eqOn).filter(s => eqOn[s]).map(s => { const id = eqOn[s], d = drById[id];
       return chip({ ic: icOn() && eqIcK(id) ? 'ic:' + eqIcK(id) : SLOT_IC[s] || '▫️', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : ''), act: true,
         tag: d ? `${d.pct}% · ${d.cost} з` : 'надето', repair: d ? d.s : '', cost: d ? d.cost : 0 }); })
-      .concat(spare.map(id => chip({ ic: icOn() && eqIcK(id) ? 'ic:' + eqIcK(id) : '🎒', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : '') }))).concat(((me.iv && me.iv.g) || []).map(x => chip({ ic: '⚔️', nm: x[1] || 'лут', act: true, tag: 'лут' }))); /* v7panel42: пассивный лут сундука */
+      .concat(spare.map(id => chip({ ic: icOn() && eqIcK(id) ? 'ic:' + eqIcK(id) : '🎒', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : '') }))).concat(((me.iv && me.iv.g) || []).map(x => { const id = x[3], price = x[4], bonus = x[5];
+        const can = !!(id && ((ref.gear && ref.gear.length) || (me.lgs && me.lgs.length)));
+        return chip({ ic: '⚔️', nm: x[1] || 'лут', act: true, tag: can && price != null ? `${price} з` : 'лут', sellLoot: can ? id : '', sellPrice: price, sellBonus: bonus }); })); /* v7panel42/44: лут + продажа */
     // v7panel12: блок «Косметика» убран (косметика выключена до утверждения Tim); титул — в «Снаряжении»
     const ttl = me.ttOn ? [chip({ ic: '🏷️', nm: 'титул: ' + me.ttOn, act: true, tag: 'надето' })] : [];
     const pet = (me.pt || []).map(([id, n]) => chip({ ic: '🐾', nm: 'питомец: ' + n, act: me.ptOn === id, tag: 'надет' })); // v7panel12 п.7
@@ -213,6 +216,8 @@
       pot: ['Зелья', fromIv(iv.p, '🧪')],
       seed: ['Семена', [{ html: '<span class="vegi icfb">🌱</span>', n: me.sd || 0, nm: 'Семена' }, { html: '<span class="vegi icfb">✨</span>', n: me.sdp || 0, nm: 'Волшебные семена' }]],
       gear: ['Снаряжение', (me.eqOwn || []).map(id => { const e = E[id], on = Object.values(eqOn).includes(id); return { html: icOf(id), n: on ? '✓' : '', nm: e ? e[1] : id, act: on, tip: (e && e[6] || '') + (on ? ' · надето' : '') }; })
+        .concat((me.lgs || []).map(r => ({ html: '<span class="vegi icfb">⚔️</span>', n: '★', nm: 'лут: ' + r[1], act: 1, tip: (r[4] || '') + (r[3] != null ? ' · продать ' + r[3] + ' з' : '') })))
+        .concat(!(me.lgs && me.lgs.length) ? ((me.iv && me.iv.g) || []).map(x => ({ html: '<span class="vegi icfb">⚔️</span>', n: '★', nm: x[1] || 'лут', act: 1 })) : [])
         .concat(me.ttOn ? [{ html: '<span class="vegi icfb">🏷️</span>', n: '', nm: 'титул: ' + me.ttOn, act: 1 }] : [], (me.pt || []).map(([id, n]) => ({ html: '<span class="vegi icfb">🐾</span>', n: me.ptOn === id ? '✓' : '', nm: 'питомец: ' + n, act: me.ptOn === id })))]
     };
     const cur = T[obsTab] || T.mat, cells = cur[1].map(cell), pad = Math.max(0, (cells.length <= 12 ? 12 : Math.ceil(cells.length / 6) * 6) - cells.length);
@@ -230,6 +235,12 @@
     const s = b.dataset.rep, cost = +b.dataset.cost || 0; if (!s || !window.PanelActions || !PanelActions.fire) return;
     const SR = { weapon: 'оружие', armor: 'броня', offhand: 'щит', trinket: 'амулет', ring1: 'кольцо', ring2: 'кольцо' };
     PanelActions.fire('чинить', s, `Починить · ${SR[s] || s}`); });
+  // v7panel44: клик по чипу лута → подтверждение → продать лут <id>
+  document.addEventListener('click', e => { const b = e.target.closest('button.ivsell[data-sellloot]'); if (!b || b.disabled) return;
+    const id = b.dataset.sellloot, price = +b.dataset.sellprice || 0, bonus = b.dataset.sellbonus || 'пассив', nm = String(b.dataset.sellname || id).replace(/^лут:\s*/i, '');
+    if (!id || !window.PanelActions || !PanelActions.fire) return;
+    if (!window.confirm('Продать лут «' + nm + '» за ' + price + ' золота?\nПотеряете пассив: ' + bonus + '.\nЭто не кузнечная вещь.')) return;
+    PanelActions.fire('продать', 'лут ' + id, 'Продать лут · ' + nm); });
   document.addEventListener('mouseup', () => { if (bcHold) setTimeout(() => { bcHold = false; }, 100); });
   // v7panel22 п.1: «Улучшения» и «Еда и зелья» — ровные колонки (CSS grid + subgrid), короткие тексты, на телефоне — две строки
   const BIC = { campfire: '🔥', tents: '⛺', blacksmith: '⚒️', market: '🏪', shed: '🛖' };
@@ -431,7 +442,7 @@
     if (/[?&]dur=1/.test(location.search)) { // v7panel42: макет прочности + цен починки (без relay)
       state.me.dr = { t: 28, g: state.me.gold, ok: 1, w: '', i: [['weapon', 45, 12, 'w_sword1'], ['trinket', 18, 16, 'a_light']] };
       state.me.iv = Object.assign({}, state.me.iv, { g: [['⚔', 'лут: Острый меч', 1]] });
-      state.me.lg = ['sword1'];
+      state.me.lg = ['sword2', 'armor2']; state.me.lgs = [['sword2','Рунный клинок',2,80,'+10% урон'],['armor2','Кольчуга',2,80,'+4 защита']]; if (state.me.iv) state.me.iv.g = [['⚔','лут: Рунный клинок',1,'sword2',80,'+10% урон'],['⚔','лут: Кольчуга',1,'armor2',80,'+4 защита']];
       invOpen = true; // сразу видно % и цены в строках снаряжения
     }
     // v7panel42: «Надето» берёт me.eqS (как live snapshot). Раньше mock заполнял только eqOn → карточка «ничего», кузница при этом показывала «надето».
@@ -451,7 +462,8 @@
       ['a_light', 'Амулет Света', 500, 'trinket', null, 2, '+3 маг', 'amu_mag'], ['a_shadow', 'Амулет Тени', 500, 'trinket', null, 2, '+5% крит', 'amu_crit'], ['a_first', 'Амулет Первого выстрела', 600, 'trinket', null, 3, '+3 атк', 'amu_atk'], ['a_cleave', 'Амулет Клива', 650, 'trinket', ['warrior'], 3, '+2 атк, +10 hp', 'amu_b3'], ['a_aura', 'Амулет Ауры', 650, 'trinket', ['paladin'], 3, '+20 hp', 'amu_hp'], ['t3', 'Амулет героя', 850, 'trinket', null, 3, '+2 атк, +15 hp', 't3'], ['r_missing', 'Кольцо (нет файла)', 100, 'ring1', null, 1, 'проверка запасного значка', 'ring_nofile']],
     bld: [['campfire', 'Костёр', 1, 4, 140, 'camp'], ['tents', 'Палатка', 2, 4, 400, 'camp'], ['blacksmith', 'Кузница', 1, 4, 250, 'town'], ['market', 'Рынок', 1, 4, 200, 'town'], ['shed', 'Сарай', 1, 4, 150, 'garden']],
     quests: { plant2: 'Посадить 2 семечка', carrot2: 'Собрать 2 морковки', harv4: 'Собрать 4 урожая' }, recipes: [['Овощной салат', 'food', 'огурец 2, помидор 1', 1], ['Морковный суп', 'food', 'морковь 3', 1], ['Рагу', 'food', 'баклажан 2, морковь 2', 4], ['Тыквенный пирог', 'food', 'тыква 1, морковь 2', 7], ['Зелье лечения', 'potion', 'помидор 2', 1], ['Зелье удачи', 'potion', 'тыква 1, огурец 3', 4]],
-    crops: [['cucumber', 'Огурец'], ['tomato', 'Помидор'], ['carrot', 'Морковь'], ['eggplant', 'Баклажан'], ['pumpkin', 'Тыква']] };
+    crops: [['cucumber', 'Огурец'], ['tomato', 'Помидор'], ['carrot', 'Морковь'], ['eggplant', 'Баклажан'], ['pumpkin', 'Тыква']],
+    gear: [['sword1','Острый меч',1,40,'+5% урон'],['sword2','Рунный клинок',2,80,'+10% урон'],['armor2','Кольчуга',2,80,'+4 защита'],['sword3','Клинок героя',3,120,'+18% урон']] };
   // отправка команды: в бою — через relay (ника нет, его подставит relay из токена); в демо — ответ имитируется на странице
   window.__panelSend = m => {
     if (mock) return setTimeout(() => PanelActions.done(mockReply(m)), 350);
@@ -463,6 +475,16 @@
     if (m.cmd === 'поход' && me.cd > 0) return { id: m.id, ok: false, msg: `поход: КД ещё ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` };
     if (m.cmd === 'готовить' && /\s/.test(m.arg)) { const [k, q] = m.arg.split(' '), r = MOCK_REF.recipes[+k - 1]; return { id: m.id, ok: true, msg: `готовит ${q === 'макс' ? 2 : q} × ${r ? r[0] : '…'} (демо)` }; }
     if (m.cmd === 'готовить') { const r = MOCK_REF.recipes[+m.arg - 1]; return { id: m.id, ok: true, msg: r ? `идёт к котлу готовить «${r[0]}» (демо)` : 'идёт к котлу: лучшее из доступного (демо)' }; }
+    if (m.cmd === 'продать' && /^(?:лут|loot)\s+/i.test(m.arg || '')) {
+      const id = String(m.arg).replace(/^(?:лут|loot)\s+/i, '').trim();
+      let row = (me.lgs || []).find(x => x[0] === id);
+      if (!row && (me.lg || []).includes(id)) row = (MOCK_REF.gear || []).find(x => x[0] === id);
+      if (!row) return { id: m.id, ok: false, msg: 'этого лута нет в сумке (демо)' };
+      me.lg = (me.lg || []).filter(x => x !== id); me.lgs = (me.lgs || []).filter(x => x[0] !== id);
+      if (me.iv && me.iv.g) me.iv.g = me.iv.g.filter(x => x[3] !== id);
+      me.gold += row[3]; render();
+      return { id: m.id, ok: true, msg: `продаёт лут «${row[1]}» за ${row[3]} золота (демо)` };
+    }
     if (m.cmd === 'продать') return { id: m.id, ok: true, msg: `идёт на рынок и продаёт: ${m.arg} (демо)` };
     if (m.cmd === 'обмен') return { id: m.id, ok: true, msg: 'обмен: 🌿 -10, 🎃 +1 (демо)' };
     if (m.cmd === 'магия') return { id: m.id, ok: true, msg: 'магия: 🥕 +2 (демо)' };
