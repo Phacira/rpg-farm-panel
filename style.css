@@ -1,4 +1,4 @@
-/* v42repair: inventory chip wrap for %/price */
+/* v42repair + v7panel45c unified Me card */
 :root{--bg:#17121c;--panel:#241b2b;--edge:#a07a44;--gold:#ffd27a;--txt:#efe2c8;--dim:#b8a68a;--ok:#9fe07a}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 0,#2e2236,var(--bg) 70%) fixed;color:var(--txt);font:17px/1.45 system-ui,"Segoe UI",Roboto,sans-serif}
 header{position:sticky;top:0;z-index:5;background:rgba(23,18,28,.95);border-bottom:2px solid var(--edge);padding:12px 16px}
@@ -16,7 +16,7 @@ button.done{background:linear-gradient(#3f6b2a,#2a4a1c);border-color:var(--ok)}
 .empty{color:var(--dim);text-align:center;padding:30px}
 footer{color:var(--dim);font-size:14px;text-align:center;padding:24px}
 
-.panel{max-width:1100px;margin:auto;padding:14px 12px 4px}.panel h1{font-size:22px}
+.panel{max-width:1100px;margin:auto;padding:14px 12px 4px;container-type:inline-size;container-name:panel}.panel h1{font-size:22px}
 .auth{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:6px 0}.auth .note{flex:1 1 240px;margin:0}
 button.twitch{background:linear-gradient(#8a5cf5,#6441a5);border-color:#b9a3ff;color:#fff;padding:0 20px;font-size:18px}
 button.small{min-height:44px;padding:0 14px;font-size:15px}.who{font-size:17px}
@@ -28,7 +28,22 @@ button.small{min-height:44px;padding:0 14px;font-size:15px}.who{font-size:17px}
 .hname{font-size:21px;font-weight:700;color:var(--gold)}.hname small{color:var(--dim);font-weight:400;font-size:15px}.hst{color:var(--dim);margin:2px 0 8px}
 .bar{position:relative;height:24px;background:#120e16;border-radius:6px;margin:5px 0;overflow:hidden;border:1px solid #3d2e45}.bar i{position:absolute;inset:0 auto 0 0}.bar.hp i{background:#a8322c}.bar.xp i{background:#3b6fb0}.bar span{position:relative;display:block;text-align:center;font-size:14px;line-height:22px}
 .hgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin:8px 0}.hveg{font-size:16px;margin-bottom:6px}
-@media(min-width:900px){#pbody{display:grid;grid-template-columns:2fr 1fr;gap:0 16px}#pbody[hidden]{display:none}#live,#tabs,#linfo{grid-column:1}#map{grid-column:1}#pbody>#hero{grid-column:2;grid-row:1/5}}
+/* v7panel45b: сетка пульта по ШИРИНЕ .panel (не viewport) — иначе ?width=320 на широком экране сжимает героя в 123px */
+#pbody{display:block}
+#pbody[hidden]{display:none}
+@container panel (min-width:720px){
+  #pbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,500px);gap:0 16px;align-items:start}
+  #live,#tabs,#linfo,#map,#acts{grid-column:1}
+  #pbody>#hero{grid-column:2;grid-row:1/8;align-self:start;position:sticky;top:10px;min-width:0}
+}
+@container panel (max-width:719px){
+  #pbody{display:flex;flex-direction:column}
+  #pbody>#hero{order:2;position:static;width:100%;max-width:500px;margin:0 auto}
+  #acts{order:3}
+  #map,#linfo,#live,#tabs{order:1}
+}
+#hero .hcard.uc{width:100%;max-width:500px;margin-left:auto;margin-right:auto}
+
 
 /* v7panel3: кнопки-действия — ровная сетка одинаковой высоты; 2 колонки на телефоне, 3–4 на ПК */
 .actsbox{margin:10px 0}.actsbox h2{font-size:19px;color:var(--gold);margin:4px 0 8px}
@@ -51,10 +66,8 @@ button:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.5)}button.act.b
 .scancel{width:100%;margin-top:10px;background:#3a2a40}
 details.chatcmds{max-width:1100px;margin:16px auto 0;padding:0 12px}details.chatcmds summary{cursor:pointer;color:var(--gold);font-size:18px;padding:10px 0}
 details.chatcmds header{position:static}
-@media(min-width:900px){#acts{grid-column:1}}
 .tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;overflow:visible}.tabs button{min-height:46px;padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(min-width:560px){.tabs{grid-template-columns:repeat(6,minmax(0,1fr))}}
-@media(min-width:900px){#pbody>#hero{grid-row:1/8;align-self:start;position:sticky;top:10px}}
 
 /* v7panel3b: вкладки — текст строго по центру у всех, включая выбранную (раньше выбранная получала класс .act от кнопок-действий и уезжала влево) */
 .tabs button.tab{display:flex;align-items:center;justify-content:center;text-align:center;height:46px;min-height:0;padding:0 6px;border:2px solid var(--edge);box-sizing:border-box;line-height:1.1}
@@ -168,3 +181,103 @@ img.hpet{width:36px;height:36px;object-fit:contain;align-self:flex-end}
 @media (max-width:520px){.ob-tabs button{font-size:11px;padding:5px 1px}}
 @container (max-width:519px){.ob-tabs button{font-size:10.5px;padding:5px 1px}}
 .live.test{background:rgba(120,90,200,.25);color:#d8c8ff;border-color:rgba(160,130,255,.6)} /* v7panel37 */
+
+/* v7panel45: единая карточка Me (макет v6) — гильдия, XP янтарь, слоты, вкладки по ширине карточки */
+.bar.xp i{background:linear-gradient(90deg,#8a5a18,#ffd27a)!important} /* опыт ≠ мана */
+.hcard.uc{container-type:inline-size;container-name:hcard;--g:#6a625c;--g3:#141210;
+  background:linear-gradient(165deg,color-mix(in srgb,var(--g) 26%,var(--panel)) 0%,var(--g3) 58%,#120c08 100%);
+  border-color:color-mix(in srgb,var(--g) 65%,var(--edge));box-shadow:0 0 0 1px color-mix(in srgb,var(--g) 30%,transparent)}
+.hcard.uc[data-gid="moon"]{--g:#8a6ad8;--g3:#1a1030}
+.hcard.uc[data-gid="fire"]{--g:#d9482b;--g3:#241008}
+.hcard.uc[data-gid="gold"]{--g:#e8b830;--g3:#1c1408}
+.hcard.uc[data-gid="silver"]{--g:#9fc7d6;--g3:#101820}
+.hcard.uc[data-gid="none"],.hcard.uc:not([data-gid]){--g:#6a625c;--g3:#141210}
+.uc-head{display:grid;grid-template-columns:88px 1fr;gap:10px;align-items:center;margin-bottom:6px}
+.uc-port{width:88px;height:88px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid color-mix(in srgb,var(--g) 50%,#000);
+  display:flex;align-items:center;justify-content:center;padding:4px;position:relative}
+.uc-port .hpic{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;image-rendering:pixelated}
+.uc-port .hpic.big{height:auto;max-height:80px}
+.uc-port .hpet{position:absolute;right:-4px;bottom:-2px;width:28px;height:28px;margin:0}
+.uc-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.uc-pill{display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,.28);border:1px solid color-mix(in srgb,var(--g) 40%,#fff 8%);
+  border-radius:999px;padding:2px 8px;font-size:12px;color:var(--txt)}
+.uc-pill.g{background:color-mix(in srgb,var(--g) 32%,transparent);color:#fff;font-weight:600}
+.uc-meter{display:grid;grid-template-columns:52px 1fr;gap:8px;align-items:center;margin:5px 0}
+.uc-meter-lab{font-size:12px;color:var(--dim);line-height:1.2}.uc-meter-lab b{display:block;color:var(--txt);font-size:13px}
+.uc-meter-track{height:18px;background:#120e16;border-radius:7px;border:1px solid #3d2e45;position:relative}
+.uc-meter-fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;min-width:0}
+.uc-meter-fill.hp{background:linear-gradient(90deg,#8a2a2a,#d84a4a)}
+.uc-meter-fill.xp{background:linear-gradient(90deg,#8a5a18,#ffd27a)}
+.uc-meter-fill.mp{background:linear-gradient(90deg,#2a4a8a,#6a9ae8)}
+.uc-meter-val{position:relative;z-index:1;display:block;text-align:center;font-size:12px;font-weight:600;line-height:18px;color:#fff;
+  text-shadow:0 1px 2px #000;white-space:nowrap}
+.uc-eq{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 6px}
+.uc-slot{background:rgba(0,0,0,.28);border:1px solid color-mix(in srgb,var(--g) 35%,#3d2e45);border-radius:10px;min-height:74px;padding:6px;
+  cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  color:var(--txt);font:inherit;min-width:0}
+.uc-slot:hover,.uc-slot.on{outline:1px solid color-mix(in srgb,var(--g) 70%,#ffd27a)}
+.uc-slot.empty{opacity:.55;cursor:default}
+.uc-slot .ic,.uc-slot .vegi{width:28px;height:28px;image-rendering:pixelated}
+.uc-slot .sn{font-size:10px;color:var(--dim);text-transform:uppercase;line-height:1.2}
+.uc-slot .nm{font-size:12px;line-height:1.2;color:var(--txt);overflow-wrap:anywhere}
+.uc-slot .pct{font-size:12px;color:#ffb84a;font-weight:600}.uc-slot .pct.hi{color:var(--ok)}
+.uc-detail{margin:0 0 8px;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.28);border:1px solid #3d2e45;font-size:13px;display:none}
+.uc-detail.show{display:block}.uc-detail b{color:var(--gold)}
+.uc-stats{display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:13px;margin:4px 0}
+.uc-stats div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed rgba(255,255,255,.08);padding:3px 0;min-width:0}
+.uc-stats .k{color:var(--dim);white-space:nowrap}.uc-stats em{font-style:normal;text-align:right;overflow-wrap:anywhere}
+.uc-status{display:grid;gap:6px;margin:6px 0}
+.uc-row{display:flex;flex-wrap:wrap;gap:6px}
+.uc-tag{background:rgba(0,0,0,.28);border:1px solid #3d2e45;border-radius:8px;padding:4px 8px;font-size:12px;line-height:1.35;max-width:100%;overflow-wrap:anywhere}
+.uc-tag.lab{color:var(--dim);border-style:dashed}.uc-tag.ttl{border-color:color-mix(in srgb,var(--g) 55%,#ffd27a);color:var(--gold)}
+.uc-tag.pet{display:inline-flex;align-items:center;gap:6px}.uc-tag.pet img{width:22px;height:22px;object-fit:contain}
+.uc-tag.bf{border-color:#6a8a4a}
+.uc-day{font-size:12px;display:flex;flex-wrap:wrap;gap:8px;opacity:.9}
+.uc-day .ok{color:var(--ok)}.uc-day .left{color:#ffb84a}
+/* v7panel45c: вкладки по ширине текста (не равные 1fr/20%); бьём global button 17px/48px/nowrap */
+.uc-itabs{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08);align-items:stretch}
+.uc-itabs button{
+  flex:0 1 auto; /* basis = intrinsic label width */
+  width:auto;min-width:0;max-width:100%;
+  min-height:36px;height:auto;
+  padding:6px 8px;
+  font-family:inherit;font-size:13px;font-weight:600;line-height:1.25;
+  background:rgba(0,0,0,.22);color:var(--dim);
+  border:1px solid #3d2e45;border-radius:8px;
+  white-space:normal;overflow-wrap:anywhere;word-break:normal;
+  overflow:hidden;text-overflow:clip;text-align:center;cursor:pointer;
+  box-sizing:border-box
+}
+.uc-itabs button.on{color:var(--gold);border-color:var(--gold);background:rgba(255,210,122,.08)}
+.uc-ipane{padding:8px 0 2px;min-height:40px}
+@container hcard (min-width:460px){
+  /* ~500: один ряд, рост от реальной ширины текста (не equal 1fr) */
+  .uc-itabs{flex-wrap:nowrap}
+  .uc-itabs button{flex:1 1 auto;padding:6px 7px}
+}
+@container hcard (max-width:459px){
+  /* 3+2: треть ряда; длинные слова переносятся ВНУТРИ кнопки */
+  .uc-itabs button{flex:1 1 calc(33.333% - 4px);max-width:calc(33.333% - 3px);padding:6px 5px}
+}
+@container hcard (max-width:399px){
+  .uc-stats{grid-template-columns:1fr}
+  .uc-head{grid-template-columns:80px 1fr}.uc-port{width:80px;height:80px}
+}
+
+
+/* v7panel45b: компактный лут, квесты-аккордеон, слоты не ломают буквы */
+.uc-ipane{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
+.uc-ipane .ivi{max-width:100%;font-size:12px;padding:3px 7px;min-height:0;line-height:1.25}
+.uc-ipane button.ivi{min-height:32px;height:auto}
+.uc-slot .nm{overflow-wrap:anywhere;word-break:normal;hyphens:auto}
+.uc-eq{grid-template-columns:repeat(3,minmax(0,1fr))}
+@container panel (max-width:399px){
+  .uc-eq{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+details.hq{margin:6px 0;border-radius:8px;background:rgba(0,0,0,.22);border:1px solid #3d2e45;padding:0}
+details.hq>summary{cursor:pointer;list-style:none;padding:8px 10px;color:var(--gold);font-weight:600;font-size:14px}
+details.hq>summary::-webkit-details-marker{display:none}
+details.hq[open]>summary{border-bottom:1px solid #3d2e45}
+details.hq .hq-body{padding:8px 10px 10px}
+.uc-day button.qtoggle{background:none;border:1px dashed color-mix(in srgb,var(--g) 50%,#fff 10%);color:inherit;min-height:0;padding:2px 8px;font:inherit;font-size:12px;border-radius:8px;cursor:pointer}
+.uc-detail button.ivrf{min-height:36px;padding:0 12px;font-size:14px}

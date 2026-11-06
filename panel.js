@@ -173,32 +173,74 @@
   function invIcon(ic, def) { ic = String(ic || ''); if (!ic) return def; if (/^[a-z0-9_]+$/i.test(ic)) return ICON_MAP[ic] || def; return ic; }
   function invItem(x, def) { let nm = String(x[1] || ''), act = !!x[3]; nm = nm.replace(/^[a-z0-9_]+\s+(?=[А-ЯЁа-яё])/i, ''); if (/\s*\(активно\)\s*$/.test(nm)) { act = true; nm = nm.replace(/\s*\(активно\)\s*$/, ''); } const ic = invIcon(x[0], def), vm = /^crop_([a-z]+)$/.exec(String(x[0] || '')); return { ic, nm, n: x[2], act, veg: vm ? vm[1] : VEG_BY_EMO[ic] }; }
   window.__panelInvItem = invItem;
-  let invOpen = false;
+  // v7panel45: единая карточка — вкладки инвентаря (без дубля «Надето»), слоты 3×2 с ремонтом
+  let invOpen = true; // открыт по умолчанию в единой карточке
+  let meInvTab = 'gear';
+  let meSlotSel = '';
+  let questOpen = false;
+
+  const UC_SLOTS = [['weapon', 'Оружие'], ['armor', 'Броня'], ['offhand', 'Левая рука'], ['trinket', 'Амулет'], ['ring1', 'Кольцо 1'], ['ring2', 'Кольцо 2']];
+  const hikeLeft = n => { n = +n || 0; const a = Math.abs(n) % 100, b = a % 10; const w = (a > 10 && a < 20) ? 'походов' : b === 1 ? 'похода' : (b >= 2 && b <= 4) ? 'похода' : 'походов'; return n + ' ' + w; };
+  function slotLab(s, name) {
+    if (s === 'offhand' && /гримуар|книг|tome|grimoire/i.test(name || '')) return 'Гримуар';
+    return (UC_SLOTS.find(x => x[0] === s) || [s, s])[1];
+  }
+  function slotIc(s, name) {
+    if (s === 'offhand' && /гримуар|книг|tome|grimoire/i.test(name || '')) return '📖';
+    return SLOT_IC[s] || '▫️';
+  }
+  function gidOf(me) {
+    const g = String((me && me.gid) || '').toLowerCase();
+    return ['moon', 'fire', 'gold', 'silver'].includes(g) ? g : 'none';
+  }
+  function meter(lab, v, m, kind) {
+    const p = Math.max(0, Math.min(100, m ? (+v || 0) / (+m || 1) * 100 : 0));
+    return `<div class="uc-meter"><div class="uc-meter-lab"><b>${esc(lab)}</b></div><div class="uc-meter-track"><i class="uc-meter-fill ${kind}" style="width:${p.toFixed(0)}%"></i><span class="uc-meter-val">${esc(v)} / ${esc(m)}</span></div></div>`;
+  }
   function invHtml(me) {
-    const ref = (state && state.ref) || {}, iv = me.iv || {}, eqN = {}; (ref.eq || []).forEach(e => eqN[e[0]] = e[1]);
-    // v7panel42: chip — %/цена починки у надетых; кнопка чинит слот (диалог «Починить» остаётся для списка)
+    const ref = (state && state.ref) || {}, iv = me.iv || {}, eqN = {}, eqT = {};
+    (ref.eq || []).forEach(e => { eqN[e[0]] = e[1]; eqT[e[0]] = e[6] || ''; });
     const chip = (o, cnt) => { const tip = esc(o.nm) + (o.tag ? ' — ' + esc(o.tag) : '') + (o.repair ? ` · клик: починить ${o.cost} з` : '') + (o.sellLoot ? ` · клик: продать лут ${o.sellPrice} з` : '');
       const inner = `${o.veg ? vegImg(o.veg, o.ic) : icoH(o.ic)} ${esc(o.nm)}${cnt ? ` <b>×${esc(o.n)}</b>` : ''}${o.tag ? ` <i class="ivact">${esc(o.tag)}</i>` : ''}`;
       if (o.repair) return `<button type="button" class="ivi on ivrf" data-rep="${esc(o.repair)}" data-cost="${+o.cost || 0}" title="${tip}">${inner}</button>`;
       if (o.sellLoot) return `<button type="button" class="ivi on ivsell" data-sellloot="${esc(o.sellLoot)}" data-sellprice="${+o.sellPrice || 0}" data-sellbonus="${esc(o.sellBonus || '')}" data-sellname="${esc(o.nm)}" title="${tip}">${inner}</button>`;
       return `<span class="ivi${o.act ? ' on' : ''}" title="${tip}">${inner}</span>`; };
-    const row = (t, arr) => arr.length ? `<div class="ivr"><em>${t}</em><div class="ivv">${arr.join('')}</div></div>` : '';
     const L = (a, def) => (a || []).map(x => chip(invItem(x, def), +x[2] > 0));
     const eqOn = me.eqOn || {}, spare = (me.eqOwn || []).filter(id => !Object.values(eqOn).includes(id));
-    const eqT = {}; (ref.eq || []).forEach(e => eqT[e[0]] = e[6] || ''); // v7panel20 п.2: что даёт вещь
     const drById = {}; (me.dr && me.dr.i || []).forEach(([s, pct, cost, id]) => { drById[id] = { s, pct, cost }; });
-    const gear = Object.keys(eqOn).filter(s => eqOn[s]).map(s => { const id = eqOn[s], d = drById[id];
-      return chip({ ic: icOn() && eqIcK(id) ? 'ic:' + eqIcK(id) : SLOT_IC[s] || '▫️', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : ''), act: true,
-        tag: d ? `${d.pct}% · ${d.cost} з` : 'надето', repair: d ? d.s : '', cost: d ? d.cost : 0 }); })
-      .concat(spare.map(id => chip({ ic: icOn() && eqIcK(id) ? 'ic:' + eqIcK(id) : '🎒', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : '') }))).concat(((me.iv && me.iv.g) || []).map(x => { const id = x[3], price = x[4], bonus = x[5];
+    const gearChips = spare.map(id => chip({ ic: icOn() && eqIcK(id) ? 'ic:' + eqIcK(id) : '🎒', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : '') }))
+      .concat(((me.iv && me.iv.g) || []).map(x => { const id = x[3], price = x[4], bonus = x[5];
         const can = !!(id && ((ref.gear && ref.gear.length) || (me.lgs && me.lgs.length)));
-        return chip({ ic: '⚔️', nm: x[1] || 'лут', act: true, tag: can && price != null ? `${price} з` : 'лут', sellLoot: can ? id : '', sellPrice: price, sellBonus: bonus }); })); /* v7panel42/44: лут + продажа */
-    // v7panel12: блок «Косметика» убран (косметика выключена до утверждения Tim); титул — в «Снаряжении»
-    const ttl = me.ttOn ? [chip({ ic: '🏷️', nm: 'титул: ' + me.ttOn, act: true, tag: 'надето' })] : [];
-    const pet = (me.pt || []).map(([id, n]) => chip({ ic: '🐾', nm: 'питомец: ' + n, act: me.ptOn === id, tag: 'надет' })); // v7panel12 п.7
-    const body = [row('Снаряжение', gear.concat(ttl, pet)), row('Материалы', L(iv.m, '🪨')), row('Еда', L(iv.f, '🍲')), row('Зелья', L(iv.p, '🧪'))].join('');
-    return `<div class="hinv${invOpen ? ' open' : ''}"><button type="button" class="ivh" aria-expanded="${invOpen}">🎒 Инвентарь ${invOpen ? '▴' : '▾'}</button>${invOpen ? `<div class="ivb">${body || '<span class="ivn">пусто</span>'}</div>` : ''}</div>`;
+        return chip({ ic: '⚔️', nm: x[1] || 'лут', act: true, tag: can && price != null ? `${price} з` : 'лут', sellLoot: can ? id : '', sellPrice: price, sellBonus: bonus }); }));
+    const tabs = [
+      ['gear', 'Снаряжение'],
+      ['mat', 'Материалы'],
+      ['food', 'Еда'],
+      ['pot', 'Зелья'],
+      ['seed', 'Семена']
+    ];
+    let pane = '';
+    if (meInvTab === 'gear') {
+      pane = gearChips.length ? gearChips.join('') : '<span class="ivn">запас снаряжения пуст</span>';
+    } else if (meInvTab === 'mat') pane = L(iv.m, '🪨').join('') || '<span class="ivn">пусто</span>';
+    else if (meInvTab === 'food') pane = L(iv.f, '🍲').join('') || '<span class="ivn">пусто</span>';
+    else if (meInvTab === 'pot') pane = L(iv.p, '🧪').join('') || '<span class="ivn">пусто</span>';
+    else if (meInvTab === 'seed') {
+      const seeds = [`<span class="ivi" title="Семена">🌱 Семена <b>×${esc(me.sd || 0)}</b></span>`, `<span class="ivi" title="Волшебные">✨ Волшебные <b>×${esc(me.sdp || 0)}</b></span>`];
+      pane = seeds.join(' ');
+    }
+    const tabBtns = tabs.map(([k, n]) => `<button type="button" data-uit="${k}" class="${k === meInvTab ? 'on' : ''}">${esc(n)}</button>`).join('');
+    return `<div class="uc-itabs">${tabBtns}</div><div class="uc-ipane">${pane}</div>`;
   }
+  document.addEventListener('click', e => {
+    if (e.target.closest('button.ivrf, button.ivsell')) return;
+    const t = e.target.closest('[data-uit]'); if (t) { meInvTab = t.dataset.uit; render(); return; }
+    const qb = e.target.closest('[data-qopen]'); if (qb) { questOpen = true; render(); return; }
+    const sl = e.target.closest('button.uc-slot[data-slot]'); if (!sl || sl.classList.contains('empty')) return;
+    const s = sl.dataset.slot; meSlotSel = meSlotSel === s ? '' : s; render();
+  });
+  document.addEventListener('toggle', e => { const d = e.target.closest && e.target.closest('details.hq'); if (d) questOpen = !!d.open; }, true);
+
   // v7panel37: инвентарь «как в OBS» (портрет + слоты + характеристики + вкладки с сеткой ячеек). За переключателем: ?inv=obs (запоминается), ?inv=old — вернуть; или PANEL_CONFIG.inv = 'obs'. Умолчание — старый список.
   const INV_OBS = (() => { try { const m = /[?&]inv=(obs|old)/.exec(location.search); if (m) localStorage.setItem('panel_inv', m[1]); return (localStorage.getItem('panel_inv') || CFG.inv || 'old') === 'obs'; } catch (e) { return /[?&]inv=obs/.test(location.search) || CFG.inv === 'obs'; } })();
   let obsTab = 'mat';
@@ -230,11 +272,14 @@
   document.addEventListener('click', e => { const b = e.target.closest('[data-obt]'); if (b) { obsTab = b.dataset.obt; render(); } });
   document.addEventListener('mousedown', e => { if (e.target.closest('.hinv, .qcur, .log, .bcgo, input[data-bcq]')) bcHold = true; });
   document.addEventListener('click', e => { const b = e.target.closest('.ivh'); if (b) { invOpen = !invOpen; render(); } });
-  // v7panel42: клик по чипу с % → починить слот (тот же PanelActions.fire, что диалог «Починить»)
-  document.addEventListener('click', e => { const b = e.target.closest('button.ivfix[data-rep]'); if (!b || b.disabled) return;
-    const s = b.dataset.rep, cost = +b.dataset.cost || 0; if (!s || !window.PanelActions || !PanelActions.fire) return;
+  // v7panel42/45b: починка (чип/detail) — confirm → fire; stopPropagation
+  document.addEventListener('click', e => { const b = e.target.closest('button.ivrf[data-rep]'); if (!b || b.disabled) return;
+    e.preventDefault(); e.stopPropagation();
+    const s = b.dataset.rep, cost = +b.dataset.cost || 0, nm = b.dataset.repname || s;
+    if (!s || !window.PanelActions || !PanelActions.fire) return;
     const SR = { weapon: 'оружие', armor: 'броня', offhand: 'щит', trinket: 'амулет', ring1: 'кольцо', ring2: 'кольцо' };
-    PanelActions.fire('чинить', s, `Починить · ${SR[s] || s}`); });
+    if (!window.confirm('Починить «' + nm + '» (' + (SR[s] || s) + ') за ' + cost + ' золота?')) return;
+    PanelActions.fire('чинить', s, 'Починить · ' + (SR[s] || s)); });
   // v7panel44: клик по чипу лута → подтверждение → продать лут <id>
   document.addEventListener('click', e => { const b = e.target.closest('button.ivsell[data-sellloot]'); if (!b || b.disabled) return;
     const id = b.dataset.sellloot, price = +b.dataset.sellprice || 0, bonus = b.dataset.sellbonus || 'пассив', nm = String(b.dataset.sellname || id).replace(/^лут:\s*/i, '');
@@ -300,13 +345,15 @@
     const cur = c ? `<div class="qcur"><div class="qt">📜 ${esc(c[0])}</div>${bar(+c[1] || 0, +c[2] || 1, 'qp')}<div class="qrw">в процессе · награда: ${esc(c[3] || '')}</div></div>`
       : `<div class="dim">Текущего задания нет — возьмите на вкладке «Город» (кнопка «Задание»)</div>`;
     const done = l.length ? `<div class="qdl">${l.map(r => `<div class="qd">✔ ${esc(r[0])} <span>— выполнено · ${esc(r[1])}</span></div>`).join('')}</div>` : '';
-    return `<div class="hq"><h3>📜 Задания <small>выполнено всего: ${esc(+Q.d || 0)}</small></h3>${cur}${done}</div>`; }
+    return `<details class="hq"${questOpen ? ' open' : ''}><summary>📜 Задания <small>выполнено всего: ${esc(+Q.d || 0)}</small></summary><div class="hq-body">${cur}${done}</div></details>`; }
+  function hpBonusOf(me) {
+    const row = (me.sr || []).find(r => r[1] === 'Здоровье'); if (!row) return '';
+    const m = String(row[2] || '').match(/\(\+\d+\)/); return m ? ' ' + m[0] : '';
+  }
   function statHtml(me) {
-    const sr = (me.sr || []).filter(r => !/^(Семена|Готовка|Уровень|Золото)/.test(r[1]));
-    const eq = me.eqS || [], bf = me.bf || [];
-    return `<div class="hstats">${sr.map(([i, n, v]) => `<span><em>${esc(i)} ${esc(n)}</em> ${esc(v)}</span>`).join('')}</div>`
-      + `<div class="hlist"><b>Надето:</b> ${eq.length ? eq.map(([sn, n, t, id]) => `<span>${icOn() && id && eqIcK(id) ? icImg(eqIcK(id)) : ''}${esc(sn)}: ${esc(n)} — ${esc(t)}</span>`).join('') : '<span class="dim">ничего</span>'}</div>`
-      + `<div class="hlist"><b>Баффы:</b> ${bf.length ? bf.map(([n, t, c]) => `<span>${esc(n)}: ${esc(t)} (×${esc(c)})</span>`).join('') : '<span class="dim">нет активных</span>'}</div>`;
+    // v7panel45b: без дубля HP-бара и «Броня: нет»; (+N) в подписи HP
+    const sr = (me.sr || []).filter(r => !/^(Семена|Готовка|Уровень|Золото|Здоровье|Броня)$/.test(r[1]));
+    return `<div class="uc-stats">${sr.map(([i, n, v]) => `<div><span class="k">${esc(i)} ${esc(n)}</span><em>${esc(v)}</em></div>`).join('') || '<div class="dim">нет данных</div>'}</div>`;
   }
   // v7panel20 п.8: журнал боя на пульте — последние 15 мин (ref.log от игры), прокрутка, фильтр «мои/все», повторы подряд — «×N»
   let logMine = false;
@@ -326,11 +373,16 @@
   function rampsOf() { const r = {}; ((state && state.ref && state.ref.hair) || []).forEach(z => { if (z[2]) r[z[0]] = z[2]; }); return r; }
   function heroPic(k6, hid, dy, cls, cl) {
     const fb = `<span class="hpic fb ${cl || ''}" title="${esc(cls || '')}">${CLS_IC[cls] || '🧝'}</span>`;
-    k6 = String(k6 || '').replace(/_sit$/, ''); const H = window.HeroSprites; if (!k6 || !H || !H.has(k6)) return fb;
-    const key = k6 + '|' + (hid || '') + '|' + (dy || '');
-    let u = PIC.get(key);
-    if (!u) { try { const sp = H.get(k6, hid, dy, rampsOf()); if (!sp) return fb; u = (sp.crop || sp.c).toDataURL(); /* v7panel27: портрет обрезан по фигуре */ if (PIC.size > 300) PIC.clear(); PIC.set(key, u); } catch (e) { return fb; } }
-    return `<img class="hpic ${cl || ''}" src="${u}" alt="${esc(cls || '')}">`;
+    k6 = String(k6 || '').replace(/_sit$/, ''); if (!k6) return fb;
+    const H = window.HeroSprites;
+    // v7panel45b: canvas если движок готов; иначе webp по k6 из snap (emoji только при 404)
+    if (H && H.has(k6)) {
+      const key = k6 + '|' + (hid || '') + '|' + (dy || '');
+      let u = PIC.get(key);
+      if (!u) { try { const sp = H.get(k6, hid, dy, rampsOf()); if (sp) { u = (sp.crop || sp.c).toDataURL(); if (PIC.size > 300) PIC.clear(); PIC.set(key, u); } } catch (e) {} }
+      if (u) return `<img class="hpic ${cl || ''}" src="${u}" alt="${esc(cls || '')}">`;
+    }
+    return `<img class="hpic ${cl || ''}" src="img/h/${esc(k6)}.webp" alt="${esc(cls || '')}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'hpic fb ${cl || ''}',title:'${esc(cls || '')}',textContent:'${CLS_IC[cls] || '🧝'}'}))">`;
   }
   function mobPic(id, flt, cl) {
     id = String(id || ''); if (!MOBS.includes(id)) return `<span class="mpic fb ${cl || ''}">👾</span>`;
@@ -375,19 +427,64 @@
   if (window.HeroSprites) HeroSprites.onReady(() => { PIC.clear(); clearTimeout(window.__picT); window.__picT = setTimeout(() => { if (!bcBusy()) render(); }, 120); if (SPRITES) draw(); }); // v7panel35: портреты в карточке и при спрайтах на карте
   function card(me) {
     if (!me) return `<div class="hcard"><b>Героя пока нет.</b><p class="note">Напишите в чат стрима <b>!rpg</b> — герой появится, и вы увидите его здесь.</p></div>`;
+    const gid = gidOf(me);
     const cd = me.cd > 0 ? `через ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : 'можно';
-    const veg = Object.keys(VEG).map(k => `<span class="hv" title="${k}">${vegImg(k, VEG[k])}${me.veg && me.veg[k] || 0}</span>`).join('') + (me.wd !== undefined ? `<span class="hv hwd" title="сорняки (для готовки и обмена)">🌿${+me.wd || 0}</span>` : ''); // v7panel25: сорняки
     const rw = me.rw || {}, cook = +rw.cook || 0;
     const ccd = me.ccd > 0 ? `через ${Math.floor(me.ccd / 60)}:${String(me.ccd % 60).padStart(2, '0')}` : 'можно';
-    const today = [`поход ${cd === 'можно' ? '✓' : cd}`, `готовка ${ccd === 'можно' ? '✓' : ccd}`].concat(+rw.quest > 0 ? [`квестов осталось: ${rw.quest}`] : ['квесты кончились']).concat(me.q ? [`квест: ${me.q} (${me.qp || 0}/${me.qn || '?'})`] : []);
-    return `<div class="hcard"><div class="hhead">${heroPic(me.k6, me.hair, me.dy, me.cls, 'big')}${me.ptOn ? `<img class="hpet" src="img/pet/${esc(me.ptOn)}.png" onerror="this.outerHTML='<span class=hpet>🐾</span>'" title="${esc((me.pt.find(p => p[0] === me.ptOn) || [])[1] || 'пет')}" alt="пет">` : ''}<div><div class="hname">★ ${esc(me.n)} <small>${esc(me.cn)} · ур. ${esc(me.lv)}</small></div>
-      <div class="hst">${esc(ST[me.st] || me.st)} · ${esc(LOCN[me.loc] || me.loc)}${me.gd ? ' · гильдия: ' + esc(me.gd) : ''}</div></div></div>${myFight(me)}
-      ${bar(me.hp, me.mhp, 'hp')}${me.mmp ? bar(me.mp || 0, me.mmp, 'mp') : ''}${bar(me.xp, me.xpN, 'xp')}
-      <div class="hgrid"><span>💰 ${esc(me.gold)}</span><span>🌱 ${esc(me.sd || 0)} · ✨ ${esc(me.sdp || 0)}</span></div>
+    const dayBits = [
+      `<span class="${cd === 'можно' ? 'ok' : 'left'}">поход ${esc(cd === 'можно' ? '✓' : cd)}</span>`,
+      `<span class="${ccd === 'можно' ? 'ok' : 'left'}">готовка ${esc(ccd === 'можно' ? '✓' : ccd)}</span>`,
+      (+rw.quest > 0 ? `<button type="button" class="qtoggle" data-qopen="1">квестов осталось ${esc(rw.quest)}</button>` : '<span class="left">квесты кончились</span>')
+    ].concat(me.q ? [`<span>квест: ${esc(me.q)} (${esc(me.qp || 0)}/${esc(me.qn || '?')})</span>`] : []);
+    const veg = Object.keys(VEG).map(k => `<span class="hv" title="${k}">${vegImg(k, VEG[k])}${me.veg && me.veg[k] || 0}</span>`).join('') + (me.wd !== undefined ? `<span class="hv hwd" title="сорняки">🌿${+me.wd || 0}</span>` : '');
+    // слоты 3×2
+    const ref = (state && state.ref) || {}, eqN = {}, eqT = {};
+    (ref.eq || []).forEach(e => { eqN[e[0]] = e[1]; eqT[e[0]] = e[6] || ''; });
+    const eqOn = me.eqOn || {};
+    const drById = {}; (me.dr && me.dr.i || []).forEach(([s, pct, cost, id]) => { drById[id] = { s, pct, cost }; });
+    const slotsHtml = UC_SLOTS.map(([s, lab0]) => {
+      const id = eqOn[s], name = id ? (eqN[id] || id) : '', lab = id ? slotLab(s, name) : lab0;
+      const d = id && drById[id], tip = id ? (eqT[id] || '') : 'пусто';
+      const ic = id ? (icOn() && eqIcK(id) ? icImg(eqIcK(id)) : `<span class="vegi icfb">${slotIc(s, name)}</span>`) : `<span class="vegi icfb">${SLOT_IC[s] || '▫️'}</span>`;
+      const pct = d ? `<span class="pct${d.pct >= 70 ? ' hi' : ''}">${esc(d.pct)}%</span>` : (id ? '<span class="pct hi">100%</span>' : '');
+      return `<button type="button" class="uc-slot${id ? '' : ' empty'}${meSlotSel === s ? ' on' : ''}" data-slot="${esc(s)}"${id ? '' : ' disabled'} title="${esc(lab + (id ? ': ' + name : ': пусто') + (tip ? ' — ' + tip : ''))}">${ic}<span class="sn">${esc(lab)}</span><span class="nm">${esc(id ? name : '—')}</span>${pct}</button>`;
+    }).join('');
+    let detail = '';
+    if (meSlotSel && eqOn[meSlotSel]) {
+      const id = eqOn[meSlotSel], name = eqN[id] || id, tip = eqT[id] || '', d = drById[id];
+      const lab = slotLab(meSlotSel, name);
+      detail = `<div class="uc-detail show"><b>${esc(lab)}:</b> ${esc(name)}${tip ? ` — ${esc(tip)}` : ''}`
+        + (d ? ` · прочность ${esc(d.pct)}% · ${esc(d.cost)} з`
+          + ` <button type="button" class="small ivrf" data-rep="${esc(d.s)}" data-cost="${+d.cost || 0}" data-repname="${esc(name)}">Починить · ${esc(d.cost)} з</button>` : ' · целое')
+        + `</div>`;
+    }
+    // титул / пет / баффы
+    const petName = me.ptOn ? ((me.pt || []).find(p => p[0] === me.ptOn) || [])[1] || me.ptOn : '';
+    const ttl = me.ttOn ? `<span class="uc-tag ttl">🏷 ${esc(me.ttOn)}</span>` : '<span class="uc-tag lab">титул: нет</span>';
+    const pet = me.ptOn
+      ? `<span class="uc-tag pet"><img src="img/pet/${esc(me.ptOn)}.png" alt="" onerror="this.replaceWith(document.createTextNode('🐾'))"> ${esc(petName)}</span>`
+      : '<span class="uc-tag lab">питомец: нет</span>';
+    const bfs = (me.bf || []);
+    const bfHtml = bfs.length
+      ? bfs.map(([n, t, c]) => `<span class="uc-tag bf"><b>${esc(n)}</b> — ${esc(t)}${c != null && c !== '' ? ` · осталось ${esc(hikeLeft(c))}` : ''}</span>`).join('')
+      : '<span class="uc-tag lab">баффы: нет</span>';
+    const gName = me.gd || ({ moon: 'Лунные тени', fire: 'Огненный клинок', gold: 'Золотой колос', silver: 'Серебряный лист' }[gid] || '');
+    const gPill = gid !== 'none' && gName ? `<span class="uc-pill g">${esc(gName)}</span>` : '<span class="uc-pill">без гильдии</span>';
+    return `<div class="hcard uc" data-gid="${esc(gid)}"><div class="uc-head"><div class="uc-port">${heroPic(me.k6, me.hair, me.dy, me.cls, 'big')}${me.ptOn ? `<img class="hpet" src="img/pet/${esc(me.ptOn)}.png" onerror="this.outerHTML='<span class=hpet>🐾</span>'" alt="">` : ''}</div>
+      <div><div class="hname">★ ${esc(me.n)} <small>${esc(me.cn || me.cls || '')} · ур. ${esc(me.lv)}</small></div>
+      <div class="hst">${esc(ST[me.st] || me.st || '')} · ${esc(LOCN[me.loc] || me.loc || '')}</div>
+      <div class="uc-meta">${gPill}<span class="uc-pill">💰 ${esc(me.gold)}</span><span class="uc-pill">🌱 ${esc(me.sd || 0)}</span><span class="uc-pill">✨ ${esc(me.sdp || 0)}</span>${cook ? `<span class="uc-pill">🍲 ${esc(cook)}</span>` : ''}</div></div></div>
+      ${myFight(me)}
+      ${meter('HP' + hpBonusOf(me), me.hp, me.mhp, 'hp')}${me.mmp ? meter('Мана', me.mp || 0, me.mmp, 'mp') : ''}${meter('Опыт', me.xp, me.xpN, 'xp')}
+      ${INV_OBS ? '' : `<div class="uc-eq">${slotsHtml}</div>${detail}`}
+      ${tab === 'me' ? (INV_OBS ? '' : statHtml(me)) : ''}
+      <div class="uc-status"><div class="uc-row">${ttl}${pet}</div><div class="uc-row">${bfHtml}</div></div>
+      <div class="uc-day">${dayBits.join('')}</div>
+      ${tab === 'me' ? questHtml(me) : ''}
       <div class="hveg">${veg}</div>
-      <div class="htoday">Сегодня: ${today.map(esc).join(' · ')}</div>
-      ${tab === 'me' ? statHtml(me) + questHtml(me) : ''}${INV_OBS ? invObsHtml(me) : invHtml(me)}</div>`;
+      ${INV_OBS ? invObsHtml(me) : invHtml(me)}</div>`;
   }
+
   function render() {
     $('auth').innerHTML = user ? `<span class="who">Вы: <b>${esc(user.login)}</b> <small>(ID ${esc(user.id)})</small></span><button id="bout" class="small">Выйти</button>`
       : `<button id="blogin" class="twitch">Войти через Twitch</button><span class="note">Вход нужен, чтобы найти вашего героя и чтобы кнопки действовали только от вашего имени. В чат пульт ничего не пишет.</span>`;
@@ -449,6 +546,32 @@
     syncMockEqS(state.me);
     // v7panel37: макет тест-режима // v7panel35: макет — стрим идёт (иначе с v7panel32 пульт в ?mock=1 пустой)
     { const m = /[?&]pet=(\w+)/.exec(location.search); if (m) { state.me.pt = [['slime', 'Слизень'], ['fairy', 'Фея'], ['cat', 'Котёнок'], ['dragon', 'Дракончик']]; state.me.ptOn = m[1]; } } // v7panel35: ?pet=dragon — макет питомца
+    // v7panel45: ?guild=moon|fire|gold|silver|none  и ?case=loaded|normal — для визуальной проверки единой карточки
+    { const m = /[?&]guild=(\w+)/.exec(location.search); if (m) {
+      const id = m[1].toLowerCase(), names = { moon: 'Лунные тени', fire: 'Огненный клинок', gold: 'Золотой колос', silver: 'Серебряный лист', none: '' };
+      if (id in names) { state.me.gid = id === 'none' ? '' : id; state.me.gd = names[id]; }
+    } }
+    if (/[?&]case=loaded/.test(location.search)) {
+      const me = state.me;
+      me.xp = 388; me.xpN = 700; me.hp = 86; me.mhp = 120; me.lv = 12; me.cn = 'Жрица'; me.cls = 'priest'; me.k6 = 'moon_f_priest'; me.g = 'f';
+      me.ttOn = 'Истребитель огров'; me.tt = ['Истребитель огров', 'Огородник', 'Гроза крыс'];
+      me.pt = [['dragon', 'Дракончик'], ['slime', 'Слизень']]; me.ptOn = 'dragon';
+      // реальные food из config (maxActiveBuffs=3); зелье удачи — potion, не bf
+      me.bf = [
+        ['Королевский пир', '+25% атаки, +5 защиты, +20% HP, +50% опыта, 4 похода', 4],
+        ['Овощной суп', '+10% HP и +8% HP после волны, 3 похода', 3],
+        ['Летний салат', '+5% HP после каждой волны, 2 похода', 2]
+      ];
+      me.eqOn = { weapon: 'w_sword1', armor: 'a_leather', offhand: 'o_shield', trinket: 'a_light', ring1: 'r_str', ring2: 'r_def' };
+      me.eqOwn = Object.values(me.eqOn).concat(['r_hp']);
+      me.dr = { t: 44, g: me.gold, ok: 1, w: '', i: [['weapon', 45, 12, 'w_sword1'], ['armor', 62, 10, 'a_leather'], ['trinket', 18, 16, 'a_light']] };
+      me.lg = ['sword2', 'armor2']; me.lgs = [['sword2','Рунный клинок',2,80,'+10% урон'],['armor2','Кольчуга',2,80,'+4 защита']];
+      me.iv.g = [['⚔','лут: Рунный клинок',1,'sword2',80,'+10% урон'],['⚔','лут: Кольчуга',1,'armor2',80,'+4 защита']];
+      // жрец: левая рука — гримуар (не щит)
+      me.eqOn.offhand = 'o_tome'; me.eqOwn.push('o_tome');
+      if (!(MOCK_REF.eq || []).some(e => e[0] === 'o_tome')) MOCK_REF.eq.push(['o_tome', 'Гримуар новичка', 110, 'offhand', ['priest', 'mage'], 1, '+4 магия', 'tome']);
+      syncMockEqS(me);
+    }
     { const m = /[?&]turn=(\d)/.exec(location.search); state.ref = Object.assign({}, state.ref, { ch: 'demo_channel', tl: 1 }); if (m) { state.ref.tb = 1; state.me.tu = +m[1] - 1; } } // v7panel31: ?turn=1 — флаг включён, ?turn=2 — лимит исчерпан
     { const m = /[?&]pty=(\w+)/.exec(location.search); if (m) { const v = m[1]; // v7panel30: макет пати — q (набор), go (в походе), none (пусто)
       state.ref = Object.assign({}, state.ref, { pty: v === 'none' ? { sz: 3, mn: 2, wv: 3, q: [], qn: 0, left: -1, lane: 0, go: [] }
@@ -457,7 +580,7 @@
   }
   const MOCK_REF = { guilds: [['fire', 'Огненный клинок', '#d9482b'], ['silver', 'Серебряный лист', '#9fc7d6'], ['moon', 'Лунные тени', '#8a6ad8'], ['gold', 'Золотой колос', '#e8b830']],
     hair: [['black', 'чёрный', [[14, 12, 14], [40, 36, 42], [82, 76, 86]]], ['darkbrown', 'тёмно-каштановый', [[24, 14, 10], [60, 38, 26], [104, 72, 50]]], ['chestnut', 'каштановый', null], ['lightbrown', 'русый', [[70, 52, 34], [132, 106, 74], [190, 164, 122]]], ['blond', 'блонд', [[118, 86, 40], [202, 162, 86], [246, 224, 152]]], ['red', 'рыжий', [[88, 28, 10], [178, 72, 26], [238, 140, 66]]], ['grey', 'седой', [[78, 78, 84], [150, 150, 158], [216, 216, 224]]]], hairPrice: 250, bsLv: 3, ic: 1,
-    eq: [['w_sword1', 'Железный меч', 120, 'weapon', null, 1], ['a_leather', 'Кожаная броня', 150, 'armor', null, 1], ['o_shield', 'Деревянный щит', 90, 'offhand', ['warrior', 'paladin'], 1], ['t_amulet', 'Амулет силы', 400, 'trinket', null, 2],
+    eq: [['w_sword1', 'Железный меч', 120, 'weapon', null, 1, '+2 урон'], ['a_leather', 'Кожаная броня', 150, 'armor', null, 1, '+4 защита'], ['o_shield', 'Деревянный щит', 90, 'offhand', ['warrior', 'paladin'], 1, '+3 защита'], ['t_amulet', 'Амулет силы', 400, 'trinket', null, 2],
       /* v7panel37: кольца и амулеты с ключом иконки [7] */ ['r_str', 'Кольцо Силы', 300, 'ring1', null, 1, '+2 атк', 'ring_atk'], ['r_def', 'Кольцо Защиты', 300, 'ring1', null, 1, '+2 защ', 'ring_def'], ['r_hp', 'Кольцо Жизни', 300, 'ring1', null, 1, '+15 hp', 'ring_hp'], ['r_dodge', 'Кольцо Уклона', 450, 'ring1', null, 2, '+4% уклон', 'ring_dodge'], ['r_str2', 'Кольцо Силы II', 700, 'ring1', null, 3, '+4 атк', 'ring_atk~67'],
       ['a_light', 'Амулет Света', 500, 'trinket', null, 2, '+3 маг', 'amu_mag'], ['a_shadow', 'Амулет Тени', 500, 'trinket', null, 2, '+5% крит', 'amu_crit'], ['a_first', 'Амулет Первого выстрела', 600, 'trinket', null, 3, '+3 атк', 'amu_atk'], ['a_cleave', 'Амулет Клива', 650, 'trinket', ['warrior'], 3, '+2 атк, +10 hp', 'amu_b3'], ['a_aura', 'Амулет Ауры', 650, 'trinket', ['paladin'], 3, '+20 hp', 'amu_hp'], ['t3', 'Амулет героя', 850, 'trinket', null, 3, '+2 атк, +15 hp', 't3'], ['r_missing', 'Кольцо (нет файла)', 100, 'ring1', null, 1, 'проверка запасного значка', 'ring_nofile']],
     bld: [['campfire', 'Костёр', 1, 4, 140, 'camp'], ['tents', 'Палатка', 2, 4, 400, 'camp'], ['blacksmith', 'Кузница', 1, 4, 250, 'town'], ['market', 'Рынок', 1, 4, 200, 'town'], ['shed', 'Сарай', 1, 4, 150, 'garden']],
