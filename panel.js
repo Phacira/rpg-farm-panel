@@ -1,3 +1,4 @@
+/* v42repair: panel durability UI */
 // Пульт зрителя: вход через Twitch, просмотр и (v7panel3) кнопки-действия — см. actions.js.
 (function () {
   const CFG = window.PANEL_CONFIG || {}, $ = id => document.getElementById(id);
@@ -175,13 +176,20 @@
   let invOpen = false;
   function invHtml(me) {
     const ref = (state && state.ref) || {}, iv = me.iv || {}, eqN = {}; (ref.eq || []).forEach(e => eqN[e[0]] = e[1]);
-    const chip = (o, cnt) => `<span class="ivi${o.act ? ' on' : ''}" title="${esc(o.nm)}${o.act ? ' — ' + (o.tag || 'активно') : ''}">${o.veg ? vegImg(o.veg, o.ic) : icoH(o.ic)} ${esc(o.nm)}${cnt ? ` <b>×${esc(o.n)}</b>` : ''}${o.act ? ` <i class="ivact">${o.tag || 'активно'}</i>` : ''}</span>`;
+    // v7panel42: chip — %/цена починки у надетых; кнопка чинит слот (диалог «Починить» остаётся для списка)
+    const chip = (o, cnt) => { const tip = esc(o.nm) + (o.tag ? ' — ' + esc(o.tag) : '') + (o.repair ? ` · клик: починить ${o.cost} з` : '');
+      const inner = `${o.veg ? vegImg(o.veg, o.ic) : icoH(o.ic)} ${esc(o.nm)}${cnt ? ` <b>×${esc(o.n)}</b>` : ''}${o.tag ? ` <i class="ivact">${esc(o.tag)}</i>` : ''}`;
+      return o.repair ? `<button type="button" class="ivi on ivfix" data-rep="${esc(o.repair)}" data-cost="${+o.cost || 0}" title="${tip}">${inner}</button>`
+        : `<span class="ivi${o.act ? ' on' : ''}" title="${tip}">${inner}</span>`; };
     const row = (t, arr) => arr.length ? `<div class="ivr"><em>${t}</em><div class="ivv">${arr.join('')}</div></div>` : '';
     const L = (a, def) => (a || []).map(x => chip(invItem(x, def), +x[2] > 0));
     const eqOn = me.eqOn || {}, spare = (me.eqOwn || []).filter(id => !Object.values(eqOn).includes(id));
     const eqT = {}; (ref.eq || []).forEach(e => eqT[e[0]] = e[6] || ''); // v7panel20 п.2: что даёт вещь
-    const gear = Object.keys(eqOn).filter(s => eqOn[s]).map(s => chip({ ic: icOn() && eqIcK(eqOn[s]) ? 'ic:' + eqIcK(eqOn[s]) : SLOT_IC[s] || '▫️', nm: (eqN[eqOn[s]] || eqOn[s]) + (eqT[eqOn[s]] ? ' — ' + eqT[eqOn[s]] : ''), act: false }))
-      .concat(spare.map(id => chip({ ic: icOn() && eqIcK(id) ? 'ic:' + eqIcK(id) : '🎒', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : '') })));
+    const drById = {}; (me.dr && me.dr.i || []).forEach(([s, pct, cost, id]) => { drById[id] = { s, pct, cost }; });
+    const gear = Object.keys(eqOn).filter(s => eqOn[s]).map(s => { const id = eqOn[s], d = drById[id];
+      return chip({ ic: icOn() && eqIcK(id) ? 'ic:' + eqIcK(id) : SLOT_IC[s] || '▫️', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : ''), act: true,
+        tag: d ? `${d.pct}% · ${d.cost} з` : 'надето', repair: d ? d.s : '', cost: d ? d.cost : 0 }); })
+      .concat(spare.map(id => chip({ ic: icOn() && eqIcK(id) ? 'ic:' + eqIcK(id) : '🎒', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : '') }))).concat(((me.iv && me.iv.g) || []).map(x => chip({ ic: '⚔️', nm: x[1] || 'лут', act: true, tag: 'лут' }))); /* v7panel42: пассивный лут сундука */
     // v7panel12: блок «Косметика» убран (косметика выключена до утверждения Tim); титул — в «Снаряжении»
     const ttl = me.ttOn ? [chip({ ic: '🏷️', nm: 'титул: ' + me.ttOn, act: true, tag: 'надето' })] : [];
     const pet = (me.pt || []).map(([id, n]) => chip({ ic: '🐾', nm: 'питомец: ' + n, act: me.ptOn === id, tag: 'надет' })); // v7panel12 п.7
@@ -217,6 +225,11 @@
   document.addEventListener('click', e => { const b = e.target.closest('[data-obt]'); if (b) { obsTab = b.dataset.obt; render(); } });
   document.addEventListener('mousedown', e => { if (e.target.closest('.hinv, .qcur, .log, .bcgo, input[data-bcq]')) bcHold = true; });
   document.addEventListener('click', e => { const b = e.target.closest('.ivh'); if (b) { invOpen = !invOpen; render(); } });
+  // v7panel42: клик по чипу с % → починить слот (тот же PanelActions.fire, что диалог «Починить»)
+  document.addEventListener('click', e => { const b = e.target.closest('button.ivfix[data-rep]'); if (!b || b.disabled) return;
+    const s = b.dataset.rep, cost = +b.dataset.cost || 0; if (!s || !window.PanelActions || !PanelActions.fire) return;
+    const SR = { weapon: 'оружие', armor: 'броня', offhand: 'щит', trinket: 'амулет', ring1: 'кольцо', ring2: 'кольцо' };
+    PanelActions.fire('чинить', s, `Починить · ${SR[s] || s}`); });
   document.addEventListener('mouseup', () => { if (bcHold) setTimeout(() => { bcHold = false; }, 100); });
   // v7panel22 п.1: «Улучшения» и «Еда и зелья» — ровные колонки (CSS grid + subgrid), короткие тексты, на телефоне — две строки
   const BIC = { campfire: '🔥', tents: '⛺', blacksmith: '⚒️', market: '🏪', shed: '🛖' };
@@ -389,6 +402,17 @@
   document.addEventListener('click', e => { const b = e.target.closest('#tabs button'); if (b) { tab = b.dataset.t; render(); } });
 
   // ---------- Демо-режим (?mock=1): вымышленные данные, без сети ----------
+  const MOCK_SLOT_RU = [['weapon', 'Оружие'], ['armor', 'Броня'], ['offhand', 'Левая рука'], ['trinket', 'Амулет'], ['ring1', 'Кольцо'], ['ring2', 'Кольцо 2']];
+  function syncMockEqS(me) {
+    if (!me) return; const eq = (typeof MOCK_REF !== 'undefined' && MOCK_REF.eq) || (state && state.ref && state.ref.eq) || [];
+    me.eqS = MOCK_SLOT_RU.map(([s, sn]) => {
+      const id = (me.eqOn || {})[s]; if (!id) return null;
+      const e = eq.find(x => x[0] === id);
+      const d = (me.dr && me.dr.i || []).find(x => x[0] === s || x[3] === id);
+      const st = (e && e[6]) || ''; const dur = d ? ` · прочность ${d[1]}%` : '';
+      return [sn, e ? e[1] : id, st + dur, id];
+    }).filter(Boolean);
+  }
   function mockData() {
     user = { login: 'demo_viewer', id: '100000001' };
     const R = (a, b) => a + Math.floor(Math.random() * (b - a)), names = ['demo_viewer', 'lisa_fox', 'ironpaw', 'mira77', 'oak_knight', 'kotik_mag', 'sunny_bard', 'gnomik', 'redhood', 'pixel_elf'];
@@ -403,7 +427,16 @@
       me: { k6: 'moon_m_warrior', dy: '', fm: /fight=1/.test(location.search) ? ['goblin', 'Гоблин', 31, 52, 0] : null, n: 'demo_viewer', cls: 'warrior', cn: 'Воин', lv: 7, xp: 210, xpN: 350, hp: 86, mhp: 120, gold: 340, pot: 2, food: 3, sd: 4, sdp: 1, gd: 'Лунные тени', gid: 'moon', eqOwn: ['w_sword1', 'r_str', 'r_def', 'a_light', 'r_hp'], eqOn: { weapon: 'w_sword1', ring1: 'r_str', ring2: 'r_def', trinket: 'a_light' }, sr: [['❤', 'Здоровье', '86/120 (+15)'], ['⚔', 'Урон', '14 (+2)'], ['🛡', 'Защита', '9 (+2)'], ['🔮', 'Магия', '+3 к урону'], ['💖', 'Лечение', '—'], ['🥋', 'Броня', 'нет'], ['🌱', 'Семена', '4 · ✨ волшебные 1'], ['🍲', 'Готовка (наград сегодня)', '1'], ['⭐', 'Уровень', '7 · 210/350 XP'], ['💰', 'Золото', '340']], tt: ['Огородник', 'Гроза крыс'], ttOn: 'Огородник', ttOn: 'Огородник', hair: 'black', of: ['plant2', 'carrot2', 'harv4'], pty: false, st: 'camp', loc: 'camp', mode: 'idle',
         veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, wd: 7, rw: { hike: 1, cook: 1, quest: 2 }, qs: /quest=0/.test(location.search) ? { c: 0, d: 0, l: [] } : { c: ['Сходить в 2 похода', 1, 2, '+30 золота, +20 опыта'], d: 3, l: [['Приготовить 2 блюда', '+20 золота, +10 опыта'], ['Посадить 2 грядки', '+15 золота, +5 опыта, +2 семян'], ['Победить 5 монстров', '+25 золота, +15 опыта']] }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null, iv: { m: [['🪵', 'Дерево', 12], ['🪨', 'Камень', 5], ['⛓️', 'Железо', 1]], f: [['🥗', 'Овощной салат', 1], ['crop_carrot', 'Тушёная морковь (активно)', 8]], p: [['❤️', 'Зелье лечения', 2]], c: [] } },
       ref: /bc=1/.test(location.search) ? Object.assign({}, MOCK_REF, { bc: 5 }) : MOCK_REF };
-    state.stream = !/offline=1/.test(location.search); state.test = /ptest=1/.test(location.search); // v7panel37: макет тест-режима // v7panel35: макет — стрим идёт (иначе с v7panel32 пульт в ?mock=1 пустой)
+    state.stream = !/offline=1/.test(location.search); state.test = /ptest=1/.test(location.search);
+    if (/[?&]dur=1/.test(location.search)) { // v7panel42: макет прочности + цен починки (без relay)
+      state.me.dr = { t: 28, g: state.me.gold, ok: 1, w: '', i: [['weapon', 45, 12, 'w_sword1'], ['trinket', 18, 16, 'a_light']] };
+      state.me.iv = Object.assign({}, state.me.iv, { g: [['⚔', 'лут: Острый меч', 1]] });
+      state.me.lg = ['sword1'];
+      invOpen = true; // сразу видно % и цены в строках снаряжения
+    }
+    // v7panel42: «Надето» берёт me.eqS (как live snapshot). Раньше mock заполнял только eqOn → карточка «ничего», кузница при этом показывала «надето».
+    syncMockEqS(state.me);
+    // v7panel37: макет тест-режима // v7panel35: макет — стрим идёт (иначе с v7panel32 пульт в ?mock=1 пустой)
     { const m = /[?&]pet=(\w+)/.exec(location.search); if (m) { state.me.pt = [['slime', 'Слизень'], ['fairy', 'Фея'], ['cat', 'Котёнок'], ['dragon', 'Дракончик']]; state.me.ptOn = m[1]; } } // v7panel35: ?pet=dragon — макет питомца
     { const m = /[?&]turn=(\d)/.exec(location.search); state.ref = Object.assign({}, state.ref, { ch: 'demo_channel', tl: 1 }); if (m) { state.ref.tb = 1; state.me.tu = +m[1] - 1; } } // v7panel31: ?turn=1 — флаг включён, ?turn=2 — лимит исчерпан
     { const m = /[?&]pty=(\w+)/.exec(location.search); if (m) { const v = m[1]; // v7panel30: макет пати — q (набор), go (в походе), none (пусто)
@@ -435,7 +468,12 @@
     if (m.cmd === 'магия') return { id: m.id, ok: true, msg: 'магия: 🥕 +2 (демо)' };
     if (m.cmd === 'салат') { const s = me.sal; if (!s.left) return { id: m.id, ok: false, msg: 'лимит салатов на этот период (демо)' }; if (!s.can) return { id: m.id, ok: false, msg: 'для салата не хватает: 🥕 0/5, 🍆 1/5, 🎃 0/1 — ничего не списано (демо)' }; }
     if (m.cmd === 'грядка') return { id: m.id, ok: true, msg: 'осталось примерно 23 мин до созревания! (демо)' };
-    if (m.cmd === 'купить' && it) { if (me.gold < it[2]) return { id: m.id, ok: false, msg: `«${it[1]}» стоит ${it[2]} золота, у тебя ${me.gold}` }; me.gold -= it[2]; me.eqOwn.push(it[0]); me.eqOn[it[3]] = it[0]; render(); return { id: m.id, ok: true, msg: `покупает и надевает «${it[1]}» (демо)` }; }
+    if (m.cmd === 'купить' && it) { if (me.gold < it[2]) return { id: m.id, ok: false, msg: `«${it[1]}» стоит ${it[2]} золота, у тебя ${me.gold}` }; me.gold -= it[2]; me.eqOwn.push(it[0]); me.eqOn[it[3]] = it[0]; syncMockEqS(me); render(); return { id: m.id, ok: true, msg: `покупает и надевает «${it[1]}» (демо)` }; }
+    if (m.cmd === 'чинить' || m.cmd === 'починить') { const dr = me.dr; if (!dr) return { id: m.id, ok: false, msg: 'прочность выключена (демо)' }; if (!dr.i || !dr.i.length) return { id: m.id, ok: true, msg: 'всё снаряжение целое (демо)' };
+      const all = !m.arg || m.arg === 'всё' || m.arg === 'все'; const rows = all ? dr.i : dr.i.filter(x => x[0] === m.arg); if (!rows.length) return { id: m.id, ok: false, msg: 'нечего чинить (демо)' };
+      const tot = rows.reduce((s, x) => s + x[2], 0); if (me.gold < tot) return { id: m.id, ok: false, msg: `нужно ${tot} з, у тебя ${me.gold} (демо)` }; me.gold -= tot;
+      if (all) { dr.i = []; dr.t = 0; dr.ok = 0; dr.w = 'всё целое'; } else { dr.i = dr.i.filter(x => x[0] !== m.arg); dr.t = dr.i.reduce((s, x) => s + x[2], 0); dr.ok = dr.i.length && me.gold >= dr.t ? 1 : 0; }
+      syncMockEqS(me); render(); return { id: m.id, ok: true, msg: `кузнец чинит (−${tot} з) (демо)` }; }
     return { id: m.id, ok: true, msg: `выполнено (демо): !${m.cmd}${m.arg ? ' ' + m.arg : ''}` };
   }
   takeHash();

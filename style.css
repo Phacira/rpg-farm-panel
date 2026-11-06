@@ -1,3 +1,4 @@
+/* v42repair: inventory chip wrap for %/price */
 :root{--bg:#17121c;--panel:#241b2b;--edge:#a07a44;--gold:#ffd27a;--txt:#efe2c8;--dim:#b8a68a;--ok:#9fe07a}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 0,#2e2236,var(--bg) 70%) fixed;color:var(--txt);font:17px/1.45 system-ui,"Segoe UI",Roboto,sans-serif}
 header{position:sticky;top:0;z-index:5;background:rgba(23,18,28,.95);border-bottom:2px solid var(--edge);padding:12px 16px}
@@ -63,8 +64,10 @@ details.chatcmds header{position:static}
 .hinv .ivh{display:block;width:100%;text-align:left;font-weight:600;background:none;border:0;color:inherit;padding:6px 8px;cursor:pointer;font-size:13px}
 .ivb{padding:0 8px 6px}.ivr{display:grid;grid-template-columns:92px 1fr;gap:6px;align-items:start;margin:3px 0}
 .ivr>em{font-style:normal;opacity:.65;font-size:12px;padding-top:2px}.ivv{display:flex;flex-wrap:wrap;gap:3px 4px;min-width:0}
-.ivi{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;padding:1px 6px;border-radius:6px;background:rgba(0,0,0,.25);line-height:1.5}
-.ivi.on{outline:1px solid rgba(255,210,122,.6)}.ivi b{color:#ffd27a;font-weight:600}.ivact{font-style:normal;font-size:10px;opacity:.75;color:#9fe08a}.ivn{opacity:.45}
+.ivi{display:inline-flex;align-items:center;flex-wrap:wrap;gap:3px 6px;white-space:normal;max-width:100%;min-width:0;overflow:visible;padding:2px 6px;border-radius:6px;background:rgba(0,0,0,.25);line-height:1.35;box-sizing:border-box}
+.ivi.on{outline:1px solid rgba(255,210,122,.6)}button.ivi{border:0;color:inherit;font:inherit;cursor:pointer;text-align:left}button.ivfix{outline-color:rgba(255,120,80,.75)}.ivi b{color:#ffd27a;font-weight:600}
+/* v7panel42: % и цена починки не обрезать — отдельный nowrap-блок, можно на новую строку */
+.ivact{font-style:normal;font-size:11px;opacity:.9;color:#9fe08a;flex:0 0 auto;white-space:nowrap}.ivn{opacity:.45}
 .htoday{font-size:13px;opacity:.85;margin:4px 0}
 
 /* v7panel10: выключенная кнопка (Парикмахер — «Цирюльника пока нет на месте») */

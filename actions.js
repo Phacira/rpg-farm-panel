@@ -1,3 +1,4 @@
+/* v42repair: repair action buttons */
 // Пульт зрителя, шаг 3 (v7panel3): кнопки-действия. Кнопка → relay → игра выполняет то же, что чат-команда от ВАШЕГО ника (ник relay берёт из Twitch-токена).
 // Ответа в чат нет: результат или ошибка показываются здесь, под кнопками.
 (function () {
@@ -47,6 +48,12 @@
     const quests = () => me && me.q ? [{ label: 'У вас уже есть задание', dis: true }] : (me && me.of || []).map((id, i) => ({ label: `${i + 1}. ${(ref.quests || {})[id] || id}`, arg: String(i + 1) })).concat([{ label: 'Показать список (без хода)', arg: '' }]);
     const wear = () => (me && me.eqOwn || []).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, , slot, , , stt]) => ({ ic: ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : '', label: n, sub: (me.eqOn && me.eqOn[slot] === id ? 'надето' : SLOT_RU[slot] || slot) + (stt ? ' · ' + stt : ''), dis: me.eqOn && me.eqOn[slot] === id, arg: id, confirm: `Надеть «${n}»?` }));
     const unwear = () => Object.entries(me && me.eqOn || {}).filter(([, v]) => v).map(([slot, id]) => { const i = (ref.eq || []).find(x => x[0] === id); return { label: `${SLOT_RU[slot] || slot}: ${i ? i[1] : id}`, arg: slot, confirm: `Снять ${i ? '«' + i[1] + '»' : SLOT_RU[slot]}?` }; });
+    // v7panel42: починка — цены из снимка me.dr (durCost на сервере); кнопок нет если прочность выкл (нет me.dr)
+    const repair = () => { const dr = me && me.dr; if (!dr || !Array.isArray(dr.i) || !dr.i.length) return [];
+      const SR = SLOT_RU || {};
+      const rows = dr.i.map(([s, pct, cost, id]) => ({ label: `${SR[s] || s}: ${pct}%`, sub: `${cost} з`, arg: String(s), dis: me.gold < cost || !dr.ok, confirm: `Починить «${SR[s] || s}» за ${cost} золота?` }));
+      rows.unshift({ label: `Починить всё — ${dr.t} з`, sub: dr.w || '', arg: 'всё', dis: me.gold < dr.t || !dr.ok, confirm: `Починить всё снаряжение за ${dr.t} золота?` });
+      return rows; };
     const pets = () => (me && me.pt || []).map(([id, n]) => ({ label: n, sub: me.ptOn === id ? 'с героем' : '', dis: me.ptOn === id, arg: id, cmd: 'экип', confirm: `Взять питомца «${n}»?` })).concat(me && me.ptOn ? [{ label: 'Убрать питомца', arg: 'питомец', cmd: 'снять', confirm: 'Убрать питомца?' }] : []); // v7panel12 п.7
     const titles = () => (me && me.tt || []).map((t, i) => ({ label: t, sub: me.ttOn === t ? 'надет' : '', dis: me.ttOn === t, arg: String(i + 1), confirm: `Надеть титул «${t}»?` })).concat(me && me.ttOn ? [{ label: 'Снять титул', arg: 'снять', confirm: 'Снять титул?' }] : []);
     // v7panel6: подсказки на кнопках «Магия» и «Салат» из снимка игры (me.mg / me.sal)
@@ -64,7 +71,7 @@
     return {
       town: [['📜', 'Задание', 'квест', quests, me && me.rw && me.rw.quest > 0 ? `осталось: ${me.rw.quest}` : 'квесты кончились'],
         ['✖', 'Отменить квест', 'отмена', '', me && me.q ? 'квест сгорит' : 'нет квеста', me && me.q ? 'Отменить квест? Он сгорит.' : null, !(me && me.q)],
-        ['⚒', 'Кузница', 'купить', shop, 'купить / надеть'], hairBtn,
+        ['⚒', 'Кузница', 'купить', shop, 'купить / надеть'], ...(me && me.dr && me.dr.i && me.dr.i.length ? [['🔧', 'Починить', 'чинить', repair, 'у кузницы · ' + me.dr.t + ' з']] : []), hairBtn,
         ['🏗', 'Вклад', 'вклад', () => bldPick('town'), 'в постройку города'], ['💰', 'Продать', 'продать', () => crops, 'овощи на рынке']],
       garden: [['🚶', 'На огород', 'огород', '', 'к своей грядке'], ['🌰', 'Семена', 'семена', '', '3 в день'], ['💰', 'Купить семена', 'купитьсемена', '', '150 з/шт'], ['🌱', 'Посадить', 'посадить', '', ''],
         ['⏳', 'Грядка', 'грядка', '', 'сколько ждать'], ['🐞', 'Жуки', 'жуки', '', 'отогнать'], ['🧺', 'Собрать', 'собрать', '', 'урожай'],
@@ -78,7 +85,7 @@
         ['🐌', 'Замедлить', 'замедлить', '', 'замедлить каст'], ['🛡', 'Заслон', 'заслон', '', 'щит отряду'], ['✝', 'Воскресить', 'воскресить', '', 'поднять союзника']]),
       me: me ? [turnBtn, ['🎒', 'Надеть', 'экип', wear, 'своё снаряжение'], ['🧤', 'Снять', 'снять', unwear, 'вещь со слота'], ['💰', 'Продать вещь', 'продать', sellEq, 'за 30%'], ['🏷', 'Титул', 'титул', titles, me.ttOn || 'выбрать'],
         ...(me.pt && me.pt.length ? [['🐾', 'Питомец', 'экип', pets, ((me.pt.find(p => p[0] === me.ptOn) || [])[1]) || 'не взят']] : []),
-        hairBtn, ['🏰', 'Гильдия', 'гильдия', guilds, me.gd || 'выбрать'], ['⚒', 'Кузница', 'купить', shop, 'купить вещь']]
+        hairBtn, ['🏰', 'Гильдия', 'гильдия', guilds, me.gd || 'выбрать'], ['⚒', 'Кузница', 'купить', shop, 'купить вещь'], ...(me.dr && me.dr.i && me.dr.i.length ? [['🔧', 'Починить', 'чинить', repair, 'у кузницы · ' + me.dr.t + ' з']] : [])]
         : [['🧙', 'Стать героем', 'вступить', '', 'нужна награда канала']]
     };
   }
