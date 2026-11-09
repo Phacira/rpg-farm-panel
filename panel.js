@@ -425,6 +425,75 @@
     return `<div class="pty"><h2>🛡 Пати</h2>${mine ? `<div class="pme">★ ${mine}</div>` : ''}${h}</div>`;
   }
   if (window.HeroSprites) HeroSprites.onReady(() => { PIC.clear(); clearTimeout(window.__picT); window.__picT = setTimeout(() => { if (!bcBusy()) render(); }, 120); if (SPRITES) draw(); }); // v7panel35: портреты в карточке и при спрайтах на карте
+  // ---------- v47: свёрнутая карточка (только главное) и «Сет 1 / Сет 2» ----------
+  // Свёрнуто/развёрнуто — localStorage rpgPanel.cardCollapsed ('1'/'0'); ?col=1|0 в адресе — задать явно.
+  const COL_KEY = 'rpgPanel.cardCollapsed';
+  let cardCol = (() => { try { const m = /[?&]col=([01])/.exec(location.search); if (m) localStorage.setItem(COL_KEY, m[1]); return localStorage.getItem(COL_KEY) === '1'; } catch (e) { return /[?&]col=1/.test(location.search); } })();
+  // Сеты: показываются ТОЛЬКО если игра прислала ref.sets (game.js v47+: число сетов). Старая игра — блок не рисуется, слоты как раньше.
+  // me.sets = { s: [ {слот:id}|0 ], a: надетый, lk?: почему нельзя } — приходит, только когда герой что-то сохранил (экономия снимка).
+  let setView = 0, setMsg = null; // setMsg: {ok, msg} — ответ игры на последнюю кнопку сета (показываем в карточке)
+  const SETS_REF = () => Math.max(0, Math.min(4, +(((state && state.ref) || {}).sets) || 0));
+  const hasSets = me => !!(me && SETS_REF() > 0);
+  const setsOfMe = me => { const z = me.sets && typeof me.sets === 'object' ? me.sets : {}, n = SETS_REF(), s = Array.isArray(z.s) ? z.s : [];
+    return { s: Array.from({ length: n }, (_, i) => s[i] && typeof s[i] === 'object' ? s[i] : 0), a: +z.a || 0, lk: z.lk || '' }; };
+  function setLock(me) { const z = setsOfMe(me); if (z.lk) return String(z.lk); if (me.st === 'expedition' || me.st === 'boss' || me.fm) return 'герой в бою — переодеться можно после похода'; return ''; }
+  function setRows(me, set, eqN, ref) {
+    const eqOn = me.eqOn || {}, own = me.eqOwn || [], E = {}; (ref.eq || []).forEach(e => { E[e[0]] = e; });
+    return UC_SLOTS.filter(([s]) => set && set[s]).map(([s, lab]) => { const id = set[s], e = E[id], cur = eqOn[s] || '';
+      const k = !e ? 'gone' : !own.includes(id) ? 'sold' : (e[4] && e[4].length && !e[4].includes(me.cls)) ? 'cls' : cur === id ? 'same' : 'new';
+      return { s, lab, id, cur, k, name: e ? e[1] : id, tip: e ? e[6] || '' : '' }; }); }
+  function setsHtml(me, slotsHtml, detail, eqN, ref) {
+    const Z = setsOfMe(me), N = Z.s.length, a = Z.a, lk = setLock(me);
+    if (!setView || setView > N) setView = a || 1;
+    const set = Z.s[setView - 1] || null, empty = !set || !Object.keys(set).length, isAct = a === setView && !empty;
+    const nm = id => id ? (eqN[id] || id) : '—';
+    const tabs = Array.from({ length: N }, (_, i) => { const n = i + 1, z = Z.s[i], e = !z || !Object.keys(z).length;
+      return `<button type="button" data-eqset="${n}" class="${setView === n ? 'on' : ''}">Сет ${n}${a === n && !e ? '<span class="act">надет</span>' : ''}${e ? '<span class="emp">пусто</span>' : ''}</button>`; }).join('');
+    let body;
+    if (empty) body = `<div class="uc-sdiff">Сет ${setView} пуст. Наденьте нужные вещи и нажмите «Сохранить текущее в сет ${setView}» — потом переоденетесь одной кнопкой.</div>`;
+    else if (isAct) body = `<div class="uc-eq">${slotsHtml}</div>${detail}<div class="uc-sdiff"><span class="ok">✓ Этот сет сейчас надет.</span></div>`;
+    else { const R = setRows(me, set, eqN, ref), ch = R.filter(r => r.k === 'new'), bad = R.filter(r => r.k === 'sold' || r.k === 'cls' || r.k === 'gone');
+      const grid = UC_SLOTS.map(([s, lab]) => { const r = R.find(x => x.s === s);
+        if (!r) { const cur = (me.eqOn || {})[s]; return `<div class="uc-slot sv empty" title="${esc(lab)}: в сете не задано — останется ${esc(nm(cur))}"><span class="vegi icfb">${SLOT_IC[s] || '▫️'}</span><span class="sn">${esc(lab)}</span><span class="nm">${esc(cur ? nm(cur) : '—')}</span><span class="uc-mk same">не меняется</span></div>`; }
+        const isBad = r.k === 'sold' || r.k === 'cls' || r.k === 'gone';
+        const ic = icOn() && eqIcK(r.id) ? icImg(eqIcK(r.id)) : `<span class="vegi icfb">${slotIc(s, r.name)}</span>`;
+        const mk = { new: '<span class="uc-mk new">▲ заменит</span>', same: '<span class="uc-mk same">= уже надето</span>', sold: '<span class="uc-mk bad">⚠ продано</span>', cls: '<span class="uc-mk bad">⛔ не для класса</span>', gone: '<span class="uc-mk bad">⚠ нет вещи</span>' }[r.k];
+        return `<div class="uc-slot sv${r.k === 'new' ? ' chg' : ''}${isBad ? ' bad' : ''}" title="${esc(r.lab + ': ' + r.name + (r.tip ? ' — ' + r.tip : ''))}">${ic}<span class="sn">${esc(slotLab(s, r.name))}</span><span class="nm">${esc(r.name)}</span>${mk}</div>`; }).join('');
+      body = `<div class="uc-eq">${grid}</div><div class="uc-sdiff">` + (ch.length ? `<b>Поменяется (${ch.length}):</b><br>` + ch.map(r => `${esc(r.lab)}: ${esc(nm(r.cur))} → <b>${esc(r.name)}</b>${r.tip ? ` <span class="t">(${esc(r.tip)})</span>` : ''}`).join('<br>') : '<span class="ok">Ничего не поменяется — всё уже надето.</span>')
+        + (bad.length ? '<br>' + bad.map(r => `<span class="w">⚠ ${esc(r.lab)}: «${esc(r.name)}» — ${r.k === 'sold' ? 'продано, нет в сумке' : r.k === 'cls' ? 'не для класса ' + esc(me.cn || me.cls || '') : 'такой вещи больше нет'}; слот останется как есть (${esc(nm(r.cur))})</span>`).join('<br>') : '') + `</div>`; }
+    const ban = lk ? `<div class="uc-snote ban">⚔ ${esc(lk.replace(/^./, c => c.toUpperCase()))} (кнопки неактивны).</div>` : '<div class="uc-snote">Переодеться можно вне боя. Прочность у каждой вещи своя — смена сета её не сбрасывает.</div>';
+    const wearDis = !!lk || empty || isAct;
+    const msg = setMsg ? `<div class="uc-stoast${setMsg.ok === false ? ' bad' : setMsg.ok == null ? ' wait' : ''}">${setMsg.ok == null ? '… ' : setMsg.ok ? '✔ ' : '✖ '}${esc(setMsg.msg)}</div>` : '';
+    return `<div class="uc-sets"><div class="uc-stabs">${tabs}</div><div class="uc-sbody">${body}
+      <div class="uc-sbtns"><button type="button" data-eqwear="${setView}"${wearDis ? ' disabled' : ''}>${isAct ? '✓ Сет ' + setView + ' надет' : '👕 Надеть сет ' + setView}</button><button type="button" class="sec" data-eqsave="${setView}" data-full="${empty ? 0 : 1}"${lk ? ' disabled' : ''}>💾 Сохранить текущее в сет ${setView}</button></div>${ban}${msg}</div></div>`;
+  }
+  function setFire(cmd, arg, label) {
+    if (!window.PanelActions || !PanelActions.fire) return;
+    setMsg = { ok: null, msg: 'отправляю…' }; render();
+    PanelActions.fire(cmd, arg, label, m => { setMsg = { ok: !!m.ok, msg: m.msg || (m.ok ? 'готово' : 'не получилось') }; render(); });
+  }
+  document.addEventListener('click', e => {
+    const f = e.target.closest('[data-ucfold]'); if (f) { cardCol = f.dataset.ucfold === '1'; try { localStorage.setItem(COL_KEY, cardCol ? '1' : '0'); } catch (x) {} render(); return; }
+    const t = e.target.closest('[data-eqset]'); if (t) { setView = +t.dataset.eqset || 1; setMsg = null; render(); return; }
+    const w = e.target.closest('button[data-eqwear]'); if (w && !w.disabled) { const n = +w.dataset.eqwear; setFire('экип', 'сет ' + n, 'Сет ' + n + ' · надеть'); return; }
+    const v = e.target.closest('button[data-eqsave]'); if (v && !v.disabled) { const n = +v.dataset.eqsave;
+      if (v.dataset.full === '1' && !window.confirm('Перезаписать сет ' + n + ' тем, что надето сейчас?')) return;
+      setFire('экип', 'сет сохранить ' + n, 'Сет ' + n + ' · сохранить'); }
+  });
+  function miniCard(me, gid, gPill) {
+    const pct = (v, m) => Math.max(0, Math.min(100, m ? (+v || 0) / (+m || 1) * 100 : 0)).toFixed(0);
+    const cd = me.cd > 0 ? `поход через ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` : 'поход ✓';
+    const where = (me.fm || me.st === 'expedition' ? '⚔ ' : '') + [ST[me.st] || me.st || '', LOCN[me.loc] || me.loc || ''].filter(Boolean).join(' · ');
+    const brk = (me.dr && me.dr.i || []).filter(x => x[1] < 30), eqN = {}; (((state && state.ref) || {}).eq || []).forEach(e => { eqN[e[0]] = e[1]; });
+    const rep = brk.length ? `<span class="uc-pill uc-rep" title="${esc(brk.map(x => (eqN[x[3]] || x[3]) + ' ' + x[1] + '%').join(', '))}">🔧 ремонт: ${brk.length} ${brk.length === 1 ? 'вещь' : 'вещи'}</span>` : '';
+    const bfs = me.bf || [], bf = bfs.length ? `<span class="uc-pill" title="${esc(bfs.map(b => b[0] + ' — ' + b[1]).join('\n'))}">🍲 баффы: ${bfs.length}</span>` : '';
+    const f = me.fm, fight = f ? `<span class="fgt">бой: ${esc(f[1])} ${esc(f[2])}/${esc(f[3])}</span>` : '';
+    return `<div class="hcard uc mini" data-gid="${esc(gid)}"><button type="button" class="uc-fold" data-ucfold="0" title="Показать всю карточку">▾ Развернуть</button>
+      <div class="uc-mh"><div class="uc-mport">${heroPic(me.k6, me.hair, me.dy, me.cls, 'big')}</div><div class="uc-mtxt"><div class="uc-mname">★ ${esc(me.n)} <small>${esc(me.cn || me.cls || '')} · ур. ${esc(me.lv)}</small></div>
+      <div class="uc-mrow">${gPill}<span class="uc-pill">💰 ${esc(me.gold)}</span><span class="uc-pill">🌱 ${esc(me.sd || 0)}</span><span class="uc-pill">✨ ${esc(me.sdp || 0)}</span>${bf}${rep}</div></div></div>
+      <div class="uc-mbars"><div class="uc-mb hp" title="Здоровье"><i style="width:${pct(me.hp, me.mhp)}%"></i><span>❤ ${esc(me.hp)} / ${esc(me.mhp)}</span></div><div class="uc-mb xp" title="Опыт"><i style="width:${pct(me.xp, me.xpN)}%"></i><span>Опыт ${esc(me.xp)} / ${esc(me.xpN)}</span></div></div>
+      <div class="uc-mst"><span>${esc(where)}</span><span class="${me.cd > 0 ? 'left' : 'ok'}">${esc(cd)}</span>${fight}</div></div>`;
+  }
   function card(me) {
     if (!me) return `<div class="hcard"><b>Героя пока нет.</b><p class="note">Напишите в чат стрима <b>!rpg</b> — герой появится, и вы увидите его здесь.</p></div>`;
     const gid = gidOf(me);
@@ -470,13 +539,15 @@
       : '<span class="uc-tag lab">баффы: нет</span>';
     const gName = me.gd || ({ moon: 'Лунные тени', fire: 'Огненный клинок', gold: 'Золотой колос', silver: 'Серебряный лист' }[gid] || '');
     const gPill = gid !== 'none' && gName ? `<span class="uc-pill g">${esc(gName)}</span>` : '<span class="uc-pill">без гильдии</span>';
-    return `<div class="hcard uc" data-gid="${esc(gid)}"><div class="uc-head"><div class="uc-port">${heroPic(me.k6, me.hair, me.dy, me.cls, 'big')}${me.ptOn ? `<img class="hpet" src="img/pet/${esc(me.ptOn)}.png" onerror="this.outerHTML='<span class=hpet>🐾</span>'" alt="">` : ''}</div>
+    if (cardCol) return miniCard(me, gid, gPill); // v47
+    const eqBlock = INV_OBS ? '' : hasSets(me) ? setsHtml(me, slotsHtml, detail, eqN, ref) : `<div class="uc-eq">${slotsHtml}</div>${detail}`; // v47: сеты — только с новой игрой
+    return `<div class="hcard uc" data-gid="${esc(gid)}"><button type="button" class="uc-fold" data-ucfold="1" title="Оставить только главное — чтобы Пати и Журнал влезали">▴ Свернуть</button><div class="uc-head"><div class="uc-port">${heroPic(me.k6, me.hair, me.dy, me.cls, 'big')}${me.ptOn ? `<img class="hpet" src="img/pet/${esc(me.ptOn)}.png" onerror="this.outerHTML='<span class=hpet>🐾</span>'" alt="">` : ''}</div>
       <div><div class="hname">★ ${esc(me.n)} <small>${esc(me.cn || me.cls || '')} · ур. ${esc(me.lv)}</small></div>
       <div class="hst">${esc(ST[me.st] || me.st || '')} · ${esc(LOCN[me.loc] || me.loc || '')}</div>
       <div class="uc-meta">${gPill}<span class="uc-pill">💰 ${esc(me.gold)}</span><span class="uc-pill">🌱 ${esc(me.sd || 0)}</span><span class="uc-pill">✨ ${esc(me.sdp || 0)}</span>${cook ? `<span class="uc-pill">🍲 ${esc(cook)}</span>` : ''}</div></div></div>
       ${myFight(me)}
       ${meter('HP' + hpBonusOf(me), me.hp, me.mhp, 'hp')}${me.mmp ? meter('Мана', me.mp || 0, me.mmp, 'mp') : ''}${meter('Опыт', me.xp, me.xpN, 'xp')}
-      ${INV_OBS ? '' : `<div class="uc-eq">${slotsHtml}</div>${detail}`}
+      ${eqBlock}
       ${tab === 'me' ? (INV_OBS ? '' : statHtml(me)) : ''}
       <div class="uc-status"><div class="uc-row">${ttl}${pet}</div><div class="uc-row">${bfHtml}</div></div>
       <div class="uc-day">${dayBits.join('')}</div>
@@ -572,12 +643,36 @@
       if (!(MOCK_REF.eq || []).some(e => e[0] === 'o_tome')) MOCK_REF.eq.push(['o_tome', 'Гримуар новичка', 110, 'offhand', ['priest', 'mage'], 1, '+4 магия', 'tome']);
       syncMockEqS(me);
     }
+    { const m = /[?&]sets=(\w+)/.exec(location.search); if (m) mockSets(state.me, m[1]); } // v47: ?sets=1|2|empty|fight — макет сетов (без параметра — как старая игра, без сетов)
     { const m = /[?&]turn=(\d)/.exec(location.search); state.ref = Object.assign({}, state.ref, { ch: 'demo_channel', tl: 1 }); if (m) { state.ref.tb = 1; state.me.tu = +m[1] - 1; } } // v7panel31: ?turn=1 — флаг включён, ?turn=2 — лимит исчерпан
     { const m = /[?&]pty=(\w+)/.exec(location.search); if (m) { const v = m[1]; // v7panel30: макет пати — q (набор), go (в походе), none (пусто)
       state.ref = Object.assign({}, state.ref, { pty: v === 'none' ? { sz: 3, mn: 2, wv: 3, q: [], qn: 0, left: -1, lane: 0, go: [] }
         : v === 'go' ? { sz: 3, mn: 2, wv: 3, q: ['lisa_fox'], qn: 1, left: 142, lane: 0, go: [[['demo_viewer', 'mira77', 'gnomik'], '110', 'fight', 2]] }
         : { sz: 3, mn: 2, wv: 3, q: ['ironpaw', 'demo_viewer', 'kotik_mag', 'sunny_bard'], qn: 4, left: 0, lane: 1, go: [[['oak_knight', 'redhood'], '11', 'walk', 1]] } }); } }
   }
+  // v47: макет сетов — воин 12 ур., сет 1 надет, во 2-м сете проданное кольцо и щит не для класса
+  function mockSets(me, v) {
+    const add = r => { if (!MOCK_REF.eq.some(e => e[0] === r[0])) MOCK_REF.eq.push(r); };
+    add(['w_sword2', 'Стальной клинок', 300, 'weapon', ['warrior', 'paladin'], 2, '+2 урон', 'w2']); add(['a_mithril', 'Мифриловый доспех', 900, 'armor', ['warrior', 'paladin'], 3, '+34 HP, +3 защита · тяжёлая', 'a4']);
+    add(['a_plate', 'Латы', 700, 'armor', ['warrior', 'paladin'], 3, '+22 HP, +2 защита · тяжёлая', 'a3']); add(['o_bracer', 'Стальные наручи', 250, 'offhand', ['warrior'], 2, '+2 защита', 'r2']); add(['o_pshield', 'Крепкий щит', 400, 'offhand', ['paladin'], 2, '+5% блок', 'o2']);
+    Object.assign(me, { lv: 12, xp: 388, xpN: 600, hp: 96, mhp: 148, gold: 1240 });
+    const S1 = { weapon: 'w_sword1', armor: 'a_plate', offhand: 'o_bracer', trinket: 't3', ring1: 'r_str', ring2: 'r_def' }, S2 = { weapon: 'w_sword2', armor: 'a_mithril', offhand: 'o_pshield', trinket: 'a_light', ring1: 'r_hp', ring2: 'r_dodge' };
+    me.eqOn = Object.assign({}, S1); me.eqOwn = ['w_sword1', 'w_sword2', 'a_plate', 'a_mithril', 'o_bracer', 'o_pshield', 't3', 'a_light', 'r_str', 'r_def', 'r_hp']; // r_dodge — продано
+    state.ref = Object.assign({}, state.ref, { sets: 2 });
+    me.sets = { s: [S1, v === 'empty' ? 0 : S2], a: 1 };
+    if (v === 'none') delete me.sets; // ничего не сохранено — игра me.sets не шлёт
+    if (v === 'fight') { me.st = 'expedition'; me.loc = 'forest'; me.sets.lk = 'герой в походе — переодеться можно после боя'; }
+    if (v === '2' || v === 'fight') setView = 2;
+    syncMockEqS(me);
+  }
+  function mockSetReply(m) { const me = state.me; if (state.ref.sets && !me.sets) me.sets = { s: [0, 0], a: 0 }; const Z = me.sets; const a = String(m.arg || '').replace(/^сет\s*/, ''); let x;
+    if (!Z) return { id: m.id, ok: false, msg: 'этой вещи нет в сумке (купить: !купить)' };
+    if (Z.lk) return { id: m.id, ok: false, msg: 'сет: ' + Z.lk };
+    if ((x = /^сохранить (\d)$/.exec(a))) { const n = +x[1]; Z.s[n - 1] = Object.assign({}, me.eqOn); Z.a = n; render(); return { id: m.id, ok: true, msg: `💾 сет ${n} сохранён (${Object.keys(me.eqOn).length} вещей) (демо)` }; }
+    if ((x = /^(\d)$/.exec(a))) { const n = +x[1], set = Z.s[n - 1]; if (!set) return { id: m.id, ok: false, msg: `сет ${n} пуст (демо)` };
+      const R = setRows(me, set, {}, MOCK_REF), ch = R.filter(r => r.k === 'new'); ch.forEach(r => { me.eqOn[r.s] = r.id; }); Z.a = n; syncMockEqS(me); render();
+      const sk = R.filter(r => r.k === 'sold' || r.k === 'cls'); return { id: m.id, ok: true, msg: `👕 надевает сет ${n}: ${ch.length} ${ch.length === 1 ? 'вещь' : 'вещи'}${sk.length ? '; пропущено: ' + sk.map(r => r.name).join(', ') : ''} (демо)` }; }
+    return { id: m.id, ok: false, msg: 'как пользоваться: !сет 1 / !сет 2 (демо)' }; }
   const MOCK_REF = { guilds: [['fire', 'Огненный клинок', '#d9482b'], ['silver', 'Серебряный лист', '#9fc7d6'], ['moon', 'Лунные тени', '#8a6ad8'], ['gold', 'Золотой колос', '#e8b830']],
     hair: [['black', 'чёрный', [[14, 12, 14], [40, 36, 42], [82, 76, 86]]], ['darkbrown', 'тёмно-каштановый', [[24, 14, 10], [60, 38, 26], [104, 72, 50]]], ['chestnut', 'каштановый', null], ['lightbrown', 'русый', [[70, 52, 34], [132, 106, 74], [190, 164, 122]]], ['blond', 'блонд', [[118, 86, 40], [202, 162, 86], [246, 224, 152]]], ['red', 'рыжий', [[88, 28, 10], [178, 72, 26], [238, 140, 66]]], ['grey', 'седой', [[78, 78, 84], [150, 150, 158], [216, 216, 224]]]], hairPrice: 250, bsLv: 3, ic: 1,
     eq: [['w_sword1', 'Железный меч', 120, 'weapon', null, 1, '+2 урон'], ['a_leather', 'Кожаная броня', 150, 'armor', null, 1, '+4 защита'], ['o_shield', 'Деревянный щит', 90, 'offhand', ['warrior', 'paladin'], 1, '+3 защита'], ['t_amulet', 'Амулет силы', 400, 'trinket', null, 2],
@@ -594,6 +689,7 @@
   };
   function mockReply(m) {
     const me = state.me, it = MOCK_REF.eq.find(i => i[0] === m.arg);
+    if (m.cmd === 'экип' && /^сет(\s|$)/.test(String(m.arg || ''))) return mockSetReply(m); // v47
     if (m.cmd === 'ход') { me.tu = (me.tu || 0) + 1; ['hike', 'cook', 'quest'].forEach(k => me.rw[k] = Math.min(3, me.rw[k] + 1)); return { id: m.id, ok: true, msg: `ход сделан! Запас: поход ${me.rw.hike}, готовка ${me.rw.cook}, квест ${me.rw.quest} (максимум 3). С пульта за стрим: ${me.tu} из 1. (демо)` }; }
     if (m.cmd === 'поход' && me.cd > 0) return { id: m.id, ok: false, msg: `поход: КД ещё ${Math.floor(me.cd / 60)}:${String(me.cd % 60).padStart(2, '0')}` };
     if (m.cmd === 'готовить' && /\s/.test(m.arg)) { const [k, q] = m.arg.split(' '), r = MOCK_REF.recipes[+k - 1]; return { id: m.id, ok: true, msg: `готовит ${q === 'макс' ? 2 : q} × ${r ? r[0] : '…'} (демо)` }; }

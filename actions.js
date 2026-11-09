@@ -139,14 +139,14 @@
     if (typeof d[3] === 'function') return choose(d, d[3](), d[1]);
     ask(d, d[3] || '', d[1], d[5]);
   }
-  function fire(cmd, arg, label) {
-    const id = 'c' + (++seq); pend[id] = { cmd, label };
+  function fire(cmd, arg, label, cb) { // v47: cb(ответ) — для кнопок в карточке (сеты)
+    const id = 'c' + (++seq); pend[id] = { cmd, label, cb };
     push({ id, label, msg: 'отправляю…', ok: null });
     window.__panelSend({ type: 'cmd', id, cmd, arg: arg || '' });
     setTimeout(() => { if (pend[id]) done({ id, ok: false, msg: 'нет ответа — проверьте связь' }); }, 12000);
   }
   function push(r) { results = [r].concat(results.filter(x => x.id !== r.id)).slice(0, 4); window.__panel && window.__panel.render(); }
-  function done(m) { const p = pend[m.id]; if (!p) return; delete pend[m.id]; push({ id: m.id, label: p.label, msg: m.msg || (m.ok ? 'готово' : 'не получилось'), ok: !!m.ok }); }
+  function done(m) { const p = pend[m.id]; if (!p) return; delete pend[m.id]; push({ id: m.id, label: p.label, msg: m.msg || (m.ok ? 'готово' : 'не получилось'), ok: !!m.ok }); if (typeof p.cb === 'function') { try { p.cb(m); } catch (e) {} } }
   document.addEventListener('click', e => { const b = e.target.closest('button.act'); if (b && !b.disabled) click(+b.dataset.a); });
   window.PanelActions = { render, done, defs, fire, sellList: ctx => { const d = defs(ctx).me || []; const b = d.find(x => x[2] === 'продать'); return b && typeof b[3] === 'function' ? b[3]() : []; } };
 })();
