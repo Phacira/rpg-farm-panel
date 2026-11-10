@@ -8,7 +8,7 @@
   const ST = { camp: 'в лагере', garden: 'на огороде', cooking: 'готовит еду', expedition: 'в походе', town: 'в городе', boss: 'бьётся с боссом', sleep: 'спит', dead: 'отдыхает после поражения' };
   const LOCN = { town: 'Город', garden: 'Огород', camp: 'Лагерь', forest: 'Лес', boss: 'Босс' };
   const VEG = { cucumber: '🥒', tomato: '🍅', carrot: '🥕', eggplant: '🍆', pumpkin: '🎃' };
-  const mock = /[?&]mock=1/.test(location.search);
+  const mock = /[?&]mock=1/.test(location.search); let MOCK_CAST = null;
   let user = null, state = null, tab = 'me', ws = null, retry = 1500, imgs = {};
   const redirect = () => location.origin + location.pathname.replace(/index\.html$/, '');
 
@@ -50,7 +50,7 @@
       lastMsg = Date.now(); if (m.type === 'pong') return;
       if (m.type === 'hello' || m.type === 'state' || m.type === 'offline') { retry = 1500; if (m.type !== 'hello') msg(''); }
       if (m.type === 'cmd-res') { if (window.PanelActions) PanelActions.done(m); return; }
-      if (m.type === 'state') state = m; else if (m.type === 'offline') state = { online: false, lastAt: m.lastAt };
+      if (m.type === 'state') { state = m; m._rx = Date.now(); } else if (m.type === 'offline') state = { online: false, lastAt: m.lastAt };
       else if (m.type === 'error') { if (m.code === 'bad-token') { logout(); msg('Вход устарел — войдите снова.'); } else msg(m.code === 'too-many' ? 'Эта вкладка отключена: пульт открыт в нескольких местах сразу. Обновите страницу, чтобы вернуть связь здесь.' : 'Ошибка: ' + m.code); }
       render(); };
     ws.onclose = e => { if (ws !== me) return; ws = null; if (user && e.code !== 4003 && e.code !== 4010) later(); };
@@ -609,6 +609,15 @@
       me: { k6: 'moon_m_warrior', dy: '', fm: /fight=1/.test(location.search) ? ['goblin', 'Гоблин', 31, 52, 0] : null, n: 'demo_viewer', cls: 'warrior', cn: 'Воин', lv: 7, xp: 210, xpN: 350, hp: 86, mhp: 120, gold: 340, pot: 2, food: 3, sd: 4, sdp: 1, gd: 'Лунные тени', gid: 'moon', eqOwn: ['w_sword1', 'r_str', 'r_def', 'a_light', 'r_hp'], eqOn: { weapon: 'w_sword1', ring1: 'r_str', ring2: 'r_def', trinket: 'a_light' }, sr: [['❤', 'Здоровье', '86/120 (+15)'], ['⚔', 'Урон', '14 (+2)'], ['🛡', 'Защита', '9 (+2)'], ['🔮', 'Магия', '+3 к урону'], ['💖', 'Лечение', '—'], ['🥋', 'Броня', 'нет'], ['🌱', 'Семена', '4 · ✨ волшебные 1'], ['🍲', 'Готовка (наград сегодня)', '1'], ['⭐', 'Уровень', '7 · 210/350 XP'], ['💰', 'Золото', '340']], tt: ['Огородник', 'Гроза крыс'], ttOn: 'Огородник', ttOn: 'Огородник', hair: 'black', of: ['plant2', 'carrot2', 'harv4'], pty: false, st: 'camp', loc: 'camp', mode: 'idle',
         veg: { cucumber: 4, tomato: 2, carrot: 0, eggplant: 1, pumpkin: 0 }, wd: 7, rw: { hike: 1, cook: 1, quest: 2 }, qs: /quest=0/.test(location.search) ? { c: 0, d: 0, l: [] } : { c: ['Сходить в 2 похода', 1, 2, '+30 золота, +20 опыта'], d: 3, l: [['Приготовить 2 блюда', '+20 золота, +10 опыта'], ['Посадить 2 грядки', '+15 золота, +5 опыта, +2 семян'], ['Победить 5 монстров', '+25 золота, +15 опыта']] }, mg: { left: 1, max: 2, cd: 1260, seeds: 1 }, sal: { left: 3, max: 4, reset: 1900000, can: false, total: 1 }, rcp: [3, 1, 1, 0, 3, 0], cd: 75, buffs: 1, q: null, iv: { m: [['🪵', 'Дерево', 12], ['🪨', 'Камень', 5], ['⛓️', 'Железо', 1]], f: [['🥗', 'Овощной салат', 1], ['crop_carrot', 'Тушёная морковь (активно)', 8]], p: [['❤️', 'Зелье лечения', 2]], c: [] } },
       ref: /bc=1/.test(location.search) ? Object.assign({}, MOCK_REF, { bc: 5 }) : MOCK_REF };
+    // v48.2: ?cast=1[&win=red|yellow|purple&cls=priest|mage|paladin|archer] — макет полосы каста босса (идёт по кругу)
+    if (/[?&]cast=1/.test(location.search)) {
+      const qs = k => (new RegExp('[?&]' + k + '=(\\w+)').exec(location.search) || [])[1];
+      if (!state.boss || state.boss.ph !== 'fight') state.boss = { ph: 'fight', name: 'Проклятый огр', key: 'ogre_boss', flt: '', hp: 9800, mhp: 14400, in: 0, n: 12 };
+      const ord = { red: ['y', 'r', 'p'], yellow: ['r', 'y', 'p'], purple: ['y', 'p', 'r'] }[qs('win') || 'red'];
+      MOCK_CAST = { o: ord, p: (qs('p') ? +qs('p') : 0.55), r: 1 / 14, nm: state.boss.key === 'queen_boss' ? 'Зов роя' : 'Проклятое пробуждение', sl: qs('slow') ? 1 : 0 };
+      state.boss.cast = Object.assign({}, MOCK_CAST); state._rx = Date.now();
+      if (qs('cls')) { state.me.cls = qs('cls'); }
+    }
     state.stream = !/offline=1/.test(location.search); state.test = /ptest=1/.test(location.search);
     if (/[?&]dur=1/.test(location.search)) { // v7panel42: макет прочности + цен починки (без relay)
       state.me.dr = { t: 28, g: state.me.gold, ok: 1, w: '', i: [['weapon', 45, 12, 'w_sword1'], ['trinket', 18, 16, 'a_light']] };
@@ -720,6 +729,38 @@
       syncMockEqS(me); render(); return { id: m.id, ok: true, msg: `кузнец чинит (−${tot} з) (демо)` }; }
     return { id: m.id, ok: true, msg: `выполнено (демо): !${m.cmd}${m.arg ? ' ' + m.arg : ''}` };
   }
+  // ---------- v48.2: полоса каста босса (видна на любой вкладке, секундомер идёт сам между снимками) ----------
+  // Игра шлёт boss.cast = {o: порядок окон r/y/p, p: прогресс 0..1, r: скорость в доле/сек, nm: название, sl: замедлен}.
+  const CAST_W = { r: { n: 'КРАСНОЕ', cmd: 'оглушить', ic: '💫', who: 'воин, паладин', col: '#e0453a', cls: ['warrior', 'paladin'] }, y: { n: 'ЖЁЛТОЕ', cmd: 'связать', ic: '🕸', who: 'лучник, ассасин', col: '#e8c33a', cls: ['archer', 'assassin'] }, p: { n: 'ФИОЛЕТОВОЕ', cmd: 'очистить', ic: '🔮', who: 'жрец', col: '#a35ae0', cls: ['priest'] } };
+  const CAST_X = { mage: ['замедлить', '🐌'], paladin: ['заслон', '🛡'] };
+  let castSig = '';
+  function castNow() {
+    const b = state && state.online && state.boss, c = b && b.ph === 'fight' && b.cast; if (!c || !Array.isArray(c.o) || c.o.length !== 3 || !(c.r > 0)) return null;
+    const rx = state._rx || state.t || Date.now(); let dt = (Date.now() - rx) / 1000;
+    if (mock && MOCK_CAST) { const per = 1 / MOCK_CAST.r; dt = ((Date.now() - rx) / 1000) % (per * (1 - c.p) + 2); }
+    else if (dt > 6) return null; // связь пропала — не врём
+    const p = Math.min(1, (+c.p || 0) + c.r * dt), w = Math.min(2, Math.floor(p * 3));
+    return { c, p, w, key: c.o[w], left: Math.max(0, (1 - p) / c.r) };
+  }
+  function castTick() {
+    const box = document.getElementById('castbox'); if (!box) return;
+    const n = castNow(); if (!n) { if (!box.hidden) { box.hidden = true; box.innerHTML = ''; castSig = ''; } return; }
+    const W = CAST_W[n.key] || CAST_W.r, mc = state.me && state.me.cls, mine = !!(mc && W.cls.includes(mc)), ex = mc && CAST_X[mc], sig = n.c.o.join('') + '|' + (n.c.nm || '') + '|' + mc + '|' + (n.c.sl ? 1 : 0) + (mine ? 1 : 0);
+    if (sig !== castSig || box.hidden) { castSig = sig; box.hidden = false;
+      box.innerHTML = `<div class="ct"><b>☠ ${esc(n.c.nm || 'Каст босса')}</b><span class="cl" id="cast-left"></span>${n.c.sl ? '<i class="csl">🐌 замедлен</i>' : ''}</div>
+        <div class="cbar">${n.c.o.map((k, i) => `<span class="cw" data-i="${i}" style="background:${(CAST_W[k] || CAST_W.r).col}"></span>`).join('')}<span class="cm" id="cast-mark"></span></div>
+        <div class="cnow" id="cast-now"></div><div class="cbtns" id="cast-btns"></div>`;
+      const bt = [[W, true]].concat(ex ? [[{ cmd: ex[0], ic: ex[1] }, false]] : []);
+      $('cast-btns').innerHTML = bt.map(([d, pr]) => `<button class="cb${pr ? ' pri' : ''}" data-cc="${d.cmd}"${pr && !mine ? ' disabled' : ''}>${d.ic} ${d.cmd[0].toUpperCase() + d.cmd.slice(1)}</button>`).join('') + (mine ? '' : `<span class="cwho">нужен: ${W.who}</span>`); }
+    box.className = 'castbox' + (n.left <= 4 ? ' hot' : ''); box.dataset.w = n.key;
+    $('cast-left').textContent = n.left.toFixed(1) + ' с';
+    $('cast-mark').style.left = (n.p * 100).toFixed(2) + '%';
+    box.querySelectorAll('.cw').forEach(e => e.classList.toggle('cur', +e.dataset.i === n.w));
+    $('cast-now').innerHTML = `Сейчас <b style="color:${W.col}">${W.n}</b> окно — сбивает <b>${W.ic} ${W.cmd[0].toUpperCase() + W.cmd.slice(1)}</b> (${W.who})`;
+    const pb = box.querySelector('.cb.pri'); if (pb) { pb.dataset.cc = W.cmd; pb.innerHTML = W.ic + ' ' + W.cmd[0].toUpperCase() + W.cmd.slice(1); }
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('#castbox button[data-cc]'); if (!b || b.disabled || !window.PanelActions) return; const cmd = b.dataset.cc; PanelActions.fire(cmd, '', cmd[0].toUpperCase() + cmd.slice(1)); });
+  setInterval(castTick, 100);
   takeHash();
   if (mock) { mockData(); const t0 = /[?&]tab=(\w+)/.exec(location.search); if (t0) tab = t0[1]; render(); } else validate();
   window.__panel = { get state() { return state; }, get user() { return user; }, render };
