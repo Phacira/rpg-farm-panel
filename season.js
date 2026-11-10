@@ -1,7 +1,7 @@
 /* v49: заточка +1…+10, Сезон 2, бесплатная смена облика, постройки до 10 ур.
    Модуль дополняет карточку героя, не меняя panel.js. Если игра НЕ прислала данные (me.sh / ref.sharp / ref.season / bld[11]) — ничего не рисует,
    поэтому пульт безопасно работает и со старой игрой (v48.2).
-   Демо без сети: ?mock=1&sh=card|dlg|dlgs|ok|fail|max|poor  ·  &season=ann|new|sum|chg  ·  &bv2=1 */
+   Демо без сети: ?mock=1&sh=card|dlg|dlgs|ok|fail|max|poor  ·  &season=ann|new|sum|chg  ·  &bv2=1  ·  &rm=1 (раскат огра; можно вместе с cast=1) */
 (function () {
   const P = window.__panel; if (!P) return;
   const qs = new URLSearchParams(location.search), mock = qs.get('mock') === '1';
@@ -185,7 +185,20 @@
   const hero = document.getElementById('hero'); if (hero) new MutationObserver(() => { clearTimeout(tick._t); tick._t = setTimeout(tick, 30); }).observe(hero, { childList: true });
   setInterval(() => { try { seasonBar(); } catch (x) { } }, 30000);
 
+  // ---------- «Раскат» огра (v49): строка «Раскат через N с», только когда игра прислала boss.rm (огр ≤ 50% HP) ----------
+  const rmBox = (() => { const c = document.getElementById('castbox'); if (!c) return null; const d = document.createElement('div'); d.id = 'rm49'; d.className = 'rm49'; d.hidden = true; c.insertAdjacentElement('afterend', d); return d; })();
+  function rumbleTick() {
+    if (!rmBox) return; const b = st() && st().online !== false && st().boss, r = b && b.ph === 'fight' && b.rm;
+    if (!r || !(r.e > 0)) { if (!rmBox.hidden) { rmBox.hidden = true; rmBox.textContent = ''; } return; }
+    const rx = st()._rx || st().t || Date.now(), dt = (Date.now() - rx) / 1000;
+    if (!mock && dt > 6) { rmBox.hidden = true; return; } // связь пропала — не врём
+    let left = (+r.l || 0) - dt; if (left < 0) left = r.e - ((-left) % r.e); if (mock) left = r.e - ((Date.now() - rx) / 1000) % r.e;
+    rmBox.hidden = false; rmBox.className = 'rm49' + (left <= 3 ? ' hot' : '');
+    rmBox.innerHTML = `🔥 <b>Раскат</b> через <b class="rml">${Math.ceil(left)} с</b> <span>−${esc(r.p)}% HP всем · 🛡 заслон паладина режет вдвое</span>`;
+  }
+  setInterval(rumbleTick, 250);
   // ---------- демо без сети (?mock=1) ----------
+  if (mock && qs.get('rm') && P.state) { const bb = P.state.boss; P.state.boss = Object.assign(bb && bb.ph === 'fight' ? bb : { ph: 'fight', name: 'Огр', key: 'ogre_boss', flt: '', hp: 4300, mhp: 10000, n: 5 }, { rm: { l: 9, e: 15, p: 10 } }); P.state._rx = Date.now(); if (P.render) P.render(); }
   if (mock && (qs.get('sh') || qs.get('season') || qs.get('bv2'))) {
     const mm = P.state && P.state.me; if (mm) {
       const sh = qs.get('sh'), se = qs.get('season');

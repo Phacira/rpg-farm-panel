@@ -64,3 +64,10 @@
 .bv49.build{color:#9fd0ff}
 .bv49.hearts{color:#ffb0b0}
 @media (max-width:560px){.sh-dlg,.sz-dlg{width:96vw;padding:12px}.sz-cols{flex-direction:column}.sz-top{flex-wrap:wrap}.sz-top>div{flex:1 1 30%}.sh-grid{grid-template-columns:92px 1fr}.sh-row button{flex:1 1 45%}}
+
+/* v49: «Раскат» огра */
+.rm49{margin:0 0 10px;padding:7px 12px;border-radius:10px;background:#2a1408;border:2px solid #ff9c3a;color:#ffd9b0;font-size:15px}
+.rm49[hidden]{display:none}
+.rm49 .rml{font-size:20px;font-variant-numeric:tabular-nums;color:#ffd86a}
+.rm49 span{font-size:13px;opacity:.85;margin-left:6px}
+.rm49.hot{border-color:#ff4a2a;animation:castpulse .5s infinite alternate}
