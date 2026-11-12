@@ -71,3 +71,12 @@
 .rm49 .rml{font-size:20px;font-variant-numeric:tabular-nums;color:#ffd86a}
 .rm49 span{font-size:13px;opacity:.85;margin-left:6px}
 .rm49.hot{border-color:#ff4a2a;animation:castpulse .5s infinite alternate}
+/* v49.5: Король Трентов — «Опутан N с» и «Рубить» */
+.tr495{margin:0 0 10px;padding:7px 12px;border-radius:10px;background:#122410;border:2px solid #7ad04a;color:#d8ffc0;font-size:15px}
+.tr495[hidden]{display:none}
+.tr495.me{border-color:#b8ff6a;animation:castpulse .6s infinite alternate}
+.tr495 .trrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tr495 .trb{font-size:17px;color:#b8ff6a}.tr495 .trb b{font-size:20px;font-variant-numeric:tabular-nums}
+.tr495 .trs{font-size:13px;opacity:.85}
+.tr495 .trbtn{font:inherit;font-weight:700;padding:8px 16px;border-radius:9px;border:2px solid #9dff6a;background:#2c5a1c;color:#f0ffe0;cursor:pointer;min-height:40px}
+.tr495 .trbtn:disabled{opacity:.5;cursor:default}

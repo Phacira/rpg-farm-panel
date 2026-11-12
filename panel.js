@@ -655,7 +655,7 @@
       if (!(MOCK_REF.eq || []).some(e => e[0] === 'o_tome')) MOCK_REF.eq.push(['o_tome', 'Гримуар новичка', 110, 'offhand', ['priest', 'mage'], 1, '+4 магия', 'tome']);
       syncMockEqS(me);
     }
-    if (/[?&]px=494/.test(location.search)) { state.ref = Object.assign({}, state.ref, { px: 494 }); } // v49.4: макет — игра понимает «снять квест» / «купить семена N»
+    { const pm = /[?&]px=(\d+)/.exec(location.search); if (pm) state.ref = Object.assign({}, state.ref, { px: +pm[1] }); } // v49.4/49.5: макет — версия игры (494: «снять квест»/«купить семена N»; 495: корни трента)
     { const m = /[?&]sets=(\w+)/.exec(location.search); if (m) mockSets(state.me, m[1]); } // v47: ?sets=1|2|empty|fight — макет сетов (без параметра — как старая игра, без сетов)
     { const m = /[?&]turn=(\d)/.exec(location.search); state.ref = Object.assign({}, state.ref, { ch: 'demo_channel', tl: 1 }); if (m) { state.ref.tb = 1; state.me.tu = +m[1] - 1; } } // v7panel31: ?turn=1 — флаг включён, ?turn=2 — лимит исчерпан
     { const m = /[?&]pty=(\w+)/.exec(location.search); if (m) { const v = m[1]; // v7panel30: макет пати — q (набор), go (в походе), none (пусто)
@@ -697,7 +697,7 @@
     gear: [['sword1','Острый меч',1,40,'+5% урон'],['sword2','Рунный клинок',2,80,'+10% урон'],['armor2','Кольчуга',2,80,'+4 защита'],['sword3','Клинок героя',3,120,'+18% урон']] };
   // отправка команды: в бою — через relay (ника нет, его подставит relay из токена); в демо — ответ имитируется на странице
   window.__panelSend = m => {
-    if (mock) return setTimeout(() => PanelActions.done(mockReply(m)), 350);
+    if (mock) { window.__lastMockCmd = m; return setTimeout(() => PanelActions.done(mockReply(m)), 350); }
     if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); else PanelActions.done({ id: m.id, ok: false, msg: 'нет связи с сервером' });
   };
   function mockReply(m) {

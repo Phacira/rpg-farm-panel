@@ -197,6 +197,29 @@
     rmBox.innerHTML = `🔥 <b>Раскат</b> через <b class="rml">${Math.ceil(left)} с</b> <span>−${esc(r.p)}% HP всем · 🛡 заслон паладина режет вдвое</span>`;
   }
   setInterval(rumbleTick, 250);
+  // ---------- Король Трентов (v49.5): «Опутан N с» и кнопка «Рубить» — только если игра ≥ v49.5 (ref.px ≥ 495) и прислала boss.tr ----------
+  // boss.tr = { r: [[ник, секунд, ударов], …], sp: ростков, st: пней, fh: ударов на корень }. «Рубить» шлёт обычный «удар» — игра сама рубит корни/ростки.
+  const trBox = (() => { const c = document.getElementById('rm49') || document.getElementById('castbox'); if (!c) return null; const d = document.createElement('div'); d.id = 'tr495'; d.className = 'tr495'; d.hidden = true; c.insertAdjacentElement('afterend', d);
+    d.addEventListener('click', e => { const b = e.target.closest('button[data-tr]'); if (!b || b.disabled || !window.PanelActions) return; window.PanelActions.fire('удар', '', '🪓 Рубить'); b.disabled = true; trLock = Date.now() + 1500; }); return d; })();
+  let trHtml = '', trLock = 0;
+  function trTick() {
+    if (!trBox) return; const s = st(), b = s && s.online !== false && s.boss, t = b && b.ph === 'fight' && b.tr, m = me();
+    const hide = () => { if (!trBox.hidden) { trBox.hidden = true; trBox.innerHTML = ''; trHtml = ''; } };
+    if (!t || !(+(ref().px) >= 495) || !m) return hide();
+    const rx = s._rx || s.t || Date.now(), dt = (Date.now() - rx) / 1000; if (!mock && dt > 6) return hide(); // связь пропала — не врём
+    const nm = String(m.n || '').toLowerCase(), roots = Array.isArray(t.r) ? t.r : [], mine = roots.find(r => String(r[0]).toLowerCase() === nm), others = roots.filter(r => r !== mine);
+    const sp = +t.sp || 0, stp = +t.st || 0, tgt = others.length > 0 || sp > 0 || stp > 0;
+    if (!mine && !tgt) return hide();
+    let h = '';
+    if (mine) { const left = Math.max(1, Math.ceil((+mine[1] || 0) - (mock ? 0 : dt))); h = `<div class="trrow"><span class="trb">🌿 Опутан <b>${left} с</b></span><span class="trs">не бьёшь и не лечишь — союзники рубят корни (${+mine[2] || 0}/${+t.fh || 3}) или вырывают !оглушить/!заслон</span></div>`; }
+    else { const what = others.length ? 'в корнях: ' + others.map(r => esc(r[0])).join(', ') : sp ? `ростков: ${sp} — лечат Короля` : `пней: ${stp} — добить, пока не проросли`;
+      h = `<div class="trrow"><button class="trbtn" data-tr="1"${Date.now() < trLock ? ' disabled' : ''}>🪓 Рубить</button><span class="trs">${what}${others.length && sp ? ` · ростков: ${sp}` : ''}</span></div>`; }
+    if (h !== trHtml) { trHtml = h; trBox.innerHTML = h; } trBox.hidden = false; trBox.className = 'tr495' + (mine ? ' me' : '');
+  }
+  setInterval(trTick, 250);
+  if (mock && qs.get('tr') && P.state) { const bb = P.state.boss, mn = (P.state.me && P.state.me.n) || 'demo_viewer'; P.state.ref = Object.assign({}, P.state.ref, { px: +(qs.get('px') || 495) });
+    P.state.boss = Object.assign(bb && bb.ph === 'fight' ? bb : { ph: 'fight', name: 'Король Трентов', key: 'treant_boss', lair: 'boss_treant', flt: '', hp: 61000, mhp: 96000, n: 10 },
+      { tr: qs.get('tr') === 'me' ? { r: [[mn, 5, 1], ['ironpaw', 4, 0]], sp: 2, st: 0, fh: 3 } : qs.get('tr') === 'sp' ? { r: [], sp: 2, st: 1, fh: 3 } : { r: [['ironpaw', 5, 1], ['kotik_mag', 4, 0]], sp: 1, st: 0, fh: 3 } }); P.state._rx = Date.now(); if (P.render) P.render(); }
   // ---------- демо без сети (?mock=1) ----------
   if (mock && qs.get('rm') && P.state) { const bb = P.state.boss; P.state.boss = Object.assign(bb && bb.ph === 'fight' ? bb : { ph: 'fight', name: 'Огр', key: 'ogre_boss', flt: '', hp: 4300, mhp: 10000, n: 5 }, { rm: { l: 9, e: 15, p: 10 } }); P.state._rx = Date.now(); if (P.render) P.render(); }
   if (mock && (qs.get('sh') || qs.get('season') || qs.get('bv2'))) {
