@@ -107,7 +107,7 @@
       <h4 style="margin:10px 0 2px">Класс</h4><div class="fc-grid">${cls.map(c => `<button type="button" data-fcc="${esc(c[0])}" class="${d.cls === c[0] ? 'on' : ''}">${esc(nameOf(c))}</button>`).join('')}</div>
       <h4 style="margin:10px 0 2px">Пол</h4><div class="fc-grid"><button type="button" data-fcg="m" class="${d.g === 'm' ? 'on' : ''}">Мужской</button><button type="button" data-fcg="f" class="${d.g === 'f' ? 'on' : ''}">Женский</button></div>
       ${lastRes && lastRes.fc ? `<div class="sh-res ${lastRes.k}">${esc(lastRes.msg)}</div>` : ''}
-      ${d.confirm ? `<div class="sh-res wait">Точно? Класс «${esc(sel ? sel[1] : '')}», ${d.g === 'f' ? 'женский' : 'мужской'} пол. Вещи прежнего класса будут проданы по полной цене. Второй раз бесплатно не будет.</div>` : ''}
+      ${d.confirm ? `<div class="sh-res wait">Точно? Класс «${esc(sel ? sel[1] : '')}», ${d.g === 'f' ? 'женский' : 'мужской'} пол. ${(m.eqOwn || []).length ? 'Вещи, которые новому классу не подходят, кузница выкупит по полной цене.' : 'Снаряжения у тебя сейчас нет (в новом сезоне всё начинается заново) — терять нечего.'} Второй раз бесплатно не будет.</div>` : ''}
       <div class="sh-btns">${d.confirm ? '<button type="button" class="go" data-fcgo="1">Да, сменить</button>' : `<button type="button" class="go" data-fcok="1"${d.cls === m.cls && d.g === (m.g === 'f' ? 'f' : 'm') ? ' disabled' : ''}>Сменить…</button>`}<button type="button" class="sec" data-fcx="1">${lastRes && lastRes.fc && lastRes.k === 'ok' ? 'Закрыть' : 'Отмена'}</button></div>
       <div class="sh-note">В чате: <code>!смена маг ж</code> — игра попросит подтвердить через <code>!да</code>.</div></div></div>`;
   }
@@ -182,7 +182,7 @@
       const Z = ref().season; if (Z && Z.sum && me() && !sumOpen && !fcOpen) { let seen = false; try { seen = !!localStorage.getItem(sumKey()); } catch (x) { } if (!seen && (me().sa || Z.cur > 1) && !(mock && !qs.get('season'))) showSum(true); }
       if (dlg) refreshDlg(); } catch (x) { console.error('[season.js]', x); }
   }
-  const hero = document.getElementById('hero'); if (hero) new MutationObserver(() => { clearTimeout(tick._t); tick._t = setTimeout(tick, 30); }).observe(hero, { childList: true });
+  const hero = document.getElementById('hero'); if (hero) new MutationObserver(() => tick()).observe(hero, { childList: true }); // v49.1: украшаем сразу (микрозадача до отрисовки) — раньше через 30 мс, и каждую секунду мелькал кадр без строк построек/заточки и с 🏷 вместо медали
   setInterval(() => { try { seasonBar(); } catch (x) { } }, 30000);
 
   // ---------- «Раскат» огра (v49): строка «Раскат через N с», только когда игра прислала boss.rm (огр ≤ 50% HP) ----------
