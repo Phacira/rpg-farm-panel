@@ -655,6 +655,7 @@
       if (!(MOCK_REF.eq || []).some(e => e[0] === 'o_tome')) MOCK_REF.eq.push(['o_tome', 'Гримуар новичка', 110, 'offhand', ['priest', 'mage'], 1, '+4 магия', 'tome']);
       syncMockEqS(me);
     }
+    if (/[?&]px=494/.test(location.search)) { state.ref = Object.assign({}, state.ref, { px: 494 }); } // v49.4: макет — игра понимает «снять квест» / «купить семена N»
     { const m = /[?&]sets=(\w+)/.exec(location.search); if (m) mockSets(state.me, m[1]); } // v47: ?sets=1|2|empty|fight — макет сетов (без параметра — как старая игра, без сетов)
     { const m = /[?&]turn=(\d)/.exec(location.search); state.ref = Object.assign({}, state.ref, { ch: 'demo_channel', tl: 1 }); if (m) { state.ref.tb = 1; state.me.tu = +m[1] - 1; } } // v7panel31: ?turn=1 — флаг включён, ?turn=2 — лимит исчерпан
     { const m = /[?&]pty=(\w+)/.exec(location.search); if (m) { const v = m[1]; // v7panel30: макет пати — q (набор), go (в походе), none (пусто)
@@ -717,6 +718,8 @@
       return { id: m.id, ok: true, msg: `продаёт лут «${row[1]}» за ${row[3]} золота (демо)` };
     }
     if (m.cmd === 'продать') return { id: m.id, ok: true, msg: `идёт на рынок и продаёт: ${m.arg} (демо)` };
+    if (m.cmd === 'снять' && m.arg === 'квест') { window.__lastMockCmd = m; return { id: m.id, ok: true, msg: 'бросает задание (демо)' }; } // v49.4
+    if (m.cmd === 'купить' && /^семена \d+$/.test(m.arg || '')) { window.__lastMockCmd = m; return { id: m.id, ok: true, msg: `покупает ${m.arg.split(' ')[1]} семян (демо)` }; }
     if (m.cmd === 'обмен') return { id: m.id, ok: true, msg: 'обмен: 🌿 -10, 🎃 +1 (демо)' };
     if (m.cmd === 'магия') return { id: m.id, ok: true, msg: 'магия: 🥕 +2 (демо)' };
     if (m.cmd === 'салат') { const s = me.sal; if (!s.left) return { id: m.id, ok: false, msg: 'лимит салатов на этот период (демо)' }; if (!s.can) return { id: m.id, ok: false, msg: 'для салата не хватает: 🥕 0/5, 🍆 1/5, 🎃 0/1 — ничего не списано (демо)' }; }
