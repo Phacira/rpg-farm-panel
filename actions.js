@@ -14,15 +14,17 @@
     const me = ctx.me, ref = ctx.ref || {}, gold = me ? me.gold : 0;
     // v7panel18: вклад — выбор «Золото» или «Материалы» (материал → количество из сумки или докупить золотом по ref.matP)
     const MN = {}; (ref.mats || []).forEach(([id, n, ic]) => MN[id] = [n, ic]); const mtn = id => (MN[id] || [id])[0], mti = id => id === 'iron' ? '' : (MN[id] || [, ''])[1] || ''; // v7panel20 п.7: у железа вместо цепей — слиток (картинкой на карточке), в текстовых списках без значка
-    const bldPick = loc => (ref.bld || []).filter(b => !loc || b[5] === loc).map(([id, name, lv, max, need, , eff, nextEff, ml]) => { ml = ml || {};
-      if (need == null) return { label: `${name} (ур. ${lv}, максимум)`, dis: true }; // v7panel20 п.1: без длинных текстов эффекта
+    const bldPick = loc => (ref.bld || []).filter(b => !loc || b[5] === loc).map(([id, name, lv, max, need, , eff, nextEff, ml, eff1, nextEff1]) => { ml = ml || {};
+      const now = eff1 || eff || '', nxt = nextEff1 || nextEff || '', fxOn = +(ref.px || 0) >= 497;
+      if (need == null) return { label: `${name} (ур. ${lv}, максимум)`, sub: fxOn && now ? `Ур. ${lv}/${max} · сейчас: ${now}` : '', dis: true }; // v49.6: при px≥497 показываем, что даёт уровень; старая игра — как раньше
       const mlist = Object.entries(ml), left = [need ? need + ' з' : ''].concat(mlist.map(([m, n]) => `${mti(m)}${mtn(m)} ${n}`)).filter(Boolean).join(', ') || 'готово';
+      const fx = fxOn ? `Ур. ${lv}/${max} · сейчас: ${now || '—'} · Улучшение: ${nxt || '—'} · ` : '';
       const goldOpts = [50, 100, 250, 'всё'].filter(a => a === 'всё' || a < need).map(a => ({ label: a === 'всё' ? `Всё золото (${gold} з)` : `${a} золота`, arg: `${id} ${a === 'всё' ? 'всё' : a}`, dis: a === 'всё' ? gold < 1 : gold < a, confirm: `Вложить ${a === 'всё' ? 'всё золото' : a + ' золота'} в «${name}»?` }));
       const matOpts = mlist.map(([m, n]) => { const have = me && me.mt ? +me.mt[m] || 0 : 0, k = Math.min(have, n), price = (ref.matP || {})[m] || 0, buy = n - k;
         return { label: `${mti(m)} ${mtn(m)}`, sub: `нужно ${n}, в сумке ${have}`, next: [1, 5, 10].filter(q => q < k).map(q => ({ label: `${mtn(m)}: ${q} из сумки`, arg: `${id} ${m} ${q}`, confirm: `Вложить ${mtn(m).toLowerCase()} ${q} шт. в «${name}»?` }))
           .concat(k ? [{ label: `${mtn(m)}: ${k} из сумки`, arg: `${id} ${m} ${k}`, confirm: `Вложить ${mtn(m).toLowerCase()} ${k} шт. в «${name}»?` }] : [])
           .concat(buy ? [{ label: `Докупить: ${mtn(m)} ${n}${k ? ` (${k} из сумки + ${buy})` : ''}`, sub: `${buy} × ${price} = ${buy * price} з`, dis: gold < buy * price, arg: `${id} ${m} ${n} золотом`, confirm: `Вложить ${mtn(m).toLowerCase()} ${n} шт. в «${name}», докупив ${buy} за ${buy * price} золота?` }] : []) }; });
-      return { label: `${name} (ур. ${lv}→${lv + 1})`, sub: `осталось: ${left}`,
+      return { label: `${name} (ур. ${lv}→${lv + 1})`, sub: `${fx}осталось: ${left}`,
         next: [{ label: '💰 Золото', sub: need ? `осталось ${need} з, у вас ${gold}` : 'золото собрано', dis: !need, next: goldOpts },
           { label: '🪵 Материалы', sub: mlist.length ? mlist.map(([m, n]) => `${mtn(m)} ${n}`).join(', ') : 'материалы не нужны', dis: !mlist.length, next: matOpts }] }; });
     // v7panel4 п.3: продажа — овощ, затем количество (1/5/10/все)

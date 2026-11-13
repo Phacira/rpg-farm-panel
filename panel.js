@@ -290,7 +290,7 @@
     PanelActions.fire('продать', 'лут ' + id, 'Продать лут · ' + nm); });
   document.addEventListener('mouseup', () => { if (bcHold) setTimeout(() => { bcHold = false; }, 100); });
   // v7panel22 п.1: «Улучшения» и «Еда и зелья» — ровные колонки (CSS grid + subgrid), короткие тексты, на телефоне — две строки
-  const BIC = { campfire: '🔥', tents: '⛺', blacksmith: '⚒️', market: '🏪', shed: '🛖' };
+  const BIC = { campfire: '🔥', tents: '⛺', blacksmith: '⚒️', market: '🏪', shed: '🛖', guild: '🏛', board: '📋' };
   const NUM = /[+\-−]?\d+(?:[.,]\d+)?%?/;
   const UPSH = [[/^ускоряет восстановление HP у всех героев в лагере: за 5 мин$/, 'реген HP в лагере за 5 мин'], [/^щит на поход: макс\. HP.*$/, 'щит на поход, % HP'], [/^сон лечит быстрее на$/, 'сон лечит'], [/^золота за каждый урожай$/, 'золото за урожай'], [/^овощи дороже на золота$/, 'овощи дороже, з'], [/^атака всех героев$/, 'атака героев'], [/^лечение у костра$/, 'лечение у костра']];
   // «мест у костра +0, лечение +0%» и «… +1, … +25%» → [[метка, сейчас, дальше], …]
@@ -304,12 +304,21 @@
   window.__upStats = upStats;
   function upHtml() {
     const ref = (state && state.ref) || {}, MN = {}; (ref.mats || []).forEach(([id, n, ic]) => MN[id] = icOn() ? icImg(id) + esc(n) : id === 'iron' ? INGOT + esc(n) : esc((ic ? ic + ' ' : '') + n));
+    const priceOf = (top, need, ml) => top ? 'макс.' : [need ? esc(need + ' з') : ''].concat(Object.entries(ml || {}).map(([m, n]) => `<span>${MN[m] || esc(m)} ${esc(n)}</span>`)).filter(Boolean).join(' ') || 'готово';
+    // v49.6: если игра ≥ 497, под каждой постройкой — полные «сейчас» и «улучшение» (bReal). Старая игра — прежняя таблица цифр.
+    if (+(ref.px || 0) >= 497) {
+      const rows = (ref.bld || []).map(([id, name, lv, max, need, , eff0, nextEff0, ml, eff1, nextEff1]) => {
+        const top = need == null, now = eff1 || eff0 || '', nxt = nextEff1 || nextEff0 || '';
+        const fx = `<div class="upfx"><div>Ур. ${esc(lv)}/${esc(max)} · сейчас: ${esc(now || '—')}</div>`
+          + (top || !nxt ? `<div class="umax">макс. уровень</div>` : `<div class="unxt">Улучшение: ${esc(nxt)}</div>`) + '</div>';
+        return `<div class="upr2${top ? ' max' : ''}" data-b="${esc(id)}"><span class="upi">${BIC[id] || '🏠'}</span><b class="upn">${esc(name)}</b><span class="upp">${priceOf(top, need, ml)}</span>${fx}</div>`; }).join('');
+      return `<div class="upbox"><h2>🏗 Улучшения</h2><div class="upt upt-fx">${rows}</div></div>`;
+    }
     const rows = (ref.bld || []).map(([id, name, lv, max, need, , eff0, nextEff0, ml, eff1, nextEff1]) => { const top = need == null;
       const S = upStats(top ? (nextEff1 || eff1 || eff0) : (eff1 || eff0), top ? '' : (nextEff1 || nextEff0));
-      const price = top ? 'макс.' : [need ? esc(need + ' з') : ''].concat(Object.entries(ml || {}).map(([m, n]) => `<span>${MN[m] || esc(m)} ${esc(n)}</span>`)).filter(Boolean).join(' ') || 'готово';
       const col = f => S.map(x => `<div>${f(x)}</div>`).join('');
       return `<div class="upr2${top ? ' max' : ''}" data-b="${esc(id)}"><span class="upi">${BIC[id] || '🏠'}</span><b class="upn">${esc(name)} <small>${esc(lv)}${top ? '' : '→' + esc(lv + 1)}</small></b>`
-        + `<span class="upl">${col(x => esc(x[0]))}</span><span class="upc">${col(x => esc(x[1]))}</span><span class="upd">${top ? '' : col(x => x[2] ? '→ ' + esc(x[2]) : '')}</span><span class="upp">${price}</span></div>`; }).join('');
+        + `<span class="upl">${col(x => esc(x[0]))}</span><span class="upc">${col(x => esc(x[1]))}</span><span class="upd">${top ? '' : col(x => x[2] ? '→ ' + esc(x[2]) : '')}</span><span class="upp">${priceOf(top, need, ml)}</span></div>`; }).join('');
     return `<div class="upbox"><h2>🏗 Улучшения</h2><div class="upt upt-b"><div class="upr2 uph"><span></span><span>Здание</span><span>Эффект</span><span>Сейчас</span><span>Дальше</span><span>Цена</span></div>${rows}</div></div>`;
   }
   const FSH = [[/ \(само при HP < 35%\)/, ' (авто <35%)'], [/после каждой волны/, 'за волну'], [/после волны/, 'за волну'], [/до конца боя/, 'на бой'], [/ и сундук на ступень лучше/, ', сундук лучше'], [/шанс сундука/, 'сундук']];
@@ -680,6 +689,19 @@
       syncMockEqS(me);
     }
     { const pm = /[?&]px=(\d+)/.exec(location.search); if (pm) state.ref = Object.assign({}, state.ref, { px: +pm[1] }); } // v49.4/49.5/49.6: макет — версия игры (494: «снять квест»; 495: корни трента; 496: таймер босса)
+    { if (/[?&]bld=1/.test(location.search) || +((state.ref && state.ref.px) || 0) >= 497) { // v49.6: макет «сейчас / улучшение» у построек
+      if (!(/[?&]px=\d+/.test(location.search))) state.ref = Object.assign({}, state.ref, { px: 497 });
+      state.ref.mats = state.ref.mats || [['wood', 'Дерево', '🪵'], ['stone', 'Камень', '🪨'], ['iron', 'Железо', '']];
+      state.ref.bld = [
+        ['campfire', 'Костёр', 3, 10, 220, 'camp', 'У костра на 1 место больше, лечение у костра на 25% сильнее', 'У костра на 1 место больше, лечение у костра на 25% сильнее', { wood: 5 }, 'мест у костра +2, лечение у костра +50%', 'мест у костра +3, лечение у костра +75%'],
+        ['tents', 'Палатка', 2, 10, 180, 'camp', 'Герои во сне восстанавливают здоровье на 30% быстрее', 'Герои во сне восстанавливают здоровье на 30% быстрее', {}, 'сон лечит быстрее на 30%', 'сон лечит быстрее на 60%'],
+        ['blacksmith', 'Кузница', 4, 10, 400, 'town', 'Все герои бьют на 8% сильнее', 'Все герои бьют на 8% сильнее', { iron: 8 }, 'атака всех героев +24%', 'атака всех героев +32%'],
+        ['guild', 'Дом гильдий', 1, 10, 300, 'town', 'В отряд на босса берут на 1 героя больше, награда за босса на 10% больше', 'В отряд на босса берут на 1 героя больше, награда за босса на 10% больше', {}, 'в отряд на босса +0, награда за босса +0%', 'в отряд на босса +1, награда за босса +10%'],
+        ['shed', 'Сарай', 5, 10, 0, 'garden', 'За каждый собранный урожай +1 золото', 'За каждый собранный урожай +1 золото', { wood: 10, stone: 4 }, '+4 золота за каждый урожай', '+5 золота за каждый урожай'],
+        ['market', 'Рынок', 10, 10, null, 'town', 'Овощи продаются на +1 золото дороже за уровень', null, {}, 'овощи дороже на +9 золота', null, { max: true }],
+        ['board', 'Доска заданий', 2, 10, 150, 'town', 'На доске на 1 задание больше, за задания на 10% больше золота', 'На доске на 1 задание больше, за задания на 10% больше золота', {}, 'заданий на доске +1, золото за задания +10%', 'заданий на доске +2, золото за задания +20%']
+      ];
+    } }
     { const m = /[?&]bt=(\w+)/.exec(location.search); if (m) { // v49.6: макет таймера босса (?mock=1&tab=boss&bt=wait|signup|signopen|fight|done|win)
       const now = Date.now(), k = m[1];
       if (!(/[?&]px=\d+/.test(location.search))) state.ref = Object.assign({}, state.ref, { px: 496 });
