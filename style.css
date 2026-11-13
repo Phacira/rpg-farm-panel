@@ -361,3 +361,6 @@ details.hq .hq-body{padding:8px 10px 10px}
 .castbox .cb.pri{background:#7a2a8a;border-color:#d7a8ff;font-size:18px;padding:12px 22px}
 .castbox .cb:disabled{opacity:.35;cursor:default}
 .castbox .cwho{font-size:13px;color:#cbb}
+
+/* v49.7 brb498: цирюльник — превью героя с цветом волос */
+.sopts button.hasp{height:auto;min-height:104px;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;text-align:left;padding:6px 10px}.sopts .opic{width:60px;height:92px;object-fit:contain;object-position:center bottom;flex:none;image-rendering:auto}.sopts .otx{display:flex;flex-direction:column;min-width:0}

@@ -714,6 +714,11 @@
       else if (k === 'win') state.boss = { ph: 'done', name: 'Огр', key: 'ogre_boss', flt: '', in: 0, n: 8, win: 1 };
       else if (k === 'done' || k === 'left') state.boss = { ph: 'done', name: 'Огр', key: 'ogre_boss', flt: '', in: 0, n: 8, win: 0 };
     } }
+    { const m = /[?&]barber=(\w+)/.exec(location.search); if (m) { // v49.7: макет цирюльника (?mock=1&tab=me&barber=1 | mf — магиня, есть «распущенные»)
+      const mf = m[1] === 'mf', hk = mf ? 'moon_f_mage' : 'moon_m_warrior', hr = mf ? 'chestnut_loose' : 'chestnut';
+      state.ref = Object.assign({}, state.ref, { px: 498, hb: 1, hairOn: true, hairPrice: 250, hair: [['black', 'чёрный', null, null], ['chestnut', 'каштановый', null, null], ['red', 'рыжий', null, null], ['blond', 'блонд', null, null], ['chestnut_loose', 'каштановые распущенные', null, ['mage_f']]] });
+      Object.assign(state.me, { k6: hk + '_' + hr, hk, hair: hr, ha: mf ? ['black', 'chestnut', 'red', 'blond', 'chestnut_loose'] : ['black', 'chestnut', 'red', 'blond'], gold: 600 }, mf ? { cls: 'mage', cn: 'Маг' } : {});
+      Object.values(state.locs || {}).forEach(L => L.forEach(r => { if (r[0] === 'demo_viewer') { r[6] = hk + '_' + hr; r[7] = ''; } })); } }
     { const m = /[?&]sets=(\w+)/.exec(location.search); if (m) mockSets(state.me, m[1]); } // v47: ?sets=1|2|empty|fight — макет сетов (без параметра — как старая игра, без сетов)
     { const m = /[?&]turn=(\d)/.exec(location.search); state.ref = Object.assign({}, state.ref, { ch: 'demo_channel', tl: 1 }); if (m) { state.ref.tb = 1; state.me.tu = +m[1] - 1; } } // v7panel31: ?turn=1 — флаг включён, ?turn=2 — лимит исчерпан
     { const m = /[?&]pty=(\w+)/.exec(location.search); if (m) { const v = m[1]; // v7panel30: макет пати — q (набор), go (в походе), none (пусто)
@@ -778,6 +783,7 @@
     if (m.cmd === 'продать') return { id: m.id, ok: true, msg: `идёт на рынок и продаёт: ${m.arg} (демо)` };
     if (m.cmd === 'снять' && m.arg === 'квест') { window.__lastMockCmd = m; return { id: m.id, ok: true, msg: 'бросает задание (демо)' }; } // v49.4
     if (m.cmd === 'купить' && /^семена \d+$/.test(m.arg || '')) { window.__lastMockCmd = m; return { id: m.id, ok: true, msg: `покупает ${m.arg.split(' ')[1]} семян (демо)` }; }
+    if (m.cmd === 'парикмахер' && state.ref && state.ref.hb === 1 && me.hk) { const P = state.ref.hairPrice || 250, x = (state.ref.hair || []).find(z => z[0] === m.arg); if (!x) return { id: m.id, ok: false, msg: 'нет такого цвета (демо)' }; if (me.gold < P) return { id: m.id, ok: false, msg: `стрижка стоит ${P} з (демо)` }; me.gold -= P; me.hair = x[0]; me.k6 = me.hk + '_' + x[0]; Object.values(state.locs || {}).forEach(L => L.forEach(r => { if (r[0] === me.n) r[6] = me.k6; })); render(); return { id: m.id, ok: true, msg: `парикмахер: волосы теперь ${x[1]} (−${P} з) (демо)` }; } // v49.7
     if (m.cmd === 'обмен') return { id: m.id, ok: true, msg: 'обмен: 🌿 -10, 🎃 +1 (демо)' };
     if (m.cmd === 'магия') return { id: m.id, ok: true, msg: 'магия: 🥕 +2 (демо)' };
     if (m.cmd === 'салат') { const s = me.sal; if (!s.left) return { id: m.id, ok: false, msg: 'лимит салатов на этот период (демо)' }; if (!s.can) return { id: m.id, ok: false, msg: 'для салата не хватает: 🥕 0/5, 🍆 1/5, 🎃 0/1 — ничего не списано (демо)' }; }
