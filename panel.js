@@ -391,6 +391,27 @@
     return `<img class="mpic ${cl || ''}" src="img/mob/${id}.${id === 'mimic' ? 'png' : 'webp'}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'mpic fb',textContent:'👾'}))"${/^[a-z0-9().,\s-]*$/i.test(flt || '') && flt ? ` style="filter:${flt}"` : ''}>`;
   }
   const hpLine = (p) => `<span class="fhp"><i style="width:${Math.max(0, Math.min(100, +p || 0))}%"></i></span>`;
+  // v49.6: таймер босса — абсолютные epoch-ms из снимка (spawnAt/fightAt/endAt). Тикает локально 1 раз в секунду. Только если игра ≥ v49.6 (ref.px ≥ 496).
+  function fmtBossLeft(ms) {
+    const sec = Math.max(0, Math.ceil((+ms || 0) / 1000)), h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), ss = sec % 60;
+    return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(ss).padStart(2, '0');
+  }
+  function bossTimerOn() { return !!(state && state.online && state.boss && +((state.ref && state.ref.px) || 0) >= 496); }
+  function bossTimerText() {
+    if (!bossTimerOn()) return '';
+    const b = state.boss, now = Date.now();
+    if (b.ph === 'wait' && +b.spawnAt) return 'Босс появится через ' + fmtBossLeft(b.spawnAt - now);
+    if (b.ph === 'signup') return +b.fightAt ? 'Запись: бой начнётся через ' + fmtBossLeft(b.fightAt - now) : 'Запись идёт';
+    if (b.ph === 'fight' && +b.endAt) return 'Бой идёт · босс уйдёт через ' + fmtBossLeft(b.endAt - now);
+    if (b.ph === 'done') return b.win ? 'Босс побеждён' : 'Босс ушёл';
+    return '';
+  }
+  function bossTimerTick() {
+    const t = bossTimerText();
+    const c = document.getElementById('bt496c'), i = document.getElementById('bt496i');
+    if (c) { if (t) c.textContent = t; else c.remove(); }
+    if (i) { if (t) i.textContent = t; else { const sep = i.previousSibling; if (sep && sep.nodeType === 3 && /·/.test(sep.textContent)) sep.textContent = ''; i.remove(); } }
+  }
   function myFight(me) {
     const f = me && me.fm; if (!f) return '';
     return `<div class="fight me"><span class="fwho">${heroPic(me.k6, me.hair, me.dy, me.cls)}</span><span class="fvs">⚔️</span><span class="fmob">${mobPic(f[0])}<b>${esc(f[1])}</b>${hpLine(f[2] / (f[3] || 1) * 100)}<small>${esc(f[2])} / ${esc(f[3])}${f[4] ? ' · отряд' : ''}</small></span></div>`;
@@ -398,7 +419,8 @@
   function fightsHtml(l) {
     if (l === 'boss') { const b = state.boss; if (!b || !b.key) return '';
       const L = (state.locs && state.locs.boss) || [];
-      return `<div class="fights"><h2>👹 ${esc(b.name || 'Босс')}</h2><div class="fight boss">${mobPic(b.key, b.flt, 'big')}<span class="fmob">${b.mhp ? hpLine(b.hp / b.mhp * 100) + `<small>${esc(b.hp)} / ${esc(b.mhp)}${Array.isArray(b.sw) ? ` · 🐛 личинок ${esc(+b.sw[0] || 0)}, коконов ${esc(+b.sw[1] || 0)}` : ''}</small>` : `<small>${b.ph === 'wait' ? 'ещё не пришёл' : b.ph === 'signup' ? 'идёт запись' : ''}</small>`}</span></div>`
+      const timer = bossTimerText();
+      return `<div class="fights"><h2>👹 ${esc(b.name || 'Босс')}</h2>${timer ? `<div class="bt496" id="bt496c">${esc(timer)}</div>` : ''}<div class="fight boss">${mobPic(b.key, b.flt, 'big')}<span class="fmob">${b.mhp ? hpLine(b.hp / b.mhp * 100) + `<small>${esc(b.hp)} / ${esc(b.mhp)}${Array.isArray(b.sw) ? ` · 🐛 личинок ${esc(+b.sw[0] || 0)}, коконов ${esc(+b.sw[1] || 0)}` : ''}</small>` : `<small>${b.ph === 'wait' ? 'ещё не пришёл' : b.ph === 'signup' ? 'идёт запись' : b.ph === 'done' ? (b.win ? 'побеждён' : 'ушёл') : ''}</small>`}</span></div>`
         + (L.length ? `<div class="fteam">${L.slice(0, 30).map(t => `<span title="${esc(t[0])}">${heroPic(t[6], t[7], t[8], t[3], 'sm')}<em>${esc(t[0])}</em></span>`).join('')}</div>` : '') + '</div>'; }
     const L = ((state.locs && state.locs[l]) || []).filter(t => t[12]);
     if (!L.length) return l === 'forest' ? '<div class="fights"><h2>⚔️ Бои</h2><div class="dim">сейчас никто не бьётся</div></div>' : '';
@@ -572,7 +594,9 @@
     $('tabs').innerHTML = TABS.map(([id, t]) => `<button data-t="${id}" class="tab${id === tab ? ' on' : ''}" aria-pressed="${id === tab}">${t}</button>`).join('');
     const l = curLoc(), list = on && state.locs ? (state.locs[l] || []) : [];
     let info = on ? `${LOCN[l] || l}: героев ${list.length}` : 'Когда стример запустит игру, здесь появится карта.';
-    if (on && l === 'boss' && state.boss) { const b = state.boss; info += ' · ' + (b.ph === 'wait' ? `босс ${esc(b.name || '')} через ${Math.ceil(b.in / 60000)} мин` : b.ph === 'signup' ? `запись на босса: ${b.n}` : b.ph === 'fight' ? 'идёт бой с боссом!' : 'босс повержен'); }
+    if (on && state.boss) { const tm = bossTimerText(), b = state.boss;
+      if (tm) info += ' · <span id="bt496i">' + esc(tm) + '</span>';
+      else if (l === 'boss') info += ' · ' + (b.ph === 'wait' ? `босс ${esc(b.name || '')} через ${Math.ceil(b.in / 60000)} мин` : b.ph === 'signup' ? `запись на босса: ${b.n}` : b.ph === 'fight' ? 'идёт бой с боссом!' : 'босс повержен'); }
     $('linfo').innerHTML = info;
     const ol = $('logl'), stick = !ol || ol.scrollTop + ol.clientHeight >= ol.scrollHeight - 8, oldTop = ol ? ol.scrollTop : 0;
     if (on && bcBusy()) bcHold = true; else $('hero').innerHTML = on ? card(state.me) + fightsHtml(l) + (tab === 'forest' || tab === 'camp' || tab === 'me' ? partyHtml() : '') + (tab === 'town' ? upHtml() : tab === 'garden' ? bedHtml(state.me) + foodHtml(state.me) : '') + (tab === 'forest' || tab === 'boss' || tab === 'me' ? logHtml(state.me) : '') : '';
@@ -655,7 +679,19 @@
       if (!(MOCK_REF.eq || []).some(e => e[0] === 'o_tome')) MOCK_REF.eq.push(['o_tome', 'Гримуар новичка', 110, 'offhand', ['priest', 'mage'], 1, '+4 магия', 'tome']);
       syncMockEqS(me);
     }
-    { const pm = /[?&]px=(\d+)/.exec(location.search); if (pm) state.ref = Object.assign({}, state.ref, { px: +pm[1] }); } // v49.4/49.5: макет — версия игры (494: «снять квест»/«купить семена N»; 495: корни трента)
+    { const pm = /[?&]px=(\d+)/.exec(location.search); if (pm) state.ref = Object.assign({}, state.ref, { px: +pm[1] }); } // v49.4/49.5/49.6: макет — версия игры (494: «снять квест»; 495: корни трента; 496: таймер босса)
+    { const m = /[?&]bt=(\w+)/.exec(location.search); if (m) { // v49.6: макет таймера босса (?mock=1&tab=boss&bt=wait|signup|signopen|fight|done|win)
+      const now = Date.now(), k = m[1];
+      if (!(/[?&]px=\d+/.test(location.search))) state.ref = Object.assign({}, state.ref, { px: 496 });
+      const squad = [['demo_viewer', 1230, 1100, 'warrior', 12, 'boss', 'moon_m_warrior', 'black', '', 0, 120, 'm'], ['ironpaw', 1450, 1000, 'paladin', 14, 'boss', 'gold_f_paladin', '', '', 0, 120, 'f'], ['gnomik', 890, 1180, 'priest', 11, 'boss', 'none_m_priest', 'blond', '', 0, 120, 'm'], ['mira77', 810, 900, 'mage', 13, 'boss', 'fire_f_mage', 'red', '', 0, 120, 'f'], ['redhood', 1920, 1020, 'assassin', 12, 'boss', 'silver_m_assassin', '', '#3a8ad8', 1, 120, 'm']];
+      if (k !== 'wait' && !(locs.boss || []).length) locs.boss = squad;
+      if (k === 'wait') state.boss = { ph: 'wait', name: 'Огр', key: 'ogre_boss', flt: '', in: 754, n: 0, spawnAt: now + (12 * 60 + 34) * 1000 };
+      else if (k === 'signup') state.boss = { ph: 'signup', name: 'Огр', key: 'ogre_boss', flt: '', in: 0, n: (locs.boss || []).length || 5, fightAt: now + 45 * 1000 };
+      else if (k === 'signopen') state.boss = { ph: 'signup', name: 'Огр', key: 'ogre_boss', flt: '', in: 0, n: (locs.boss || []).length || 5 };
+      else if (k === 'fight') state.boss = { ph: 'fight', name: 'Огр', key: 'ogre_boss', flt: '', hp: 4300, mhp: 10000, in: 0, n: (locs.boss || []).length || 8, startAt: now - 50 * 1000, endAt: now + (7 * 60 + 10) * 1000 };
+      else if (k === 'win') state.boss = { ph: 'done', name: 'Огр', key: 'ogre_boss', flt: '', in: 0, n: 8, win: 1 };
+      else if (k === 'done' || k === 'left') state.boss = { ph: 'done', name: 'Огр', key: 'ogre_boss', flt: '', in: 0, n: 8, win: 0 };
+    } }
     { const m = /[?&]sets=(\w+)/.exec(location.search); if (m) mockSets(state.me, m[1]); } // v47: ?sets=1|2|empty|fight — макет сетов (без параметра — как старая игра, без сетов)
     { const m = /[?&]turn=(\d)/.exec(location.search); state.ref = Object.assign({}, state.ref, { ch: 'demo_channel', tl: 1 }); if (m) { state.ref.tb = 1; state.me.tu = +m[1] - 1; } } // v7panel31: ?turn=1 — флаг включён, ?turn=2 — лимит исчерпан
     { const m = /[?&]pty=(\w+)/.exec(location.search); if (m) { const v = m[1]; // v7panel30: макет пати — q (набор), go (в походе), none (пусто)
@@ -764,6 +800,7 @@
   }
   document.addEventListener('click', e => { const b = e.target.closest('#castbox button[data-cc]'); if (!b || b.disabled || !window.PanelActions) return; const cmd = b.dataset.cc; PanelActions.fire(cmd, '', cmd[0].toUpperCase() + cmd.slice(1)); });
   setInterval(castTick, 100);
+  setInterval(bossTimerTick, 1000); // v49.6: локальный отсчёт таймера босса между снимками
   takeHash();
   if (mock) { mockData(); const t0 = /[?&]tab=(\w+)/.exec(location.search); if (t0) tab = t0[1]; render(); } else validate();
   window.__panel = { get state() { return state; }, get user() { return user; }, render };

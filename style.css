@@ -144,6 +144,9 @@ img.hpet{width:36px;height:36px;object-fit:contain;align-self:flex-end}
 .hpic.fb,.mpic.fb{display:inline-flex;align-items:center;justify-content:center;width:40px;height:44px;font-size:24px;background:rgba(255,255,255,.06);border-radius:8px}
 .mpic{height:52px;width:auto;object-fit:contain;flex:none}.mpic.sm{height:40px}.mpic.big{height:110px}
 .fights{margin:10px 0;padding:8px 10px;background:rgba(255,255,255,.04);border-radius:10px}.fights h2{margin:0 0 6px;font-size:15px}
+/* v49.6: компактный таймер босса в карточке и в строке локации */
+.bt496{margin:0 0 8px;padding:6px 10px;border-radius:8px;background:rgba(80,48,16,.35);border:1px solid #c9a056;color:#ffd27a;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+#bt496i{font-variant-numeric:tabular-nums;color:#ffd27a}
 .fight{display:flex;align-items:center;gap:8px;padding:4px 0;border-top:1px solid rgba(255,255,255,.06)}.fight:first-of-type{border-top:0}
 .fight.mine em{color:#ffd27a}.fight.me{margin:8px 0;padding:6px 8px;background:rgba(255,80,60,.08);border-radius:8px;border:0}
 .fwho{display:flex;align-items:center;gap:6px;min-width:0;flex:1}.fwho em{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
