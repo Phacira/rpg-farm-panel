@@ -766,6 +766,22 @@
       Object.assign(state.me, { k6: hk + '_' + hr, hk, hair: hr, ha: mf ? ['black', 'chestnut', 'red', 'blond', 'chestnut_loose'] : ['black', 'chestnut', 'red', 'blond'], gold: 600 }, mf ? { cls: 'mage', cn: 'Маг' } : {});
       Object.values(state.locs || {}).forEach(L => L.forEach(r => { if (r[0] === 'demo_viewer') { r[6] = hk + '_' + hr; r[7] = ''; } })); } }
     { const m = /[?&]sets=(\w+)/.exec(location.search); if (m) mockSets(state.me, m[1]); } // v47: ?sets=1|2|empty|fight — макет сетов (без параметра — как старая игра, без сетов)
+    { // большой экран: подсказки награды и грядки (?mock=1&hint=1). Не влияет на живой пульт и обычный вид без флага.
+      if (/[?&]hint=1/.test(location.search)) {
+        state.ref = Object.assign({}, state.ref, { ch: (state.ref && state.ref.ch) || 'demo_channel', trn: 'Сделать ход', tb: 0, px: Math.max(499, +((state.ref && state.ref.px) || 0)) });
+        state.me.rw = { hike: 0, cook: 0, quest: 0 };
+        state.me.bed = { eaten: 0, bugs: 0, st: 1, txt: 'ещё 18 мин до созревания' };
+      }
+    }
+    { // большой экран: соло-бой в лесу, как в OBS (?mock=1&tab=forest&solo=1). Не влияет на живой пульт.
+      if (/[?&]solo=1/.test(location.search)) {
+        const lane = 970, hx = 900, mx = 1180;
+        const row = ['demo_viewer', hx, lane, 'paladin', 5, 'forest', 'moon_m_paladin', 'black', '', 0, 192, 'm', 'rat', 70];
+        state.locs.forest = [row];
+        Object.assign(state.me, { loc: 'forest', st: 'forest', cls: 'paladin', cn: 'Паладин', lv: 5, k6: 'moon_m_paladin', hair: 'black', gid: 'moon', gd: 'Лунные тени', fm: ['rat', 'Крыса', 35, 50, 0] });
+        state.mobs = [['rat', mx, lane, 70]];
+      }
+    }
     { const m = /[?&]turn=(\d)/.exec(location.search); state.ref = Object.assign({}, state.ref, { ch: 'demo_channel', tl: 1 }); if (m) { state.ref.tb = 1; state.me.tu = +m[1] - 1; } } // v7panel31: ?turn=1 — флаг включён, ?turn=2 — лимит исчерпан
     { const m = /[?&]pty=(\w+)/.exec(location.search); if (m) { const v = m[1]; // v7panel30: макет пати — q (набор), go (в походе), none (пусто)
       state.ref = Object.assign({}, state.ref, { pty: v === 'none' ? { sz: 3, mn: 2, wv: 3, q: [], qn: 0, left: -1, lane: 0, go: [] }

@@ -1,4 +1,4 @@
-/* Большой экран пульта (opt-in, v.bs514). Обычный пульт не меняется, пока body.bs-on нет. */
+/* Большой экран пульта (opt-in, v.bs515). Обычный пульт не меняется, пока body.bs-on нет. */
 html.bs-on,body.bs-on{width:100%;max-width:100%;height:100%;height:100dvh;min-height:100%;min-height:100dvh;min-height:-webkit-fill-available;margin:0;padding:0;overflow:hidden !important;overscroll-behavior:none;background:#000;touch-action:manipulation}
 html:not(.bs-on),body:not(.bs-on){height:auto !important;min-height:0 !important;overflow:visible !important;overscroll-behavior:auto;touch-action:auto}
 body.bs-on #panel,body.bs-on .chatcmds,body.bs-on > footer{display:none !important;visibility:hidden !important;pointer-events:none !important;height:0 !important;overflow:hidden !important;margin:0 !important;padding:0 !important}
@@ -27,6 +27,11 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 
 #bs .mob{position:absolute;width:0;height:0;z-index:2}
 #bs .mob img{position:absolute;left:0;bottom:0;height:160px;width:auto;transform:translateX(-50%);filter:drop-shadow(0 8px 6px rgba(0,0,0,.45))}
+#bs .mob.flip img{transform:translateX(-50%) scaleX(-1)}
+#bs .hero.walk img{animation:bs-step .32s ease-in-out infinite}
+#bs .hero.flip.walk img{animation-name:bs-step-flip}
+@keyframes bs-step{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-7px)}}
+@keyframes bs-step-flip{0%,100%{transform:translateX(-50%) scaleX(-1) translateY(0)}50%{transform:translateX(-50%) scaleX(-1) translateY(-7px)}}
 #bs .mob .mname{position:absolute;left:0;bottom:168px;transform:translateX(-50%);color:#ffe8a0;font-size:22px;text-shadow:0 2px 4px #000;white-space:nowrap}
 #bs .mob .mhp{position:absolute;left:0;bottom:148px;transform:translateX(-50%);width:140px}
 #bs .mob.boss img{height:460px;image-rendering:auto;filter:drop-shadow(0 14px 10px rgba(0,0,0,.55))}
@@ -41,9 +46,11 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs .loc-chip{position:absolute;top:44px;left:50%;transform:translateX(-50%);background:rgba(18,10,24,.82);border:1px solid rgba(232,195,106,.45);color:#ffd27a;padding:4px 12px;border-radius:8px;font-size:13px;backdrop-filter:blur(6px)}
 #bs[data-view="boss"] .loc-chip{display:none}
 
-#bs .unitframe{position:absolute;top:14px;left:14px;display:flex;gap:10px;width:316px;padding:8px 10px 8px 8px;background:rgba(18,10,24,.82);border:1px solid rgba(232,195,106,.45);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.45);backdrop-filter:blur(8px)}
-#bs .unitframe .port{flex:none;width:76px;height:76px;border-radius:10px;overflow:hidden;border:2px solid #ffd27a;background:#1a1020}
-#bs .unitframe .port img{width:150%;height:auto;margin:-12% 0 0 -28%;display:block;image-rendering:pixelated}
+#bs .unitframe{position:absolute;top:max(10px, calc(8px + env(safe-area-inset-top,0px)));left:max(10px, calc(8px + env(safe-area-inset-left,0px)));display:flex;gap:10px;width:316px;max-width:calc(100% - 24px);max-height:calc(100% - 20px);padding:8px 10px 8px 8px;box-sizing:border-box;background:rgba(18,10,24,.82);border:1px solid rgba(232,195,106,.45);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.45);backdrop-filter:blur(8px);z-index:8;cursor:pointer}
+#bs .unitframe .port{flex:none;width:76px;height:76px;border-radius:10px;overflow:hidden;border:2px solid #ffd27a;background:#1a1020;display:flex;align-items:flex-end;justify-content:center}
+#bs .unitframe .port img,#bs .unitframe .port .hpic{width:auto;height:auto;max-width:100%;max-height:100%;margin:0;display:block;object-fit:contain;object-position:center bottom;image-rendering:pixelated}
+#bs.pc.short .unitframe{width:280px;padding:6px 8px 6px 6px;gap:8px}
+#bs.pc.short .unitframe .port{width:64px;height:64px}
 #bs .unit-main{flex:1;min-width:0}
 #bs .unit-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 #bs .unit-top b{color:#ffd27a;font-size:14px}
@@ -191,6 +198,10 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs.phone-p .bossbar .tr495 .trbtn{padding:5px 10px;min-height:30px;font-size:13px}
 
 #bs.phone-p .bs-hint{position:absolute;z-index:9;transform:translate(-50%,-50%);background:rgba(18,10,24,.78);border:1px solid #ffd27a;color:#ffd27a;border-radius:999px;padding:4px 10px;font:700 11px system-ui,sans-serif;pointer-events:none;box-shadow:0 4px 14px #0008;white-space:nowrap}
+#bs.phone-p .bs-tips{left:50%;right:auto;bottom:calc(var(--barsH, 110px) + 6px);max-width:calc(100% - 16px);z-index:8}
+#bs.phone-p .bs-tips .tip{font-size:11px;padding:4px 9px}
+#bs.phone-p .unitframe{cursor:pointer}
+#bs.phone-p .unitframe .port img,#bs.phone-p .unitframe .port .hpic{max-width:100%;max-height:100%;width:auto;height:auto;margin:0;object-fit:contain;object-position:center bottom}
 #bs.phone-p .log-overlay{align-items:stretch;justify-content:stretch;padding:0;background:#120b16;z-index:30}
 #bs.phone-p .log-win{width:100%;height:100%;max-height:none;border-radius:0;border:0;background:#1a1024}
 #bs.phone-p .log-win .win-h{flex-wrap:wrap;gap:6px;padding:10px 12px}
@@ -243,6 +254,9 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs.phone-l .unitframe .port{width:40px;height:40px}
 #bs.phone-l .unit-sub{display:none}
 #bs.phone-l .bs-hint{display:none}
+#bs.phone-l .bs-tips{bottom:calc(var(--barsH, 96px) + 4px);max-width:min(420px,70vw)}
+#bs.phone-l .bs-tips .tip{font-size:11px;padding:4px 8px}
+#bs.phone-l .unitframe .port img,#bs.phone-l .unitframe .port .hpic{max-width:100%;max-height:100%;width:auto;height:auto;margin:0;object-fit:contain;object-position:center bottom}
 #bs.phone-l .overlay{align-items:center;padding:12px;z-index:20}
 #bs.phone-l .window{width:min(640px,94vw);max-height:90vh;border-radius:14px}
 #bs.phone-l .sheet-body{padding:10px 12px 16px;overflow:auto}
@@ -252,3 +266,12 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs.phone-l .sheet-body .qlist{list-style:none;margin:0;padding:0}
 #bs.phone-l .sheet-body .qlist li{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #fff1}
 #bs.phone-l .sheet-body .qlist li b{margin-left:auto;color:#ffd27a}
+
+/* подсказки пульта на большом экране (награда, грядка) */
+#bs .bs-tips{position:absolute;left:50%;bottom:calc(var(--barsH, 140px) + 8px);transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:7;max-width:min(520px,72vw);pointer-events:none}
+#bs .bs-tips[hidden]{display:none}
+#bs .bs-tips .tip{pointer-events:auto;background:rgba(18,10,24,.9);border:1px solid rgba(232,195,106,.7);color:#ffe9c0;border-radius:10px;padding:6px 12px;font:700 12px/1.35 system-ui,sans-serif;box-shadow:0 8px 20px #0008;text-align:center}
+#bs .bs-tips .tip.warn{border-color:#ffb070;color:#ffe0c0}
+#bs .bs-tips .tip.ok{border-color:#7dcb6a;color:#e8ffd8}
+#bs .actionbar button.tip-hot,#bs .sheet-body button.tip-hot{border-color:#ffd27a;box-shadow:0 0 14px rgba(255,210,122,.75);background:linear-gradient(#5a3a18,#3a2410);color:#ffd27a}
+

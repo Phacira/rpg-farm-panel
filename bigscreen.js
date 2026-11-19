@@ -1,7 +1,7 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs514. */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs515. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen';
-  const LOCS = [['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс'], ['garden', '🌱', 'Огород'], ['town', '🏘', 'Город']];
+  const LOCS = [['town', '🏘', 'Город'], ['garden', '🌱', 'Огород'], ['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс']];
   const LOCN = { camp: 'Лагерь', forest: 'Лес', boss: 'Босс', garden: 'Огород', town: 'Город' };
   const CLSN = { warrior: 'Воин', archer: 'Лучник', mage: 'Маг', priest: 'Жрец', paladin: 'Паладин', assassin: 'Ассасин' };
   const MOB_RU = { wolf: 'Волк', goblin: 'Гоблин', slime: 'Слизень', rat: 'Крыса', tree_spirit: 'Дух дерева', mimic: 'Мимик', ogre_boss: 'Огр', queen_boss: 'Королева-Матка', treant_king_boss: 'Король Трентов' };
@@ -68,6 +68,7 @@
   }
 
   let on = false, logMine = false, bsLoc = 'camp', dockTab = 'q', dockOpen = false;
+  let actorTween = { loc: '', nodes: Object.create(null), raf: 0, lastAt: 0 };
 
   function mount() {
     if ($('#bs')) return;
@@ -121,6 +122,7 @@
           <div class="sheet-body" id="bsSheetBody"></div>
         </div>
       </div>
+      <div class="bs-tips" id="bsTips" hidden></div>
       <div class="bs-hint" id="bsHint" hidden></div>
       <div class="log-overlay" id="bsLogOv" hidden>
         <div class="log-win" role="dialog">
@@ -146,6 +148,9 @@
       bsLoc = b.dataset.loc; setInv(false); setLog(false); setSheet(false);
       if (window.__panel && __panel.setTab) __panel.setTab(bsLoc); else sync();
     });
+    $('#bsUnit').addEventListener('click', () => { if (on && ctx().me) setInv(true, 'Мой герой'); });
+    $('#bsUnit').setAttribute('role', 'button');
+    $('#bsUnit').setAttribute('title', 'Открыть карточку героя');
     const onBarClick = e => {
       const b = e.target.closest('button[data-i], button[data-ui]'); if (!b || b.disabled) return;
       if (b.dataset.ui === 'inv') return setInv(true);
@@ -232,7 +237,7 @@
     document.body.classList.toggle('bs-on', on);
     document.documentElement.classList.toggle('bs-on', on);
     setViewport(on);
-    if (on) { mount(); applyDock(); const t = window.__panel && __panel.tab; if (t && t !== 'me') bsLoc = t; else if (__panel && __panel.state && __panel.state.me && __panel.state.me.loc) bsLoc = __panel.state.me.loc; sync(); }
+    if (on) { actorTween = { loc: '', nodes: Object.create(null), raf: 0, lastAt: 0 }; mount(); applyDock(); const t = window.__panel && __panel.tab; if (t && t !== 'me') bsLoc = t; else if (__panel && __panel.state && __panel.state.me && __panel.state.me.loc) bsLoc = __panel.state.me.loc; sync(); }
     else if (window.__panel) __panel.render();
   }
 
@@ -257,11 +262,11 @@
   }
 
   function bgOf(l, st) {
-    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs514';
-    return 'img/' + (l || 'camp') + '.jpg?v=bs514';
+    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs515';
+    return 'img/' + (l || 'camp') + '.jpg?v=bs515';
   }
 
-  let lastDefs = [], lastMore = [], sheetKind = '';
+  let lastDefs = [], lastMore = [], sheetKind = '', tipCmds = new Set();
 
   function barDefs(c) {
     const D = window.PanelActions && PanelActions.defs ? PanelActions.defs(c) : {};
@@ -289,7 +294,8 @@
     const tab = (window.__panel && __panel.tab) || bsLoc;
     const hot = !left && (tab === 'camp' && /поход|пати/.test(cmd) && !dis || (tab === 'boss' && !dis && !other && cmd && cmd !== 'босс'));
     const off = dis || left;
-    const cls = (more ? 'more-btn' : '') + (off ? ' dis' + (left ? ' bcd' : '') : hot ? ' hot' : '');
+    const tip = !off && tipCmds.has(cmd);
+    const cls = (more ? 'more-btn' : '') + (off ? ' dis' + (left ? ' bcd' : '') : hot ? ' hot' : '') + (tip ? ' tip-hot' : '');
     const bc = cmd ? ` data-bc="${esc(cmd)}" data-sub="${esc(sub)}" data-en="${dis ? 0 : 1}"` : '';
     const uiA = ui ? ` data-ui="${esc(ui)}"` : '';
     const subTxt = left ? ('⏳ откат ' + left + ' с') : sub;
@@ -319,9 +325,10 @@
     if (rest.length) main.push(more);
     return { main, more: rest };
   }
-  function fillBar(c) {
+  function fillBar(c, tips) {
     const defs = barDefs(c);
     lastDefs = defs;
+    tipCmds = new Set((tips || collectTips(c)).map(x => x.cmd).filter(Boolean));
     const kind = layoutKind();
     const phone = kind === 'phone-p' || kind === 'phone-l';
     const split = phone ? splitPhoneBar(defs, kind) : { main: defs, more: [] };
@@ -329,6 +336,29 @@
     $('#bsLocbar').innerHTML = LOCS.map(l => `<button type="button" data-loc="${l[0]}"${l[0] === bsLoc ? ' class="on"' : ''}>${l[1]} <span>${l[2]}</span></button>`).join('');
     $('#bsBar').innerHTML = split.main.map(d => btnHtml(d, d._ui ? -1 : defs.indexOf(d), false)).join('');
     if (sheetKind) fillSheet();
+  }
+
+  function collectTips(c) {
+    const me = c && c.me, ref = (c && c.ref) || {}, tips = [];
+    if (!me) return tips;
+    if (!ref.tb) {
+      const nm = ref.trn || 'Сделать ход';
+      tips.push({ id: 'turn', cmd: 'ход', kind: 'warn', icon: '🎲', text: 'Прожмите награду «' + nm + '» в чате Twitch' });
+    }
+    const b = me.bed;
+    if (b) {
+      if (b.eaten) tips.push({ id: 'bed', cmd: 'грядка', kind: 'warn', icon: '💀', text: b.txt || 'грядку съели' });
+      else if (b.bugs) tips.push({ id: 'bed', cmd: 'жуки', kind: 'warn', icon: '🐞', text: b.txt || 'на грядке жуки — отгоните' });
+      else if (b.st === 2) tips.push({ id: 'bed', cmd: 'собрать', kind: 'ok', icon: '🧺', text: b.txt || 'урожай готов — соберите' });
+      else tips.push({ id: 'bed', cmd: 'грядка', kind: 'info', icon: '⏳', text: b.txt || 'грядка растёт' });
+    }
+    return tips;
+  }
+  function fillTips(tips) {
+    const el = $('#bsTips'); if (!el) return;
+    if (!tips || !tips.length) { el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
+    el.innerHTML = tips.map(t => '<div class="tip ' + esc(t.kind || '') + '">' + esc((t.icon ? t.icon + ' ' : '') + (t.text || '')) + '</div>').join('');
   }
   function setSheet(kind) {
     const ov = $('#bsSheet'); if (!ov) { sheetKind = ''; return; }
@@ -481,49 +511,185 @@
     return spreadVisible(list, l);
   }
 
+  const FOREST_GAP = 280, TWEEN_JUMP = 420;
+
+  function mobFlip(id) {
+    const src = (window.C && window.C.monFacesRight) || (window.CFG && window.CFG.monFacesRight) || (window.CONFIG && window.CONFIG.monFacesRight) || [];
+    return Array.isArray(src) && src.indexOf(id) >= 0;
+  }
+  function forestMobs(st, list, meName) {
+    const out = [];
+    const raw = st && Array.isArray(st.mobs) ? st.mobs : [];
+    if (raw.length) {
+      raw.forEach(m => { if (m && m[0]) out.push({ id: m[0], x: +m[1], y: +m[2], hp: m[3], flip: mobFlip(m[0]) }); });
+      return out;
+    }
+    const seen = new Set();
+    for (const t of list) {
+      const id = t[12]; if (!id || seen.has(id)) continue;
+      seen.add(id);
+      out.push({ id, x: +t[1] + FOREST_GAP, y: +t[2], hp: t[13], flip: mobFlip(id) });
+    }
+    const fm = st && st.me && st.me.fm;
+    if (fm && fm[0] && !seen.has(fm[0])) {
+      const me = list.find(t => String(t[0]).toLowerCase() === meName) || list[0];
+      const hx = me ? +me[1] : 900, hy = me ? +me[2] : 970;
+      const hp = fm[3] ? Math.round((+fm[2] || 0) / (+fm[3] || 1) * 100) : null;
+      out.push({ id: fm[0], x: hx + FOREST_GAP, y: hy, hp, flip: mobFlip(fm[0]) });
+    }
+    return out;
+  }
+  function actorNow(it) {
+    if (!it.from || !it.start) return { x: it.x, y: it.y };
+    const u = Math.min(1, (performance.now() - it.start) / (it.dur || 1));
+    if (u >= 1) { it.from = null; return { x: it.x, y: it.y }; }
+    const e = u * u * (3 - 2 * u);
+    return { x: it.from.x + (it.x - it.from.x) * e, y: it.from.y + (it.y - it.from.y) * e };
+  }
+  function applyActorPos(it) {
+    const p = actorNow(it);
+    it.el.style.left = p.x + 'px';
+    it.el.style.top = p.y + 'px';
+    it.el.style.zIndex = Math.round(p.y);
+    const moving = !!(it.from && (performance.now() - it.start) < (it.dur || 0));
+    it.el.classList.toggle('walk', moving && it.kind === 'hero');
+  }
+  function tickActors() {
+    actorTween.raf = 0;
+    let more = false;
+    const now = performance.now();
+    Object.keys(actorTween.nodes).forEach(k => {
+      const it = actorTween.nodes[k];
+      applyActorPos(it);
+      if (it.from && (now - it.start) < (it.dur || 0)) more = true;
+      else if (it.from) { it.from = null; it.el.classList.remove('walk'); }
+    });
+    if (more) actorTween.raf = requestAnimationFrame(tickActors);
+  }
+  function moveActor(it, x, y, snap, dur) {
+    const cur = actorNow(it);
+    it.x = x; it.y = y;
+    if (snap || Math.hypot(x - cur.x, y - cur.y) > TWEEN_JUMP) {
+      it.from = null; it.el.classList.remove('walk'); applyActorPos(it); return;
+    }
+    if (Math.hypot(x - cur.x, y - cur.y) < 1) { it.from = null; applyActorPos(it); return; }
+    it.from = { x: cur.x, y: cur.y }; it.start = performance.now(); it.dur = dur;
+    applyActorPos(it);
+    if (!actorTween.raf) actorTween.raf = requestAnimationFrame(tickActors);
+  }
+
   function fillActors(c) {
     const box = $('#bsActors'), st = c.state, l = bsLoc;
+    if (!box) return;
     const meName = c.user && c.user.login ? String(c.user.login).toLowerCase() : (c.me && String(c.me.n).toLowerCase()) || '';
     let list = locActors(st, l);
     const Lair = (l === 'boss' && st && st.boss) ? lairSpotOf(st) : null;
     const faceRight = l !== 'camp';
-    let html = '';
+    const now = performance.now();
+    const dur = Math.max(500, Math.min(1500, actorTween.lastAt ? (now - actorTween.lastAt) : 1000));
+    const snapAll = actorTween.loc !== l;
+    if (snapAll) {
+      box.innerHTML = '';
+      actorTween.nodes = Object.create(null);
+      actorTween.loc = l;
+    }
+    actorTween.lastAt = now;
+    const seen = new Set();
+
     for (const t of list) {
-      const n = t[0], x = t[1], y = t[2], cls = t[3], lv = t[4], k6 = t[6] || '';
+      const key = 'h:' + t[0], n = t[0], cls = t[3], lv = t[4], k6 = t[6] || '';
+      seen.add(key);
       const mine = String(n).toLowerCase() === meName;
       const g = (k6.split('_')[0] || t[11] || 'none');
-      const flip = faceRight ? false : x > 1280;
+      const flip = faceRight ? false : +t[1] > 1280;
       const src = sprUrl(t), fb = sprFb(t);
       const cn = CLSN[cls] || cls || '';
       const hs = t._hs || 1;
-      html += `<div class="hero g-${esc(g)}${mine ? ' me' : ''}${flip ? ' flip' : ''}" data-n="${esc(n)}" style="left:${+x}px;top:${+y}px;z-index:${Math.round(+y)};--hs:${hs}">`
-        + `<div class="shadow"></div><div class="ring"></div>`
-        + (src ? `<img src="${esc(src)}" alt="" onerror="${fb && fb !== src ? `this.onerror=null;this.src='${esc(fb)}'` : `this.remove()`}">` : '')
-        + `<div class="name">${mine ? '★ ' : ''}${esc(n)}<small>${esc(cn)}${lv != null && lv !== '' ? ' · ' + esc(lv) : ''}</small></div></div>`;
-    }
-    if (l === 'forest') {
-      const seen = new Set();
-      for (const t of list) if (t[12] && !seen.has(t[12])) {
-        seen.add(t[12]);
-        const mx = 1500, my = 1100, hp = t[13], id = t[12];
-        const ext = id === 'mimic' ? 'png' : 'webp';
-        html += `<div class="mob" style="left:${mx}px;top:${my}px;z-index:${Math.round(+my)}">`
-          + `<img src="img/mob/${esc(id)}.${ext}" alt="" onerror="this.remove()">`
-          + `<div class="mname">${esc(MOB_RU[id] || id)}</div>`
-          + (hp != null ? `<div class="mhp bar hp"><i style="width:${Math.max(0, Math.min(100, +hp))}%"></i><span>${esc(hp)}%</span></div>` : '')
-          + `</div>`;
+      let it = actorTween.nodes[key];
+      const nameHtml = (mine ? '★ ' : '') + esc(n) + '<small>' + esc(cn) + (lv != null && lv !== '' ? ' · ' + esc(lv) : '') + '</small>';
+      if (!it) {
+        const el = document.createElement('div');
+        el.className = 'hero g-' + g + (mine ? ' me' : '') + (flip ? ' flip' : '');
+        el.dataset.n = n;
+        el.style.setProperty('--hs', hs);
+        el.innerHTML = '<div class="shadow"></div><div class="ring"></div>'
+          + (src ? '<img alt="">' : '')
+          + '<div class="name">' + nameHtml + '</div>';
+        const img = el.querySelector('img');
+        if (img) {
+          img.src = src;
+          img.onerror = (fb && fb !== src) ? function () { img.onerror = null; img.src = fb; } : function () { img.remove(); };
+        }
+        box.appendChild(el);
+        it = actorTween.nodes[key] = { el, kind: 'hero', x: +t[1], y: +t[2], from: null };
+        applyActorPos(it);
+      } else {
+        it.el.className = 'hero g-' + g + (mine ? ' me' : '') + (flip ? ' flip' : '') + (it.el.classList.contains('walk') ? ' walk' : '');
+        it.el.style.setProperty('--hs', hs);
+        const img = it.el.querySelector('img');
+        if (src && img && img.getAttribute('src') !== src) img.src = src;
+        const nm = it.el.querySelector('.name');
+        if (nm) nm.innerHTML = nameHtml;
+        moveActor(it, +t[1], +t[2], snapAll, dur);
       }
     }
+
+    if (l === 'forest') {
+      forestMobs(st, list, meName).forEach(m => {
+        const key = 'm:' + m.id;
+        seen.add(key);
+        const ext = m.id === 'mimic' ? 'png' : 'webp';
+        const hp = m.hp;
+        let it = actorTween.nodes[key];
+        if (!it) {
+          const el = document.createElement('div');
+          el.className = 'mob' + (m.flip ? ' flip' : '');
+          el.dataset.id = m.id;
+          el.innerHTML = '<img src="img/mob/' + esc(m.id) + '.' + ext + '" alt="" onerror="this.remove()">'
+            + '<div class="mname">' + esc(MOB_RU[m.id] || m.id) + '</div>'
+            + (hp != null ? '<div class="mhp bar hp"><i style="width:' + Math.max(0, Math.min(100, +hp)) + '%"></i><span>' + esc(hp) + '%</span></div>' : '');
+          box.appendChild(el);
+          it = actorTween.nodes[key] = { el, kind: 'mob', x: +m.x, y: +m.y, from: null };
+          applyActorPos(it);
+        } else {
+          it.el.classList.toggle('flip', !!m.flip);
+          const bar = it.el.querySelector('.mhp i'), sp = it.el.querySelector('.mhp span');
+          if (bar && hp != null) bar.style.width = Math.max(0, Math.min(100, +hp)) + '%';
+          if (sp && hp != null) sp.textContent = hp + '%';
+          moveActor(it, +m.x, +m.y, snapAll, dur);
+        }
+      });
+    }
+
     if (l === 'boss' && st && st.boss && st.boss.ph === 'fight' && st.boss.key) {
       const id = st.boss.key, src = bossSrc(id), flip = !!BOSS_MIRROR[id];
-      const flt = /^[a-z0-9().,\s-]*$/i.test(st.boss.flt || '') && st.boss.flt ? ` filter:${esc(st.boss.flt)};` : '';
+      const flt = /^[a-z0-9().,\s-]*$/i.test(st.boss.flt || '') && st.boss.flt ? ' filter:' + esc(st.boss.flt) + ';' : '';
       const h = Lair ? Lair.h : (/treant/.test(id) ? 500 : 460);
       const bx = Lair ? Lair.boss[0] : 2040, by = Lair ? Lair.boss[1] : 1140;
-      html += `<div class="mob boss${flip ? ' flip' : ''}" style="left:${bx}px;top:${by}px;z-index:${by}">`
-        + `<img src="${esc(src)}" alt="" style="height:${h}px;${flt}" onerror="this.remove()">`
-        + `<div class="mname">${esc(st.boss.name || '')}</div></div>`;
+      const key = 'boss';
+      seen.add(key);
+      let it = actorTween.nodes[key];
+      if (!it) {
+        const el = document.createElement('div');
+        el.className = 'mob boss' + (flip ? ' flip' : '');
+        el.innerHTML = '<img alt="" style="height:' + h + 'px;' + flt + '" onerror="this.remove()"><div class="mname">' + esc(st.boss.name || '') + '</div>';
+        const img = el.querySelector('img'); if (img) img.src = src;
+        box.appendChild(el);
+        it = actorTween.nodes[key] = { el, kind: 'boss', x: bx, y: by, from: null };
+        applyActorPos(it);
+      } else {
+        it.el.classList.toggle('flip', !!flip);
+        const img = it.el.querySelector('img');
+        if (img) { if (img.getAttribute('src') !== src) img.src = src; img.style.height = h + 'px'; if (flt) img.style.cssText += flt; }
+        const nm = it.el.querySelector('.mname'); if (nm) nm.textContent = st.boss.name || '';
+        moveActor(it, bx, by, true, dur);
+      }
     }
-    box.innerHTML = html;
+
+    Object.keys(actorTween.nodes).forEach(k => {
+      if (!seen.has(k)) { actorTween.nodes[k].el.remove(); delete actorTween.nodes[k]; }
+    });
+
     $('#bsBg').src = bgOf(l, st);
     $('#bs').dataset.view = l;
     const n = list.length;
@@ -575,6 +741,9 @@
     root.classList.remove('phone-p', 'phone-l', 'pc');
     root.classList.add(kind);
     const v = vpSize();
+    const bars = $('.bars-wrap', root);
+    root.style.setProperty('--barsH', (((bars && bars.offsetHeight) || 110) + 8) + 'px');
+    root.classList.toggle('short', kind === 'pc' && vpSize().h <= 860);
     if (kind === 'pc') {
       root.style.top = root.style.right = root.style.bottom = root.style.left = '';
       root.style.width = root.style.height = '';
@@ -632,7 +801,7 @@
   function clipNames() {
     const wrap = $('#bsWrap'); if (!wrap) return;
     const r = wrap.getBoundingClientRect();
-    const blockers = ['.unitframe', '.bossbar:not([hidden])', '.bars-wrap', '#bsGoal:not([hidden])', '#bsGoalStrip:not([hidden])', '#bsQuests', '#bsFeed', '.bs-off', '.bs-hint:not([hidden])']
+    const blockers = ['.unitframe', '.bossbar:not([hidden])', '.bars-wrap', '#bsGoal:not([hidden])', '#bsGoalStrip:not([hidden])', '#bsQuests', '#bsFeed', '.bs-off', '.bs-hint:not([hidden])', '.bs-tips:not([hidden])']
       .flatMap(s => [...document.querySelectorAll('#bs ' + s)])
       .map(el => el.getBoundingClientRect())
       .filter(b => b.width > 2 && b.height > 2);
@@ -649,10 +818,12 @@
     });
   }
 
-  function setInv(show) {
+  function setInv(show, title) {
     const ov = $('#bsOverlay'); if (!ov) return;
     if (show) { setLog(false); if (sheetKind) setSheet(false); }
     ov.hidden = !show;
+    const ht = $('#bsInvTitle');
+    if (ht) ht.textContent = title || 'Инвентарь';
     if (!show) return;
     const c = ctx(), body = $('#bsInvBody');
     const acts = document.createElement('div'); acts.id = 'bsInvActs'; acts.className = 'actsbox';
@@ -675,7 +846,8 @@
     const c = ctx();
     if (window.__panel && __panel.tab && __panel.tab !== 'me') bsLoc = __panel.tab;
     c.tab = bsLoc;
-    fillUnit(c); fillGoal(c); fillQuests(c); fillFeed(c); fillBoss(c); fillBar(c); fillActors(c);
+    const tips = collectTips(c);
+    fillUnit(c); fillGoal(c); fillQuests(c); fillFeed(c); fillBoss(c); fillBar(c, tips); fillActors(c); fillTips(tips);
     if (!$('#bsOverlay').hidden) setInv(true);
     if (!$('#bsLogOv').hidden) fillLog();
     requestAnimationFrame(() => { layout(); const imgs = [...document.querySelectorAll('#bs img')].filter(i => !i.complete); if (!imgs.length) { layout(); window.__bsReady = true; return; }
