@@ -1,4 +1,4 @@
-/* Большой экран пульта (opt-in, v.bs499). Обычный пульт не меняется, пока body.bs-on нет. */
+/* Большой экран пульта (opt-in, v.bs501). Обычный пульт не меняется, пока body.bs-on нет. */
 body.bs-on{overflow:hidden;background:#000}
 body.bs-on #panel,body.bs-on .chatcmds,body.bs-on > footer{display:none !important}
 body.bs-on #sheet{z-index:40}
@@ -12,13 +12,13 @@ body.bs-on #bs{display:block;position:fixed;inset:0;z-index:15;background:#000;c
 #bs[data-view="boss"] .glow,#bs[data-view="forest"] .glow,#bs[data-view="town"] .glow,#bs[data-view="garden"] .glow{display:none}
 
 #bs .hero{position:absolute;width:0;height:0;z-index:1}
-#bs .hero .shadow{position:absolute;left:0;bottom:0;width:90px;height:20px;transform:translate(-50%,20%);background:radial-gradient(ellipse,rgba(0,0,0,.45) 0%,transparent 70%);pointer-events:none}
-#bs .hero .ring{display:none;position:absolute;left:0;bottom:2px;width:120px;height:30px;transform:translate(-50%,40%);border:3px solid #ffd27a;border-radius:50%;box-shadow:0 0 14px rgba(255,210,122,.8),inset 0 0 8px rgba(255,210,122,.35);pointer-events:none}
+#bs .hero .shadow{position:absolute;left:0;bottom:0;width:calc(90px * var(--hs,1));height:calc(20px * var(--hs,1));transform:translate(-50%,20%);background:radial-gradient(ellipse,rgba(0,0,0,.45) 0%,transparent 70%);pointer-events:none}
+#bs .hero .ring{display:none;position:absolute;left:0;bottom:2px;width:calc(120px * var(--hs,1));height:calc(30px * var(--hs,1));transform:translate(-50%,40%);border:3px solid #ffd27a;border-radius:50%;box-shadow:0 0 14px rgba(255,210,122,.8),inset 0 0 8px rgba(255,210,122,.35);pointer-events:none}
 #bs .hero.me .ring{display:block}
-#bs .hero img{position:absolute;left:0;bottom:0;height:192px;width:auto;transform:translateX(-50%);image-rendering:pixelated;pointer-events:none;filter:drop-shadow(0 6px 3px rgba(0,0,0,.35))}
+#bs .hero img{position:absolute;left:0;bottom:0;height:calc(192px * var(--hs,1));width:auto;transform:translateX(-50%);image-rendering:pixelated;pointer-events:none;filter:drop-shadow(0 6px 3px rgba(0,0,0,.35))}
 #bs .hero.flip img{transform:translateX(-50%) scaleX(-1)}
-#bs .hero .name{position:absolute;left:0;bottom:200px;transform:translateX(-50%);white-space:nowrap;text-align:center;font-size:22px;line-height:1.15;color:#fff;text-shadow:0 1px 0 #000,0 0 6px #000,0 2px 8px #000;padding:2px 8px;pointer-events:none}
-#bs .hero.me .name{color:#ffd27a;font-size:24px;text-shadow:0 1px 0 #000,0 0 8px #000,0 0 12px rgba(255,210,122,.4)}
+#bs .hero .name{position:absolute;left:0;bottom:calc(200px * var(--hs,1));transform:translateX(-50%);white-space:nowrap;text-align:center;font-size:calc(22px * var(--hs,1));line-height:1.15;color:#fff;text-shadow:0 1px 0 #000,0 0 6px #000,0 2px 8px #000;padding:2px 8px;pointer-events:none}
+#bs .hero.me .name{color:#ffd27a;font-size:calc(24px * var(--hs,1));text-shadow:0 1px 0 #000,0 0 8px #000,0 0 12px rgba(255,210,122,.4)}
 #bs .hero .name small{display:block;font-size:.72em;color:#efe6d4;opacity:.9}
 #bs .hero.me .name small{color:#ffd27a}
 #bs .g-fire{--gc:#ee7a3a}#bs .g-moon{--gc:#8ea0ff}#bs .g-gold{--gc:#e8c24a}#bs .g-silver{--gc:#d0d6e2}#bs .g-none{--gc:#c0b0c8}

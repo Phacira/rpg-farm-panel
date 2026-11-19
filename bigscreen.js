@@ -12,8 +12,47 @@
   // как в game.js: ogre/queen нарисованы лицом вправо — зеркалим, голова влево к героям; трент почти анфас.
   const BOSS_MIRROR = { ogre_boss: 1, troll_boss: 1, queen_boss: 1 };
   const BOSS_FILE = { ogre_boss: 'ogre_boss.png', troll_boss: 'ogre_boss.png', queen_boss: 'queen_boss.png', treant_boss: 'treant_king_boss.png', treant_king_boss: 'treant_king_boss.png' };
-  const BOSS_SPOT = { x: 2040, y: 1140, h: 460, clear: 420 };
+  // Сцена 2560×1440. Смена фона — правь только эти числа и файл img/<lair>.jpg.
+  // floorY0/Y1 — полоса пола (ноги); rows — Y рядов (зад, середина, перед); scale — масштаб ряда (перспектива);
+  // x0 — левый край строя; boss — ноги босса; clear — зазор до героев; h — высота спрайта босса.
+  const BOSS_LAIR = {
+    boss:        { floorY0: 860, floorY1: 1240, rows: [900, 1060, 1220], scale: [0.90, 0.95, 1], x0: 400, boss: [2040, 1140], clear: 420, h: 460 },
+    boss_treant: { floorY0: 820, floorY1: 1240, rows: [940, 1080, 1220], scale: [0.86, 0.93, 1], x0: 400, boss: [2020, 1160], clear: 440, h: 500 },
+    boss_queen:  { floorY0: 840, floorY1: 1240, rows: [960, 1090, 1220], scale: [0.86, 0.93, 1], x0: 400, boss: [2020, 1160], clear: 470, h: 460 }
+  };
+  function lairKeyOf(st) {
+    const k = st && st.boss && st.boss.lair;
+    if (k && BOSS_LAIR[k]) return k;
+    const id = (st && st.boss && st.boss.key) || '';
+    if (/treant/.test(id)) return 'boss_treant';
+    if (/queen/.test(id)) return 'boss_queen';
+    return 'boss';
+  }
+  function lairSpotOf(st) { return BOSS_LAIR[lairKeyOf(st)] || BOSS_LAIR.boss; }
   function bossSrc(key) { const f = BOSS_FILE[key] || 'ogre_boss.png'; return 'img/boss/' + f; }
+  function layoutBossHeroes(list, L) {
+    const rowsY = L.rows, nR = rowsY.length, scales = L.scale || rowsY.map(() => 1);
+    const xRight = L.boss[0] - L.clear, xLeft = L.x0 || 400;
+    if (!list.length) return [];
+    const ys = list.map(t => +t[2]);
+    const yMin = Math.min(...ys), yMax = Math.max(...ys);
+    const assigned = list.map(t => {
+      const r = (yMax === yMin) ? nR - 1 : Math.max(0, Math.min(nR - 1, Math.round((+t[2] - yMin) / (yMax - yMin) * (nR - 1))));
+      return { t: t.slice(), r };
+    });
+    for (let r = 0; r < nR; r++) {
+      const row = assigned.filter(a => a.r === r).sort((a, b) => a.t[1] - b.t[1]);
+      const n = row.length; if (!n) continue;
+      const stagger = (r % 2) ? 50 : 0;
+      const left = xLeft + stagger, right = xRight - (r % 2 ? 30 : 0);
+      row.forEach((a, i) => {
+        a.t[1] = n === 1 ? Math.round((left + right) / 2) : Math.round(left + i * (right - left) / Math.max(1, n - 1));
+        a.t[2] = rowsY[r];
+        a.t._hs = scales[r] || 1;
+      });
+    }
+    return assigned.map(a => a.t).sort((a, b) => a[2] - b[2] || a[1] - b[1]);
+  }
   function dockClassicBars(into) {
     ['castbox', 'rm49', 'tr495'].forEach(id => {
       const n = document.getElementById(id); if (!n || !into) return;
@@ -143,8 +182,8 @@
   }
 
   function bgOf(l, st) {
-    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=locations-final-v1';
-    return 'img/' + (l || 'camp') + '.jpg?v=locations-final-v1';
+    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs501';
+    return 'img/' + (l || 'camp') + '.jpg?v=bs501';
   }
 
   let lastDefs = [];
@@ -258,14 +297,8 @@
     const box = $('#bsActors'), st = c.state, l = bsLoc;
     const meName = c.user && c.user.login ? String(c.user.login).toLowerCase() : (c.me && String(c.me.n).toLowerCase()) || '';
     let list = ((st && st.locs && st.locs[l]) || []).map(t => t.slice()).sort((a, b) => a[2] - b[2] || a[1] - b[1]);
-    if (l === 'boss' && st && st.boss && st.boss.ph === 'fight') {
-      const limit = BOSS_SPOT.x - BOSS_SPOT.clear;
-      const maxX = list.reduce((m, t) => Math.max(m, +t[1] || 0), 0);
-      if (maxX > limit) {
-        const dx = maxX - limit;
-        list.forEach(t => { t[1] = +t[1] - dx; });
-      }
-    }
+    const Lair = (l === 'boss' && st && st.boss) ? lairSpotOf(st) : null;
+    if (Lair && st.boss.ph === 'fight') list = layoutBossHeroes(list, Lair);
     const faceRight = l !== 'camp';
     let html = '';
     for (const t of list) {
@@ -275,7 +308,8 @@
       const flip = faceRight ? false : x > 1280;
       const src = sprUrl(t), fb = sprFb(t);
       const cn = CLSN[cls] || cls || '';
-      html += `<div class="hero g-${esc(g)}${mine ? ' me' : ''}${flip ? ' flip' : ''}" data-n="${esc(n)}" style="left:${+x}px;top:${+y}px;z-index:${Math.round(+y)}">`
+      const hs = t._hs || 1;
+      html += `<div class="hero g-${esc(g)}${mine ? ' me' : ''}${flip ? ' flip' : ''}" data-n="${esc(n)}" style="left:${+x}px;top:${+y}px;z-index:${Math.round(+y)};--hs:${hs}">`
         + `<div class="shadow"></div><div class="ring"></div>`
         + (src ? `<img src="${esc(src)}" alt="" onerror="${fb && fb !== src ? `this.onerror=null;this.src='${esc(fb)}'` : `this.remove()`}">` : '')
         + `<div class="name">${mine ? '★ ' : ''}${esc(n)}<small>${esc(cn)}${lv != null && lv !== '' ? ' · ' + esc(lv) : ''}</small></div></div>`;
@@ -296,8 +330,9 @@
     if (l === 'boss' && st && st.boss && st.boss.ph === 'fight' && st.boss.key) {
       const id = st.boss.key, src = bossSrc(id), flip = !!BOSS_MIRROR[id];
       const flt = /^[a-z0-9().,\s-]*$/i.test(st.boss.flt || '') && st.boss.flt ? ` filter:${esc(st.boss.flt)};` : '';
-      const h = /treant/.test(id) ? 500 : BOSS_SPOT.h;
-      html += `<div class="mob boss${flip ? ' flip' : ''}" style="left:${BOSS_SPOT.x}px;top:${BOSS_SPOT.y}px;z-index:${BOSS_SPOT.y}">`
+      const h = Lair ? Lair.h : (/treant/.test(id) ? 500 : 460);
+      const bx = Lair ? Lair.boss[0] : 2040, by = Lair ? Lair.boss[1] : 1140;
+      html += `<div class="mob boss${flip ? ' flip' : ''}" style="left:${bx}px;top:${by}px;z-index:${by}">`
         + `<img src="${esc(src)}" alt="" style="height:${h}px;${flt}" onerror="this.remove()">`
         + `<div class="mname">${esc(st.boss.name || '')}</div></div>`;
     }
