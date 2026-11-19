@@ -12,7 +12,7 @@
   // как в game.js: ogre/queen нарисованы лицом вправо — зеркалим, голова влево к героям; трент почти анфас.
   const BOSS_MIRROR = { ogre_boss: 1, troll_boss: 1, queen_boss: 1 };
   const BOSS_FILE = { ogre_boss: 'ogre_boss.png', troll_boss: 'ogre_boss.png', queen_boss: 'queen_boss.png', treant_boss: 'treant_king_boss.png', treant_king_boss: 'treant_king_boss.png' };
-  const BOSS_SPOT = { x: 2300, y: 1260, h: 460, clear: 500 };
+  const BOSS_SPOT = { x: 2040, y: 1140, h: 460, clear: 420 };
   function bossSrc(key) { const f = BOSS_FILE[key] || 'ogre_boss.png'; return 'img/boss/' + f; }
   function dockClassicBars(into) {
     ['castbox', 'rm49', 'tr495'].forEach(id => {
@@ -260,7 +260,11 @@
     let list = ((st && st.locs && st.locs[l]) || []).map(t => t.slice()).sort((a, b) => a[2] - b[2] || a[1] - b[1]);
     if (l === 'boss' && st && st.boss && st.boss.ph === 'fight') {
       const limit = BOSS_SPOT.x - BOSS_SPOT.clear;
-      list.forEach(t => { if (+t[1] > limit) t[1] = limit; });
+      const maxX = list.reduce((m, t) => Math.max(m, +t[1] || 0), 0);
+      if (maxX > limit) {
+        const dx = maxX - limit;
+        list.forEach(t => { t[1] = +t[1] - dx; });
+      }
     }
     const faceRight = l !== 'camp';
     let html = '';
