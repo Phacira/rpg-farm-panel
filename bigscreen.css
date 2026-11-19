@@ -1,4 +1,4 @@
-/* Большой экран пульта (opt-in, v.bs512). Обычный пульт не меняется, пока body.bs-on нет. */
+/* Большой экран пульта (opt-in, v.bs513). Обычный пульт не меняется, пока body.bs-on нет. */
 html.bs-on,body.bs-on{width:100%;max-width:100%;height:100%;height:100dvh;min-height:100%;min-height:100dvh;min-height:-webkit-fill-available;margin:0;padding:0;overflow:hidden !important;overscroll-behavior:none;background:#000;touch-action:manipulation}
 body.bs-on #panel,body.bs-on .chatcmds,body.bs-on > footer{display:none !important;visibility:hidden !important;pointer-events:none !important;height:0 !important;overflow:hidden !important;margin:0 !important;padding:0 !important}
 body.bs-on #sheet{z-index:40}
@@ -137,85 +137,117 @@ button.exp{border:1px solid rgba(232,195,106,.45);background:#2a1c30;color:#ffd2
 #bs .ph-dock{display:none}
 button.exp.wide{display:block;width:100%;margin-bottom:6px;padding:6px}
 
-/* ===== phone portrait: вкладки, узкая цель стрима, журнал на весь экран, окна не наезжают ===== */
+/* ===== phone portrait: сцена на весь экран, камера за героем, HUD поверх ===== */
 #bs.phone-p .scene-wrap{inset:0;height:auto !important}
-#bs.phone-p .bs-off{top:calc(8px + env(safe-area-inset-top,0px));left:auto;right:calc(8px + env(safe-area-inset-right,0px));font-size:10px;padding:3px 8px}
+#bs.phone-p .bs-off{top:calc(8px + env(safe-area-inset-top,0px));left:auto;right:calc(8px + env(safe-area-inset-right,0px));font-size:10px;padding:3px 8px;z-index:9}
 #bs.phone-p .loc-chip{display:none}
-#bs.phone-p .unitframe{top:calc(8px + env(safe-area-inset-top,0px));left:calc(8px + env(safe-area-inset-left,0px));width:min(220px,62vw);padding:5px 7px 5px 5px;gap:7px}
-#bs.phone-p .unitframe .port{width:52px;height:52px}
-#bs.phone-p .unit-top b{font-size:12px}
-#bs.phone-p .unit-sub{font-size:10px;margin:0 0 3px}
-#bs.phone-p .bar{height:11px;margin-top:2px}
-#bs.phone-p .bar span{font-size:8px;line-height:10px}
-#bs.phone-p .unit-res{font-size:10px;gap:7px;margin-top:2px}
-#bs.phone-p .bsp.goal,#bs.phone-p .bsp.quests,#bs.phone-p .bsp.feed{display:none !important}
-#bs.phone-p .ph-dock{display:flex;flex-direction:column;position:absolute;left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));top:auto;bottom:calc(var(--barsH,176px) + env(safe-area-inset-bottom,0px));z-index:6;gap:6px;max-height:min(34vh,260px);pointer-events:auto}
+#bs.phone-p .unitframe{top:calc(8px + env(safe-area-inset-top,0px));left:calc(8px + env(safe-area-inset-left,0px));width:min(196px,58vw);padding:4px 6px 4px 4px;gap:6px;background:rgba(18,10,24,.62);backdrop-filter:blur(8px)}
+#bs.phone-p .unitframe .port{width:44px;height:44px}
+#bs.phone-p .unit-top b{font-size:11px}
+#bs.phone-p .unit-top .lvl{font-size:10px}
+#bs.phone-p .unit-sub{display:none}
+#bs.phone-p .bar{height:10px;margin-top:2px}
+#bs.phone-p .bar span{font-size:8px;line-height:9px}
+#bs.phone-p .unit-res{font-size:9px;gap:6px;margin-top:2px}
+#bs.phone-p .bsp.goal,#bs.phone-p .bsp.quests,#bs.phone-p .bsp.feed,#bs.phone-p .ph-dock{display:none !important}
 #bs.phone-p .goal-strip[hidden]{display:none !important}
-#bs.phone-p .goal-strip{display:flex;align-items:center;gap:6px;padding:5px 8px;background:rgba(26,16,34,.92);border:1px solid rgba(232,195,106,.45);border-radius:10px;font-size:11px;color:#f3eadc}
+#bs.phone-p .goal-strip{display:flex;align-items:center;gap:4px;position:absolute;top:calc(44px + env(safe-area-inset-top,0px));right:calc(8px + env(safe-area-inset-right,0px));left:auto;bottom:auto;max-width:min(180px,48vw);padding:3px 7px;background:rgba(18,10,24,.62);border:1px solid rgba(232,195,106,.4);border-radius:999px;font-size:9px;color:#f3eadc;z-index:8;backdrop-filter:blur(8px)}
 #bs.phone-p .goal-strip span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #bs.phone-p .goal-strip b{color:#ffd27a;flex:none}
-#bs.phone-p .goal-strip .sgb{flex:none;width:56px;height:8px;border-radius:4px;background:#0009;border:1px solid #fff2;overflow:hidden;position:relative}
+#bs.phone-p .goal-strip .sgb{flex:none;width:36px;height:6px;border-radius:3px;background:#0009;border:1px solid #fff2;overflow:hidden;position:relative}
 #bs.phone-p .goal-strip .sgb i{display:block;height:100%;background:linear-gradient(#7dcb6a,#3d8a3a)}
-#bs.phone-p .dock-tabs{display:flex;gap:4px}
-#bs.phone-p .dock-tabs button{flex:1;height:32px;border:1px solid #5a4470;border-radius:8px;background:#221430;color:#b7a9c6;font:700 12px system-ui,sans-serif;cursor:pointer}
-#bs.phone-p .dock-tabs button.on{border-color:#ffd27a;color:#ffd27a;background:#3a2a10}
-#bs.phone-p .dock-pane{display:none;background:rgba(26,16,34,.88);border:1px solid rgba(232,195,106,.45);border-radius:10px;padding:6px 8px;flex:0 1 auto;max-height:min(20vh,160px);overflow:auto}
-#bs.phone-p .ph-dock.collapsed .dock-pane{display:none !important}
-#bs.phone-p[data-view="boss"] .dock-tabs{display:none}
+#bs.phone-p[data-view="boss"] .goal-strip{display:none !important}
 
-#bs.phone-p .dock-pane.on{display:block}
-#bs.phone-p .dock-pane li{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;border-bottom:1px solid #fff1}
-#bs.phone-p .dock-pane li:last-child{border:0}
-#bs.phone-p .dock-pane li b{margin-left:auto;color:#ffd27a}
-#bs.phone-p .dock-pane time{color:#b7a9c6;margin-right:4px}
-#bs.phone-p .bars-wrap{left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));bottom:calc(6px + env(safe-area-inset-bottom,0px));transform:none;width:auto}
-#bs.phone-p .locbar{width:100%;justify-content:space-between;padding:4px}
-#bs.phone-p .locbar button{flex:1;height:34px;padding:0 2px;font-size:10px;justify-content:center}
-#bs.phone-p .locbar button span{display:inline}
-#bs.phone-p .actionbar{width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:5px;max-height:min(200px,32vh);overflow:auto}
-#bs.phone-p .actionbar button{min-width:0;width:auto;height:58px;padding:2px}
-#bs.phone-p .actionbar .lbl{font-size:10px}
-#bs.phone-p .actionbar button .sub{font-size:8px;max-width:none;white-space:normal}
-#bs.phone-p .bossbar:not([hidden]){display:block !important;z-index:7;width:auto;left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));transform:none;top:calc(var(--unitH,72px) + 10px + env(safe-area-inset-top,0px));bottom:auto;margin-top:0;padding:5px 8px 6px;max-height:min(40vh,280px);overflow:auto}
-#bs.phone-p .bossbar .fmob small{font-size:11px}
-#bs.phone-p .bossbar #castbox{margin:4px 0 0;padding:6px 8px}
-#bs.phone-p .bossbar .castbox .ct{font-size:13px;margin-bottom:3px;gap:6px}
-#bs.phone-p .bossbar .castbox .cl{font-size:16px}
-#bs.phone-p .bossbar .castbox .cbar{height:16px}
-#bs.phone-p .bossbar .castbox .cnow{margin:4px 0 3px;font-size:11px}
-#bs.phone-p .bossbar .castbox .cb{padding:6px 10px;font-size:13px}
-#bs.phone-p .bossbar .castbox .cb.pri{font-size:14px;padding:6px 12px}
-#bs.phone-p .bossbar #tr495{margin:4px 0 0;padding:5px 8px;font-size:12px}
-#bs.phone-p .bossbar .tr495 .trb{font-size:13px}
-#bs.phone-p .bossbar .tr495 .trb b{font-size:14px}
-#bs.phone-p .bossbar .tr495 .trs{font-size:11px}
-#bs.phone-p .bossbar .tr495 .trbtn{padding:5px 10px;min-height:32px;font-size:13px}
-#bs.phone-p .bossbar #rm49{margin:4px 0 0;font-size:11px}
+#bs.phone-p .bars-wrap{left:calc(6px + env(safe-area-inset-left,0px));right:calc(6px + env(safe-area-inset-right,0px));bottom:calc(6px + env(safe-area-inset-bottom,0px));transform:none;width:auto;gap:5px;background:transparent;pointer-events:none}
+#bs.phone-p .bars-wrap > *{pointer-events:auto}
+#bs.phone-p .locbar{width:auto;align-self:center;justify-content:center;gap:3px;padding:3px 5px;background:rgba(18,10,24,.55);border:1px solid rgba(232,195,106,.35);border-radius:999px;backdrop-filter:blur(8px)}
+#bs.phone-p .locbar button{flex:none;height:34px;width:34px;padding:0;font-size:15px;justify-content:center;border-radius:50%;background:rgba(34,20,48,.55)}
+#bs.phone-p .locbar button span{display:none}
+#bs.phone-p .actionbar{width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:5px;max-height:none;overflow:visible;background:rgba(18,10,24,.5);border:1px solid rgba(232,195,106,.35);border-radius:16px;backdrop-filter:blur(8px);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#bs.phone-p .actionbar button{min-width:0;width:auto;height:52px;padding:2px 2px 3px;border-radius:12px;background:rgba(58,42,72,.55);border-color:#5a447088}
+#bs.phone-p .actionbar .ic{font-size:18px}
+#bs.phone-p .actionbar .lbl{font-size:9px;line-height:1.1;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bs.phone-p .actionbar button .sub{font-size:8px;max-width:100%;white-space:nowrap}
+#bs.phone-p .actionbar button .grp{display:none}
+
+#bs.phone-p .bossbar:not([hidden]){display:block !important;z-index:8;width:auto;left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));transform:none;top:calc(var(--unitH,64px) + 12px + env(safe-area-inset-top,0px));bottom:auto;margin-top:0;padding:4px 8px 5px;max-height:none;overflow:visible;background:rgba(18,10,24,.7);backdrop-filter:blur(8px)}
+#bs.phone-p .bossbar-name{font-size:12px}
+#bs.phone-p .bossbar .fmob small{font-size:10px}
+#bs.phone-p .bossbar .fhp{height:10px;margin:3px 0 1px}
+#bs.phone-p .bossbar .bt496{margin:2px 0;font-size:10px}
+#bs.phone-p .bossbar .bs-docks{margin-top:4px}
+#bs.phone-p .bossbar #castbox{margin:3px 0 0;padding:4px 6px}
+#bs.phone-p .bossbar .castbox .ct{font-size:11px;margin-bottom:2px;gap:4px}
+#bs.phone-p .bossbar .castbox .cl{font-size:13px}
+#bs.phone-p .bossbar .castbox .cbar{height:12px}
+#bs.phone-p .bossbar .castbox .cnow{display:none}
+#bs.phone-p .bossbar .castbox .cb{padding:4px 8px;font-size:11px}
+#bs.phone-p .bossbar .castbox .cb.pri{font-size:12px;padding:4px 10px}
+#bs.phone-p .bossbar #tr495{margin:3px 0 0;padding:3px 6px;font-size:11px}
+#bs.phone-p .bossbar .tr495 .trb{font-size:12px}
+#bs.phone-p .bossbar .tr495 .trb b{font-size:13px}
+#bs.phone-p .bossbar .tr495 .trs{font-size:10px}
+#bs.phone-p .bossbar .tr495 .trbtn{padding:5px 10px;min-height:30px;font-size:13px}
+
+#bs.phone-p .bs-hint{position:absolute;z-index:9;transform:translate(-50%,-50%);background:rgba(18,10,24,.78);border:1px solid #ffd27a;color:#ffd27a;border-radius:999px;padding:4px 10px;font:700 11px system-ui,sans-serif;pointer-events:none;box-shadow:0 4px 14px #0008;white-space:nowrap}
 #bs.phone-p .log-overlay{align-items:stretch;justify-content:stretch;padding:0;background:#120b16;z-index:30}
 #bs.phone-p .log-win{width:100%;height:100%;max-height:none;border-radius:0;border:0;background:#1a1024}
 #bs.phone-p .log-win .win-h{flex-wrap:wrap;gap:6px;padding:10px 12px}
 #bs.phone-p .log-win .win-h h2{font-size:16px;flex:1 1 140px;min-width:0}
-#bs.phone-p .overlay{align-items:flex-end;padding:0;background:rgba(0,0,0,.5)}
+#bs.phone-p .overlay{align-items:flex-end;padding:0;background:rgba(0,0,0,.5);z-index:20}
 #bs.phone-p .window{width:100%;max-height:82%;border-radius:18px 18px 0 0;border-bottom:0}
+#bs.phone-p .sheet-body{padding:10px 12px 18px;overflow:auto}
+#bs.phone-p .sheet-body .more-btn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;margin:0 0 6px;border:1px solid #5a4470;border-radius:12px;background:#221430;color:#f3eadc;font:700 14px system-ui,sans-serif;cursor:pointer}
+#bs.phone-p .sheet-body .more-btn .ic{font-size:20px;width:28px;text-align:center}
+#bs.phone-p .sheet-body .more-btn .lbl{flex:1}
+#bs.phone-p .sheet-body .more-btn .sub{font-size:11px;color:#b7a9c6}
+#bs.phone-p .sheet-body .more-btn:disabled,#bs.phone-p .sheet-body .more-btn.dis{opacity:.45}
+#bs.phone-p .sheet-body .qlist{list-style:none;margin:0;padding:0}
+#bs.phone-p .sheet-body .qlist li{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #fff1;font-size:14px}
+#bs.phone-p .sheet-body .qlist li b{margin-left:auto;color:#ffd27a}
 
-/* ===== phone landscape ===== */
-#bs.phone-l .bsp.quests,#bs.phone-l .ph-dock{display:none !important}
-#bs.phone-l .bsp.goal{top:calc(6px + env(safe-area-inset-top,0px));right:calc(6px + env(safe-area-inset-right,0px));width:210px;padding:5px 8px}
-#bs.phone-l .bsp.goal .muted{display:none}
-#bs.phone-l .bsp.feed{left:auto;right:6px;bottom:78px;width:200px;padding:5px 8px}
-#bs.phone-l .feed li:nth-child(n+3){display:none}
-#bs.phone-l .bars-wrap{left:50%;bottom:calc(5px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);flex-direction:row;gap:6px;width:auto;max-width:calc(100% - 12px)}
-#bs.phone-l .locbar{padding:3px 5px;flex:none}
-#bs.phone-l .locbar button{height:42px;width:42px;padding:0;font-size:16px;justify-content:center}
+/* ===== phone landscape: вся локация как на ПК, те же оверлеи компактнее ===== */
+#bs.phone-l .scene-wrap{inset:0;height:auto !important}
+#bs.phone-l .bsp.quests,#bs.phone-l .ph-dock,#bs.phone-l .bsp.feed{display:none !important}
+#bs.phone-l .bsp.goal{display:none !important}
+#bs.phone-l .goal-strip[hidden]{display:none !important}
+#bs.phone-l .goal-strip{display:flex;align-items:center;gap:4px;position:absolute;top:calc(6px + env(safe-area-inset-top,0px));right:calc(8px + env(safe-area-inset-right,0px));max-width:min(240px,36vw);padding:3px 8px;background:rgba(18,10,24,.62);border:1px solid rgba(232,195,106,.4);border-radius:999px;font-size:10px;z-index:8;backdrop-filter:blur(8px)}
+#bs.phone-l .goal-strip span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bs.phone-l .goal-strip b{color:#ffd27a}
+#bs.phone-l .goal-strip .sgb{flex:none;width:40px;height:6px;border-radius:3px;background:#0009;overflow:hidden;position:relative;border:1px solid #fff2}
+#bs.phone-l .goal-strip .sgb i{display:block;height:100%;background:linear-gradient(#7dcb6a,#3d8a3a)}
+#bs.phone-l[data-view="boss"] .goal-strip{display:none !important}
+#bs.phone-l .bars-wrap{left:50%;bottom:calc(5px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);flex-direction:row;gap:6px;width:auto;max-width:calc(100% - 12px);align-items:flex-end}
+#bs.phone-l .locbar{padding:3px 5px;flex:none;background:rgba(18,10,24,.55);backdrop-filter:blur(8px)}
+#bs.phone-l .locbar button{height:40px;width:40px;padding:0;font-size:16px;justify-content:center;border-radius:50%}
 #bs.phone-l .locbar button span{display:none}
-#bs.phone-l .actionbar{gap:3px;padding:4px 5px;max-width:70vw;overflow:auto}
-#bs.phone-l .actionbar button{min-width:52px;width:52px;height:52px}
-#bs.phone-l .actionbar .lbl{font-size:9px}
+#bs.phone-l .actionbar{gap:4px;padding:4px 5px;max-width:70vw;overflow:auto;background:rgba(18,10,24,.5);backdrop-filter:blur(8px)}
+#bs.phone-l .actionbar button{min-width:48px;width:48px;height:48px;padding:2px}
+#bs.phone-l .actionbar .ic{font-size:16px}
+#bs.phone-l .actionbar .lbl{font-size:8px;max-width:46px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #bs.phone-l .actionbar button .sub{display:none}
-#bs.phone-l .bossbar{top:calc(6px + env(safe-area-inset-top,0px));width:min(360px,44vw)}
-#bs.phone-l .log-overlay{padding:6px}
+#bs.phone-l .actionbar button.bcd .sub{display:block;font-size:7px}
+#bs.phone-l .bossbar:not([hidden]){top:calc(6px + env(safe-area-inset-top,0px));left:auto;right:calc(168px + env(safe-area-inset-right,0px));transform:none;width:min(280px,38vw);padding:4px 8px 5px;background:rgba(18,10,24,.7);backdrop-filter:blur(8px);max-height:min(46vh,200px);overflow:auto}
+#bs.phone-l .bossbar-name{font-size:12px}
+#bs.phone-l .bossbar .fhp{height:10px;margin:3px 0 1px}
+#bs.phone-l .bossbar .fmob small{font-size:10px}
+#bs.phone-l .bossbar #castbox{margin:3px 0 0;padding:4px 6px}
+#bs.phone-l .bossbar .castbox .cnow{display:none}
+#bs.phone-l .bossbar .castbox .cbar{height:10px}
+#bs.phone-l .bossbar .castbox .cb{padding:3px 8px;font-size:11px}
+#bs.phone-l .log-overlay{padding:6px;z-index:30}
 #bs.phone-l .log-win{width:96vw;height:96vh;max-height:96vh;border-radius:12px}
-#bs.phone-l .bs-off{top:calc(6px + env(safe-area-inset-top,0px));left:calc(6px + env(safe-area-inset-left,0px));font-size:10px;padding:3px 8px}
-#bs.phone-l .unitframe{top:calc(6px + env(safe-area-inset-top,0px));left:calc(6px + env(safe-area-inset-left,0px));width:210px;padding:4px 6px 4px 4px}
-#bs.phone-l .unitframe .port{width:44px;height:44px}
+#bs.phone-l .bs-off{top:calc(6px + env(safe-area-inset-top,0px));left:auto;right:calc(6px + env(safe-area-inset-right,0px));font-size:10px;padding:3px 8px}
+#bs.phone-l .unitframe{top:calc(6px + env(safe-area-inset-top,0px));left:calc(6px + env(safe-area-inset-left,0px));width:190px;padding:4px 6px 4px 4px;background:rgba(18,10,24,.62);backdrop-filter:blur(8px)}
+#bs.phone-l .unitframe .port{width:40px;height:40px}
 #bs.phone-l .unit-sub{display:none}
+#bs.phone-l .bs-hint{display:none}
+#bs.phone-l .overlay{align-items:center;padding:12px;z-index:20}
+#bs.phone-l .window{width:min(640px,94vw);max-height:90vh;border-radius:14px}
+#bs.phone-l .sheet-body{padding:10px 12px 16px;overflow:auto}
+#bs.phone-l .sheet-body .more-btn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 10px;margin:0 0 5px;border:1px solid #5a4470;border-radius:10px;background:#221430;color:#f3eadc;font:700 13px system-ui,sans-serif;cursor:pointer}
+#bs.phone-l .sheet-body .more-btn .ic{font-size:18px;width:24px;text-align:center}
+#bs.phone-l .sheet-body .more-btn .sub{font-size:11px;color:#b7a9c6}
+#bs.phone-l .sheet-body .qlist{list-style:none;margin:0;padding:0}
+#bs.phone-l .sheet-body .qlist li{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #fff1}
+#bs.phone-l .sheet-body .qlist li b{margin-left:auto;color:#ffd27a}

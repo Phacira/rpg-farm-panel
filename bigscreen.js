@@ -1,4 +1,4 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs512. */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs513. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen';
   const LOCS = [['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс'], ['garden', '🌱', 'Огород'], ['town', '🏘', 'Город']];
@@ -115,6 +115,13 @@
           <div class="inv-body" id="bsInvBody"></div>
         </div>
       </div>
+      <div class="overlay sheet" id="bsSheet" hidden>
+        <div class="window sheet-win" role="dialog">
+          <header class="win-h"><h2 id="bsSheetTitle">Ещё</h2><button class="x" id="bsSheetX" type="button" aria-label="Закрыть">✕</button></header>
+          <div class="sheet-body" id="bsSheetBody"></div>
+        </div>
+      </div>
+      <div class="bs-hint" id="bsHint" hidden></div>
       <div class="log-overlay" id="bsLogOv" hidden>
         <div class="log-win" role="dialog">
           <header class="win-h">
@@ -132,20 +139,28 @@
     $('#bsOverlay').addEventListener('click', e => { if (e.target.id === 'bsOverlay') setInv(false); });
     $('#bsLogX').onclick = () => setLog(false);
     $('#bsLogOv').addEventListener('click', e => { if (e.target.id === 'bsLogOv') setLog(false); });
+    $('#bsSheetX').onclick = () => setSheet(false);
+    $('#bsSheet').addEventListener('click', e => { if (e.target.id === 'bsSheet') setSheet(false); });
     $('#bsLocbar').addEventListener('click', e => {
       const b = e.target.closest('button[data-loc]'); if (!b) return;
-      bsLoc = b.dataset.loc; setInv(false); setLog(false);
+      bsLoc = b.dataset.loc; setInv(false); setLog(false); setSheet(false);
       if (window.__panel && __panel.setTab) __panel.setTab(bsLoc); else sync();
     });
-    $('#bsBar').addEventListener('click', e => {
-      const b = e.target.closest('button[data-i]'); if (!b || b.disabled) return;
+    const onBarClick = e => {
+      const b = e.target.closest('button[data-i], button[data-ui]'); if (!b || b.disabled) return;
+      if (b.dataset.ui === 'inv') return setInv(true);
+      if (b.dataset.ui === 'log') return setLog(true);
+      if (b.dataset.ui === 'quests') return setSheet('quests');
+      if (b.dataset.ui === 'more') return setSheet('more');
       const i = +b.dataset.i, defs = lastDefs[i];
       if (!defs) return;
       if (defs._ui === 'inv') return setInv(true);
       if (defs._ui === 'log') return setLog(true);
       if (defs[2] && window.__bossLeft && __bossLeft(defs[2])) return;
       if (window.PanelActions && PanelActions.activate) PanelActions.activate(defs);
-    });
+    };
+    $('#bsBar').addEventListener('click', onBarClick);
+    $('#bsSheet').addEventListener('click', onBarClick);
     document.addEventListener('click', e => {
       if (e.target.closest('[data-bslog]')) { e.preventDefault(); setLog(true); }
       const lf = e.target.closest('[data-bslf]');
@@ -165,7 +180,7 @@
     }
     document.addEventListener('touchmove', function (e) {
       if (!on) return;
-      const ok = e.target.closest && e.target.closest('#bs .dock-pane, #bs .log-body, #bs .inv-body, #bs .actionbar, #bs .window, #bs .bossbar');
+      const ok = e.target.closest && e.target.closest('#bs .dock-pane, #bs .log-body, #bs .inv-body, #bs .sheet-body, #bs .actionbar, #bs .window, #bs .bossbar');
       if (!ok) e.preventDefault();
     }, { passive: false });
     if (window.ResizeObserver) {
@@ -196,7 +211,7 @@
   function setOn(v) {
     on = !!v;
     try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
-    if (!on) undockClassicBars();
+    if (!on) { undockClassicBars(); setSheet(false); }
     document.body.classList.toggle('bs-on', on);
     document.documentElement.classList.toggle('bs-on', on);
     if (on) { mount(); applyDock(); const t = window.__panel && __panel.tab; if (t && t !== 'me') bsLoc = t; else if (__panel && __panel.state && __panel.state.me && __panel.state.me.loc) bsLoc = __panel.state.me.loc; sync(); }
@@ -224,11 +239,11 @@
   }
 
   function bgOf(l, st) {
-    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs512';
-    return 'img/' + (l || 'camp') + '.jpg?v=bs512';
+    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs513';
+    return 'img/' + (l || 'camp') + '.jpg?v=bs513';
   }
 
-  let lastDefs = [];
+  let lastDefs = [], lastMore = [], sheetKind = '';
 
   function barDefs(c) {
     const D = window.PanelActions && PanelActions.defs ? PanelActions.defs(c) : {};
@@ -248,24 +263,75 @@
     return list.map(d => Array.isArray(d) ? d : Object.assign([d[0], d[1], d._ui, '', d[4]], d));
   }
 
+  function btnHtml(d, i, more) {
+    const ic = d[0] || '•', lab = d[1] || '', sub = d[4] || '', dis = !!d[6], other = d[7] === 'other';
+    const ui = d._ui || '';
+    const cmd = ui ? '' : (d[2] || '');
+    const left = cmd && window.__bossLeft ? __bossLeft(cmd) : 0;
+    const tab = (window.__panel && __panel.tab) || bsLoc;
+    const hot = !left && (tab === 'camp' && /поход|пати/.test(cmd) && !dis || (tab === 'boss' && !dis && !other && cmd && cmd !== 'босс'));
+    const off = dis || left;
+    const cls = (more ? 'more-btn' : '') + (off ? ' dis' + (left ? ' bcd' : '') : hot ? ' hot' : '');
+    const bc = cmd ? ` data-bc="${esc(cmd)}" data-sub="${esc(sub)}" data-en="${dis ? 0 : 1}"` : '';
+    const uiA = ui ? ` data-ui="${esc(ui)}"` : '';
+    const subTxt = left ? ('⏳ откат ' + left + ' с') : sub;
+    return `<button type="button" data-i="${i}"${uiA}${bc} class="${cls.trim()}"${off ? ' disabled' : ''}>`
+      + (other && !more ? `<span class="grp">не твой класс</span>` : '')
+      + `<span class="ic">${ic}</span><span class="lbl">${esc(lab)}</span>`
+      + (subTxt ? `<small class="sub">${esc(subTxt)}</small>` : '') + `</button>`;
+  }
+  function splitPhoneBar(defs, kind) {
+    const quest = { _ui: 'quests', 0: '📋', 1: 'Задания', 4: '' };
+    const more = { _ui: 'more', 0: '⋯', 1: 'Ещё', 4: '' };
+    const isUi = d => d._ui === 'inv' || d._ui === 'log';
+    const isOther = d => d[7] === 'other';
+    const ui = defs.filter(isUi);
+    const others = defs.filter(d => !isUi(d) && isOther(d));
+    const important = defs.filter(d => !isUi(d) && !isOther(d));
+    const inBoss = bsLoc === 'boss';
+    const special = inBoss ? ui : [quest].concat(ui);
+    const cap = kind === 'phone-l' ? 9 : 8;
+    const reserved = special.length + 1;
+    const room = Math.max(1, cap - reserved);
+    const shown = important.slice(0, room);
+    const rest = important.slice(room).concat(others);
+    if (!inBoss) { /* quest already in special */ }
+    else rest.unshift(quest);
+    const main = shown.concat(special);
+    if (rest.length) main.push(more);
+    return { main, more: rest };
+  }
   function fillBar(c) {
     const defs = barDefs(c);
     lastDefs = defs;
+    const kind = layoutKind();
+    const phone = kind === 'phone-p' || kind === 'phone-l';
+    const split = phone ? splitPhoneBar(defs, kind) : { main: defs, more: [] };
+    lastMore = split.more;
     $('#bsLocbar').innerHTML = LOCS.map(l => `<button type="button" data-loc="${l[0]}"${l[0] === bsLoc ? ' class="on"' : ''}>${l[1]} <span>${l[2]}</span></button>`).join('');
-    $('#bsBar').innerHTML = defs.map((d, i) => {
-      const ic = d[0] || '•', lab = d[1] || '', sub = d[4] || '', dis = !!d[6], other = d[7] === 'other';
-      const cmd = d._ui ? '' : (d[2] || '');
-      const left = cmd && window.__bossLeft ? __bossLeft(cmd) : 0;
-      const hot = !left && (c.tab === 'camp' && /поход|пати/.test(cmd) && !dis || (c.tab === 'boss' && !dis && !other && cmd && cmd !== 'босс'));
-      const off = dis || left;
-      const cls = off ? ' class="dis' + (left ? ' bcd' : '') + '"' : hot ? ' class="hot"' : '';
-      const bc = cmd ? ` data-bc="${esc(cmd)}" data-sub="${esc(sub)}" data-en="${dis ? 0 : 1}"` : '';
-      const subTxt = left ? ('⏳ откат ' + left + ' с') : sub;
-      return `<button type="button" data-i="${i}"${bc}${cls}${off ? ' disabled' : ''}>`
-        + (other ? `<span class="grp">не твой класс</span>` : '')
-        + `<span class="ic">${ic}</span><span class="lbl">${esc(lab)}</span>`
-        + (subTxt ? `<small class="sub">${esc(subTxt)}</small>` : '') + `</button>`;
-    }).join('');
+    $('#bsBar').innerHTML = split.main.map(d => btnHtml(d, d._ui ? -1 : defs.indexOf(d), false)).join('');
+    if (sheetKind) fillSheet();
+  }
+  function setSheet(kind) {
+    const ov = $('#bsSheet'); if (!ov) { sheetKind = ''; return; }
+    if (!kind) { ov.hidden = true; sheetKind = ''; return; }
+    setInv(false); setLog(false);
+    if (sheetKind === kind && !ov.hidden) { ov.hidden = true; sheetKind = ''; return; }
+    sheetKind = kind;
+    ov.hidden = false;
+    fillSheet();
+  }
+  function fillSheet() {
+    const title = $('#bsSheetTitle'), body = $('#bsSheetBody'); if (!title || !body) return;
+    if (sheetKind === 'quests') {
+      title.textContent = 'Задания';
+      const rows = questLis(ctx());
+      body.innerHTML = rows.length ? `<ul class="qlist">${rows.join('')}</ul>` : '<div class="muted">сейчас нет заданий</div>';
+    } else {
+      title.textContent = 'Ещё';
+      const rows = lastMore.map(d => btnHtml(d, d._ui ? -1 : lastDefs.indexOf(d), true)).join('');
+      body.innerHTML = rows || '<div class="muted">пусто</div>';
+    }
   }
 
   function fillUnit(c) {
@@ -457,27 +523,37 @@
     if (h <= 500 && w > h) return 'phone-l';
     return 'pc';
   }
-  function phoneCam(l, st) {
+  function meActor(st, l) {
     const list = locActors(st, l);
-    const pts = list.map(t => [+t[1], +t[2]]);
-    if (l === 'boss' && st && st.boss && st.boss.ph === 'fight') {
-      const L = lairSpotOf(st); pts.push(L.boss);
-    }
-    if (l === 'forest') (st && st.locs && st.locs.forest || []).forEach(t => { if (t[12]) pts.push([+t[1] + 220, +t[2]]); });
-    if (!pts.length) {
-      if (l === 'boss') return { x: 640, y: 280, w: 1480, h: 1100 };
-      if (l === 'forest') return { x: 520, y: 420, w: 1400, h: 1000 };
-      return { x: 780, y: 620, w: 1100, h: 820 };
-    }
-    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
-    const minX = Math.min(...xs) - 300, maxX = Math.max(...xs) + 300;
-    const minY = Math.min(...ys) - 540, maxY = Math.max(...ys) + 180;
-    return { x: minX, y: minY, w: Math.max(1000, maxX - minX), h: Math.max(740, maxY - minY) };
+    const c = ctx();
+    const meName = (c.user && c.user.login ? String(c.user.login) : (c.me && c.me.n) || '').toLowerCase();
+    return list.find(t => String(t[0]).toLowerCase() === meName) || list[0] || null;
+  }
+  function clampCam(ox, oy, s, vw, vh) {
+    const minOx = vw - W * s, maxOx = 0, minOy = vh - H * s, maxOy = 0;
+    ox = minOx <= maxOx ? Math.max(minOx, Math.min(maxOx, ox)) : (vw - W * s) / 2;
+    oy = minOy <= maxOy ? Math.max(minOy, Math.min(maxOy, oy)) : (vh - H * s) / 2;
+    return [ox, oy];
+  }
+  function updateBossHint(s, ox, oy, vw, vh, st) {
+    const el = $('#bsHint'); if (!el) return;
+    const fight = bsLoc === 'boss' && st && st.boss && st.boss.ph === 'fight' && layoutKind() === 'phone-p';
+    if (!fight) { el.hidden = true; return; }
+    const L = lairSpotOf(st), bx = L.boss[0], by = L.boss[1] - (L.h || 460) * 0.45;
+    const sx = ox + bx * s, sy = oy + by * s;
+    const m = 36;
+    if (sx > m && sx < vw - m && sy > m && sy < vh - m) { el.hidden = true; return; }
+    el.hidden = false;
+    el.textContent = (sx >= vw / 2 ? '► Босс' : '◄ Босс');
+    el.style.left = Math.max(44, Math.min(vw - 44, sx)) + 'px';
+    el.style.top = Math.max(80, Math.min(vh - 110, sy)) + 'px';
   }
   function layout() {
     if (!on) return;
     const root = $('#bs'), wrap = $('#bsWrap'), scene = $('#bsScene'); if (!root || !wrap || !scene) return;
     const kind = layoutKind();
+    if (layout._kind && layout._kind !== kind) { layout._kind = kind; try { fillBar(ctx()); } catch (e) {} }
+    layout._kind = kind;
     root.classList.remove('phone-p', 'phone-l', 'pc');
     root.classList.add(kind);
     const v = vpSize();
@@ -494,34 +570,42 @@
     }
     wrap.style.height = '';
     const wr = wrap.getBoundingClientRect();
+    const vw = wr.width, vh = wr.height;
+    const st = window.__panel && __panel.state;
     let s, ox, oy;
     if (kind === 'phone-p') {
       const bars = $('.bars-wrap', root);
-      const barsH = (bars && bars.offsetHeight) || 176;
-      root.style.setProperty('--barsH', (barsH + 10) + 'px');
       const unit = $('.unitframe', root);
-      root.style.setProperty('--unitH', ((unit && unit.offsetHeight) || 72) + 'px');
       const boss = $('#bsBoss');
+      const barsH = (bars && bars.offsetHeight) || 110;
+      const unitH = (unit && unit.offsetHeight) || 64;
       const bossH = (boss && !boss.hidden) ? boss.offsetHeight : 0;
+      root.style.setProperty('--barsH', (barsH + 8) + 'px');
+      root.style.setProperty('--unitH', unitH + 'px');
       root.style.setProperty('--bossH', bossH + 'px');
-      const dock = $('#bsDock');
-      const dockH = (dock && dock.offsetHeight) || 0;
-      const cam = phoneCam(bsLoc, window.__panel && __panel.state);
-      const topPad = 8 + ((unit && unit.offsetHeight) || 72) + (bossH ? bossH + 10 : 0);
-      const botPad = 8 + barsH + dockH;
-      const vx = 0, vy = topPad, vw = wr.width, vh = Math.max(160, wr.height - topPad - botPad);
-      s = Math.max(vw / cam.w, vh / cam.h);
-      ox = vx + vw / 2 - (cam.x + cam.w / 2) * s;
-      oy = vy + vh / 2 - (cam.y + cam.h / 2) * s;
+      const me = meActor(st, bsLoc);
+      const hx = me ? +me[1] : W / 2, hy = me ? +me[2] : Math.round(H * 0.72);
+      const topSafe = 8 + unitH + (bossH ? bossH + 8 : 0);
+      const botSafe = 8 + barsH;
+      const feetTarget = Math.min(vh - botSafe - 20, vh * 0.72);
+      const sFit = Math.max(vw / W, vh / H);
+      const sFeet = (H - hy) > 8 ? (vh - feetTarget) / (H - hy) : sFit;
+      s = Math.max(sFit, sFeet);
+      ox = vw / 2 - hx * s;
+      oy = feetTarget - hy * s;
+      [ox, oy] = clampCam(ox, oy, s, vw, vh);
+      updateBossHint(s, ox, oy, vw, vh, st);
     } else if (kind === 'phone-l') {
-      const floor = 72;
-      s = Math.max(wr.width / W, (wr.height - floor) / (H - 120));
-      ox = (wr.width - W * s) / 2;
-      oy = (wr.height - floor - 8) - 1220 * s;
+      // вся локация, как на ПК (вписать целиком)
+      s = Math.min(vw / W, vh / H);
+      ox = (vw - W * s) / 2;
+      oy = (vh - H * s) / 2;
+      updateBossHint(s, ox, oy, vw, vh, st);
     } else {
-      s = Math.min(wr.width / W, wr.height / H);
-      ox = (wr.width - W * s) / 2;
-      oy = (wr.height - H * s) / 2;
+      s = Math.min(vw / W, vh / H);
+      ox = (vw - W * s) / 2;
+      oy = (vh - H * s) / 2;
+      updateBossHint(s, ox, oy, vw, vh, st);
     }
     scene.style.transform = 'translate(' + ox + 'px,' + oy + 'px) scale(' + s + ')';
     clipNames();
@@ -530,7 +614,7 @@
   function clipNames() {
     const wrap = $('#bsWrap'); if (!wrap) return;
     const r = wrap.getBoundingClientRect();
-    const blockers = ['.unitframe', '.bossbar:not([hidden])', '.bars-wrap', '#bsGoal:not([hidden])', '#bsQuests', '#bsFeed', '.bs-off', '.ph-dock']
+    const blockers = ['.unitframe', '.bossbar:not([hidden])', '.bars-wrap', '#bsGoal:not([hidden])', '#bsGoalStrip:not([hidden])', '#bsQuests', '#bsFeed', '.bs-off', '.bs-hint:not([hidden])']
       .flatMap(s => [...document.querySelectorAll('#bs ' + s)])
       .map(el => el.getBoundingClientRect())
       .filter(b => b.width > 2 && b.height > 2);
@@ -549,6 +633,7 @@
 
   function setInv(show) {
     const ov = $('#bsOverlay'); if (!ov) return;
+    if (show) { setLog(false); if (sheetKind) setSheet(false); }
     ov.hidden = !show;
     if (!show) return;
     const c = ctx(), body = $('#bsInvBody');
@@ -560,6 +645,7 @@
   }
   function setLog(show) {
     const ov = $('#bsLogOv'); if (!ov) return;
+    if (show) { const inv = $('#bsOverlay'); if (inv) inv.hidden = true; if (sheetKind) setSheet(false); }
     ov.hidden = !show;
     if (show) fillLog();
   }
