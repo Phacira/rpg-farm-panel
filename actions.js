@@ -43,10 +43,20 @@
     // v7panel4 п.5: выбор рецепта (ref.recipes: [название, вид, что нужно, ур. открытия]; me.rcp[i]: 1 — открыт, 2 — хватает овощей)
     const recipes = () => [{ label: 'Лучшее из доступного', sub: 'игра выберет сама', arg: '' }].concat((ref.recipes || []).map(([n, kind, need, lv], i) => { const f = me && me.rcp ? me.rcp[i] || 0 : 1, open = f & 1, can = f & 2; return {
       label: (kind === 'potion' ? '🧪 ' : '🍲 ') + n, sub: !open ? `закрыт: нужен ур. ${lv}` : (can ? 'хватает: ' : 'не хватает: ') + need, dis: !open, arg: String(i + 1) + (ref.bc ? ' 1' : ''), confirm: `${kind === 'potion' ? 'Сварить' : 'Приготовить'} «${n}»?` }; }));
-    const shop = () => (ref.eq || []).filter(i => !i[4] || (me && i[4].includes(me.cls))).map(([id, name, price, slot, , bs, stt]) => { // v7panel20 п.2: + статы вещи
+    // v49.9 (fs499): цена продажи одной вещи (с учётом заточки / лишней копии) — общая для «Продать вещь» и кузницы
+    const sellOffer = (id, n, price) => { const own = me && me.eqOwn || [], worn = Object.values(me && me.eqOn || {}), cnt = own.filter(x => x === id).length, wn = worn.filter(x => x === id).length;
+      const can = cnt > wn, e = me && me.esp && me.esp[id], extra = can && wn > 0, lv = e && !extra ? e[1] : 0;
+      const pr = e ? (extra ? Math.round((price || 0) * 0.3) : e[0]) : Math.round((price || 0) * 0.3), nm = n + (lv ? ` +${lv}` : '');
+      return { can, pr, lv, extra, nm, row: { ic: ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : '', label: nm + (extra ? ' (лишняя копия)' : ''), sub: can ? `кузня · ${pr} з${lv ? ' · с учётом заточки' : ''}` : 'сначала сними вещь', dis: !can, arg: id, cmd: 'продать', confirm: can ? `Продать «${nm}» за ${pr} золота?${lv ? `\nЗаточка +${lv} пропадёт.` : ''}` : '' } }; };
+    const shop = () => (ref.eq || []).filter(i => !i[4] || (me && i[4].includes(me.cls))).map(([id, name, price, slot, , bs, stt]) => { // v7panel20 п.2: + статы вещи; v49.9: у своей вещи — Надеть / Продать
       const own = me && (me.eqOwn || []).includes(id), on = me && eqWorn(id);
       const ic = ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : ''; // v7panel21 п.1: иконка вещи на кнопке
-      return own ? { ic, label: name, sub: (on ? 'надето' : 'есть — надеть') + (stt ? ' · ' + stt : ''), dis: on, arg: id, cmd: 'экип' } : { ic, label: name, sub: `${stt ? stt + ' · ' : ''}${price} з · ${SLOT_RU[slot] || slot}${bs > (ref.bsLv || 1) ? ' · кузница ур.' + bs : ''}`, dis: gold < price || bs > (ref.bsLv || 1), arg: id, confirm: `Купить «${name}» за ${price} золота?` }; });
+      if (!own) return { ic, label: name, sub: `${stt ? stt + ' · ' : ''}${price} з · ${SLOT_RU[slot] || slot}${bs > (ref.bsLv || 1) ? ' · кузница ур.' + bs : ''}`, dis: gold < price || bs > (ref.bsLv || 1), arg: id, confirm: `Купить «${name}» за ${price} золота?` };
+      const s = sellOffer(id, name, price);
+      return { ic, label: name, sub: (on ? 'надето' : 'есть') + (s.can ? ` · продать за ${s.pr} з` : '') + (stt ? ' · ' + stt : ''), next: [
+        { ic, label: 'Надеть', sub: on ? 'уже надето' : 'надеть на героя', dis: on, arg: id, cmd: 'экип' },
+        Object.assign({}, s.row, { label: 'Продать' + (s.extra ? ' (лишняя копия)' : '') + (s.lv ? ` +${s.lv}` : '') })
+      ] }; });
     // v7panel31: «Сделать ход». ref.tb=0 — только подсказка (без запроса: баллы Twitch списывает только Twitch); tb=1 — ход с пульта, лимит ref.tl за стрим
     const tl = ref.tl || 1, tu = me && me.tu || 0, rw0 = me && me.rw || {}, stock = `поход ${rw0.hike || 0} · готовка ${rw0.cook || 0} · квест ${rw0.quest || 0}`;
     const turnInfo = () => { const url = ref.ch ? 'https://www.twitch.tv/' + ref.ch : ''; return [{ label: `Ход — это награда «${ref.trn || 'Сделать ход'}» за баллы канала`, sub: 'Пульт не может тратить баллы. Откройте чат Twitch → значок баллов под чатом → «' + (ref.trn || 'Сделать ход') + '».', note: 1 },
@@ -82,10 +92,7 @@
     const hairOk = (HAIR_AVAILABLE || ref.hairOn === true) && (ref.hair || []).length > 0;
     // v7panel44: кузня (eqOwn снятое, 30%) + лут сундука (rpg_gear / me.lgs|lg+ref.gear, 40*tier). Без ref.gear и lgs — старая игра, лут в списке не показываем.
     // v49.8: цена с заточкой и лишние копии — из me.esp {id: [цена, +ур, копий]} (игра ≥ v49.8); иначе старые 30%
-    const sellSmith = () => { const own = me && me.eqOwn || [], worn = Object.values(me && me.eqOn || {}), cnt = id => own.filter(x => x === id).length, wn = id => worn.filter(x => x === id).length;
-      return [...new Set(own)].filter(id => cnt(id) > wn(id)).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, price]) => { const e = me.esp && me.esp[id], extra = wn(id) > 0, lv = e && !extra ? e[1] : 0;
-        const pr = e ? (extra ? Math.round((price || 0) * 0.3) : e[0]) : Math.round((price || 0) * 0.3), nm = n + (lv ? ` +${lv}` : '');
-        return { ic: ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : '', label: nm + (extra ? ' (лишняя копия)' : ''), sub: `кузня · ${pr} з${lv ? ' · с учётом заточки' : ''}`, arg: id, confirm: `Продать «${nm}» за ${pr} золота?${lv ? `\nЗаточка +${lv} пропадёт.` : ''}` }; }); };
+    const sellSmith = () => [...new Set(me && me.eqOwn || [])].map(id => { const it = (ref.eq || []).find(i => i[0] === id); return it && sellOffer(it[0], it[1], it[2]); }).filter(s => s && s.can).map(s => s.row);
     const sellLootRows = () => {
       if (!(ref.gear && ref.gear.length) && !(me && me.lgs && me.lgs.length)) return [];
       const rows = (me && me.lgs && me.lgs.length) ? me.lgs : (me && me.lg || []).map(id => { const g = (ref.gear || []).find(x => x[0] === id); return g || null; }).filter(Boolean);
@@ -105,7 +112,7 @@
     return {
       town: [['📜', 'Задание', 'квест', quests, me && me.rw && me.rw.quest > 0 ? `осталось: ${me.rw.quest}` : 'квесты кончились'],
         ['✖', 'Отменить квест', 'снять', 'квест', !px494 ? 'обновите игру до v49.4' : me && me.q ? 'квест сгорит' : 'нет квеста', me && me.q ? 'Отменить квест? Он сгорит.' : null, !px494 || !(me && me.q)], // v49.4: relay не знает «отмена» — шлём «снять квест» (понимает game.js v49.4)
-        ['⚒', 'Кузница', 'купить', shop, 'купить / надеть'], ...(me && me.dr && me.dr.i && me.dr.i.length ? [['🔧', 'Починить', 'чинить', repair, 'у кузницы · ' + me.dr.t + ' з']] : []), hairBtn,
+        ['⚒', 'Кузница', 'купить', shop, 'купить / надеть / продать'], ...(me && me.dr && me.dr.i && me.dr.i.length ? [['🔧', 'Починить', 'чинить', repair, 'у кузницы · ' + me.dr.t + ' з']] : []), hairBtn,
         ['🏗', 'Вклад', 'вклад', () => bldPick('town'), 'в постройку города'], ['💰', 'Продать', 'продать', () => crops, 'овощи на рынке']],
       garden: [['🚶', 'На огород', 'огород', '', 'к своей грядке'], ['🌰', 'Семена', 'семена', '', '3 в день'], (px494 ? ['💰', 'Купить семена', 'купить', () => [1, 3, 5].map(k => ({ label: k + ' шт.', sub: k * 150 + ' з', arg: 'семена ' + k, confirm: `Купить ${k} шт. семян за ${k * 150} золота?` })), '150 з/шт'] : ['💰', 'Купить семена', 'купить', '', 'обновите игру до v49.4', null, true]), ['🌱', 'Посадить', 'посадить', '', ''],
         ['⏳', 'Грядка', 'грядка', '', 'сколько ждать'], ['🐞', 'Жуки', 'жуки', '', 'отогнать'], ['🧺', 'Собрать', 'собрать', '', 'урожай'],
@@ -119,7 +126,7 @@
         ['🐌', 'Замедлить', 'замедлить', '', 'замедлить каст'], ['🛡', 'Заслон', 'заслон', '', 'щит отряду'], ['✝', 'Воскресить', 'воскресить', '', 'поднять союзника']]),
       me: me ? [turnBtn, ['🎒', 'Надеть', 'экип', wear, 'своё снаряжение'], ['🧤', 'Снять', 'снять', unwear, 'вещь со слота'], ['💰', 'Продать вещь', 'продать', sellEq, 'кузня · трофеи'], ...trophyBtn(), ['🏷', 'Титул', 'титул', titles, me.ttOn || 'выбрать'],
         ...(me.pt && me.pt.length ? [['🐾', 'Питомец', 'экип', pets, ((me.pt.find(p => p[0] === me.ptOn) || [])[1]) || 'не взят']] : []),
-        hairBtn, ['🏰', 'Гильдия', 'гильдия', guilds, me.gd || 'выбрать'], ['⚒', 'Кузница', 'купить', shop, 'купить вещь'], ...(me.dr && me.dr.i && me.dr.i.length ? [['🔧', 'Починить', 'чинить', repair, 'у кузницы · ' + me.dr.t + ' з']] : [])]
+        hairBtn, ['🏰', 'Гильдия', 'гильдия', guilds, me.gd || 'выбрать'], ['⚒', 'Кузница', 'купить', shop, 'купить / надеть / продать'], ...(me.dr && me.dr.i && me.dr.i.length ? [['🔧', 'Починить', 'чинить', repair, 'у кузницы · ' + me.dr.t + ' з']] : [])]
         : [['🧙', 'Стать героем', 'вступить', '', 'нужна награда канала']]
     };
   }
