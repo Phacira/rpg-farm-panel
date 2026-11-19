@@ -210,20 +210,23 @@
     const L = (a, def) => (a || []).map(x => chip(invItem(x, def), +x[2] > 0));
     const eqOn = me.eqOn || {}, spare = (me.eqOwn || []).filter(id => !Object.values(eqOn).includes(id));
     const drById = {}; (me.dr && me.dr.i || []).forEach(([s, pct, cost, id]) => { drById[id] = { s, pct, cost }; });
-    const gearChips = spare.map(id => chip({ ic: icOn() && eqIcK(id) ? 'ic:' + eqIcK(id) : '🎒', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : '') }))
-      .concat(((me.iv && me.iv.g) || []).map(x => { const id = x[3], price = x[4], bonus = x[5];
+    const gearChips = spare.map(id => chip({ ic: icOn() && eqIcK(id) ? 'ic:' + eqIcK(id) : '🎒', nm: (eqN[id] || id) + (eqT[id] ? ' — ' + eqT[id] : '') }));
+    // v49.8: трофеи — своя вкладка; действует только активный (iv.g[6] / lgs[5], игра ≥ v49.8)
+    const troChips = ((me.iv && me.iv.g) || []).map(x => { const id = x[3], price = x[4], bonus = x[5], act = x.length > 6 ? !!x[6] : true;
         const can = !!(id && ((ref.gear && ref.gear.length) || (me.lgs && me.lgs.length)));
-        return chip({ ic: '⚔️', nm: x[1] || 'лут', act: true, tag: can && price != null ? `${price} з` : 'лут', sellLoot: can ? id : '', sellPrice: price, sellBonus: bonus }); }));
+        return chip({ ic: '🏆', nm: String(x[1] || 'трофей').replace(/^(лут|Трофей): /, '') + (act ? ' ✓ активный' : ' · не действует'), act, tag: can && price != null ? `${price} з` : 'трофей', sellLoot: can ? id : '', sellPrice: price, sellBonus: act ? bonus : 'ничего (неактивный)' }); });
     const tabs = [
       ['gear', 'Снаряжение'],
       ['mat', 'Материалы'],
       ['food', 'Еда'],
       ['pot', 'Зелья'],
-      ['seed', 'Семена']
+      ['seed', 'Семена'],
+      ...(troChips.length ? [['tro', 'Трофеи']] : [])
     ];
     let pane = '';
     if (meInvTab === 'gear') {
       pane = gearChips.length ? gearChips.join('') : '<span class="ivn">запас снаряжения пуст</span>';
+    } else if (meInvTab === 'tro') { pane = '<span class="ivn">Действует только один трофей. Сменить: «Трофеи» в меню героя.</span> ' + troChips.join('');
     } else if (meInvTab === 'mat') pane = L(iv.m, '🪨').join('') || '<span class="ivn">пусто</span>';
     else if (meInvTab === 'food') pane = L(iv.f, '🍲').join('') || '<span class="ivn">пусто</span>';
     else if (meInvTab === 'pot') pane = L(iv.p, '🧪').join('') || '<span class="ivn">пусто</span>';
@@ -258,9 +261,9 @@
       mat: ['Материалы', fromIv(iv.m, '🪨')],
       food: ['Еда', fromIv(iv.f, '🍲').concat(Object.entries(me.veg || {}).map(([k, n]) => ({ html: vegImg(k), n, nm: k })))],
       pot: ['Зелья', fromIv(iv.p, '🧪')],
+      tro: ['Трофеи', (me.lgs || []).map(r => { const act = r.length > 5 ? !!r[5] : true; return { html: '<span class="vegi icfb">🏆</span>', n: act ? '✓' : '', nm: 'Трофей: ' + r[1], act, tip: (act ? 'активный: ' : 'не действует (активен только один) · дал бы ') + (r[4] || '') + (r[3] != null ? ' · продать ' + r[3] + ' з' : '') }; })], // v49.8: трофеи — отдельно от снаряжения
       seed: ['Семена', [{ html: '<span class="vegi icfb">🌱</span>', n: me.sd || 0, nm: 'Семена' }, { html: '<span class="vegi icfb">✨</span>', n: me.sdp || 0, nm: 'Волшебные семена' }]],
       gear: ['Снаряжение', (me.eqOwn || []).map(id => { const e = E[id], on = Object.values(eqOn).includes(id); return { html: icOf(id), n: on ? '✓' : '', nm: e ? e[1] : id, act: on, tip: (e && e[6] || '') + (on ? ' · надето' : '') }; })
-        .concat((me.lgs || []).map(r => ({ html: '<span class="vegi icfb">⚔️</span>', n: '★', nm: 'лут: ' + r[1], act: 1, tip: (r[4] || '') + (r[3] != null ? ' · продать ' + r[3] + ' з' : '') })))
         .concat(!(me.lgs && me.lgs.length) ? ((me.iv && me.iv.g) || []).map(x => ({ html: '<span class="vegi icfb">⚔️</span>', n: '★', nm: x[1] || 'лут', act: 1 })) : [])
         .concat(me.ttOn ? [{ html: '<span class="vegi icfb">🏷️</span>', n: '', nm: 'титул: ' + me.ttOn, act: 1 }] : [], (me.pt || []).map(([id, n]) => ({ html: '<span class="vegi icfb">🐾</span>', n: me.ptOn === id ? '✓' : '', nm: 'питомец: ' + n, act: me.ptOn === id })))]
     };
@@ -655,6 +658,11 @@
       if (qs('cls')) { state.me.cls = qs('cls'); }
     }
     state.stream = !/offline=1/.test(location.search); state.test = /ptest=1/.test(location.search);
+    if (/[?&]tro=1/.test(location.search)) { // v49.8: макет трофеев (один активный) и цены продажи с заточкой
+      state.me.lg = ['sword3', 'sword2', 'armor2']; state.me.lgs = [['sword3','Клинок героя',3,120,'+18% урон',1],['sword2','Рунный клинок',2,80,'+10% урон',0],['armor2','Кольчуга',2,80,'+4 защита',0]]; state.me.iv = Object.assign({}, state.me.iv, { g: state.me.lgs.map(r => ['🏆', 'Трофей: ' + r[1], 1, r[0], r[3], r[4], r[5]]) });
+      if (!MOCK_REF.eq.some(e => e[0] === 'w_sword2')) MOCK_REF.eq.push(['w_sword2', 'Стальной клинок', 300, 'weapon', ['warrior', 'paladin'], 2, '+2 урон', 'w2']);
+      state.me.eqOwn = (state.me.eqOwn || []).concat(['w_sword2', 'r_str']); state.me.esp = { w_sword2: [90 + 90, 3, 1], r_str: [96, 0, 2] }; // 30% от 300 + 50% от (40+60+80)
+    }
     if (/[?&]dur=1/.test(location.search)) { // v7panel42: макет прочности + цен починки (без relay)
       state.me.dr = { t: 28, g: state.me.gold, ok: 1, w: '', i: [['weapon', 45, 12, 'w_sword1'], ['trinket', 18, 16, 'a_light']] };
       state.me.iv = Object.assign({}, state.me.iv, { g: [['⚔', 'лут: Острый меч', 1]] });
@@ -753,7 +761,7 @@
       const R = setRows(me, set, {}, MOCK_REF), ch = R.filter(r => r.k === 'new'); ch.forEach(r => { me.eqOn[r.s] = r.id; }); Z.a = n; syncMockEqS(me); render();
       const sk = R.filter(r => r.k === 'sold' || r.k === 'cls'); return { id: m.id, ok: true, msg: `👕 надевает сет ${n}: ${ch.length} ${ch.length === 1 ? 'вещь' : 'вещи'}${sk.length ? '; пропущено: ' + sk.map(r => r.name).join(', ') : ''} (демо)` }; }
     return { id: m.id, ok: false, msg: 'как пользоваться: !сет 1 / !сет 2 (демо)' }; }
-  const MOCK_REF = { guilds: [['fire', 'Огненный клинок', '#d9482b'], ['silver', 'Серебряный лист', '#9fc7d6'], ['moon', 'Лунные тени', '#8a6ad8'], ['gold', 'Золотой колос', '#e8b830']],
+  const MOCK_REF = { guilds: [['fire', 'Огненный клинок', '#d9482b', 9, 14, 14], ['silver', 'Серебряный лист', '#9fc7d6', 7, 12, 14], ['moon', 'Лунные тени', '#8a6ad8', 6, 11, 14], ['gold', 'Золотой колос', '#e8b830', 5, 10, 14]],
     hair: [['black', 'чёрный', [[14, 12, 14], [40, 36, 42], [82, 76, 86]]], ['darkbrown', 'тёмно-каштановый', [[24, 14, 10], [60, 38, 26], [104, 72, 50]]], ['chestnut', 'каштановый', null], ['lightbrown', 'русый', [[70, 52, 34], [132, 106, 74], [190, 164, 122]]], ['blond', 'блонд', [[118, 86, 40], [202, 162, 86], [246, 224, 152]]], ['red', 'рыжий', [[88, 28, 10], [178, 72, 26], [238, 140, 66]]], ['grey', 'седой', [[78, 78, 84], [150, 150, 158], [216, 216, 224]]]], hairPrice: 250, bsLv: 3, ic: 1,
     eq: [['w_sword1', 'Железный меч', 120, 'weapon', null, 1, '+2 урон'], ['a_leather', 'Кожаная броня', 150, 'armor', null, 1, '+4 защита'], ['o_shield', 'Деревянный щит', 90, 'offhand', ['warrior', 'paladin'], 1, '+3 защита'], ['t_amulet', 'Амулет силы', 400, 'trinket', null, 2],
       /* v7panel37: кольца и амулеты с ключом иконки [7] */ ['r_str', 'Кольцо Силы', 300, 'ring1', null, 1, '+2 атк', 'ring_atk'], ['r_def', 'Кольцо Защиты', 300, 'ring1', null, 1, '+2 защ', 'ring_def'], ['r_hp', 'Кольцо Жизни', 300, 'ring1', null, 1, '+15 hp', 'ring_hp'], ['r_dodge', 'Кольцо Уклона', 450, 'ring1', null, 2, '+4% уклон', 'ring_dodge'], ['r_str2', 'Кольцо Силы II', 700, 'ring1', null, 3, '+4 атк', 'ring_atk~67'],

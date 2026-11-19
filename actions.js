@@ -26,7 +26,7 @@
       const fx = fxOn ? `Ур. ${lv}/${max} · сейчас: ${now || '—'} · Улучшение: ${nxt || '—'} · ` : '';
       const put = Math.min(gold, need || 0); // v49.8: «всё» списывает не больше остатка до улучшения — показываем реальную сумму
       const goldOpts = [50, 100, 250, 'всё'].filter(a => a === 'всё' || a < need).map(a => a === 'всё'
-        ? { label: gold >= need ? `Вложить ${need} з` : `Всё золото: ${gold} з`, sub: gold >= need ? `столько осталось до улучшения · у вас ${gold} з` : gold > 0 ? `до улучшения не хватит ${need - gold} з` : 'нет золота', arg: `${id} всё`, dis: put < 1, confirm: `Вложить ${put} золота в «${name}»?` }
+        ? { label: gold >= need ? `Вложить ${need} з` : gold > 0 ? `Вложить ${gold} з (всё, что есть)` : `Вложить ${need} з`, sub: gold >= need ? `ровно столько осталось до улучшения · у вас ${gold} з` : gold > 0 ? `до улучшения не хватит ${need - gold} з · больше ${gold} з не спишется` : 'нет золота', arg: `${id} всё`, dis: put < 1, confirm: `Вложить ${put} золота в «${name}»? Спишется ровно ${put} з.` } /* v49.8: остаток до улучшения, считается на лету; больше остатка не списывается */
         : { label: `${a} золота`, arg: `${id} ${a}`, dis: gold < a, confirm: `Вложить ${a} золота в «${name}»?` });
       const matOpts = mlist.map(([m, n]) => { const have = me && me.mt ? +me.mt[m] || 0 : 0, k = Math.min(have, n), price = (ref.matP || {})[m] || 0, buy = n - k;
         return { label: `${mti(m)} ${mtn(m)}`, sub: `нужно ${n}, в сумке ${have}`, next: [1, 5, 10].filter(q => q < k).map(q => ({ label: `${mtn(m)}: ${q} из сумки`, arg: `${id} ${m} ${q}`, confirm: `Вложить ${mtn(m).toLowerCase()} ${q} шт. в «${name}»?` }))
@@ -56,7 +56,7 @@
     // v49.7 (brb498): цирюльник на готовых спрайтах — у каждого цвета превью своего героя img/h/<me.hk>_<цвет>.webp, только доступные цвета (me.ha). Старая игра (px < 498) — как раньше
     const brb = +(ref.px || 0) >= 498 && ref.hb === 1 && !!(me && me.hk);
     const hair = () => (ref.hair || []).filter(([id]) => !brb || !Array.isArray(me.ha) || me.ha.includes(id)).map(([id, n]) => ({ pic: brb && /^[a-z0-9_]{3,40}$/.test(me.hk + '_' + id) ? `img/h/${me.hk}_${id}.webp` : '', label: n, sub: me && me.hair === id ? 'сейчас' : `${ref.hairPrice || 250} з`, dis: (me && me.hair === id) || gold < (ref.hairPrice || 250), arg: brb ? id : n, confirm: `Покрасить волосы в «${n}» за ${ref.hairPrice || 250} золота?` }));
-    const guilds = () => (ref.guilds || []).map(([id, n], i) => ({ label: n, sub: me && me.gid === id ? 'ваша гильдия' : '', dis: me && me.gid === id, arg: String(i + 1), confirm: `Вступить в гильдию «${n}»?` }));
+    const guilds = () => (ref.guilds || []).map(([id, n, , ga, gt, gd], i) => ({ label: n, sub: [me && me.gid === id ? 'ваша гильдия' : '', gt != null ? (gd ? `активных ${ga} из ${gt}` : `${gt} чел.`) : ''].filter(Boolean).join(' · '), /* v49.8: активные за gd дней */ dis: me && me.gid === id, arg: String(i + 1), confirm: `Вступить в гильдию «${n}»?` }));
     const quests = () => me && me.q ? [{ label: 'У вас уже есть задание', dis: true }] : (me && me.of || []).map((id, i) => ({ label: `${i + 1}. ${(ref.quests || {})[id] || id}`, arg: String(i + 1) })).concat([{ label: 'Показать список (без хода)', arg: '' }]);
     // v49.8: «Надеть» — только то, что лежит в сумке и не надето (кольцо может быть в слоте ring1 или ring2); дубли id не показываем
     const wear = () => { const L = [...new Set(me && me.eqOwn || [])].filter(id => !eqWorn(id)).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, , slot, , , stt]) => ({ ic: ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : '', label: n, sub: (SLOT_RU[slot] || slot) + (stt ? ' · ' + stt : ''), arg: id, confirm: `Надеть «${n}»?` }));
@@ -81,14 +81,25 @@
     // v7panel10: парикмахер виден, но неактивен, пока HAIR_AVAILABLE=false и игра не прислала ref.hairOn (CONFIG.hairRecolor.enabled в игре)
     const hairOk = (HAIR_AVAILABLE || ref.hairOn === true) && (ref.hair || []).length > 0;
     // v7panel44: кузня (eqOwn снятое, 30%) + лут сундука (rpg_gear / me.lgs|lg+ref.gear, 40*tier). Без ref.gear и lgs — старая игра, лут в списке не показываем.
-    const sellSmith = () => (me && me.eqOwn || []).filter(id => !(me.eqOn && Object.values(me.eqOn).includes(id))).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, price]) => ({ ic: ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : '', label: n, sub: `кузня · ${Math.round((price || 0) * 0.3)} з`, arg: id, confirm: `Продать «${n}» за ${Math.round((price || 0) * 0.3)} золота?` }));
+    // v49.8: цена с заточкой и лишние копии — из me.esp {id: [цена, +ур, копий]} (игра ≥ v49.8); иначе старые 30%
+    const sellSmith = () => { const own = me && me.eqOwn || [], worn = Object.values(me && me.eqOn || {}), cnt = id => own.filter(x => x === id).length, wn = id => worn.filter(x => x === id).length;
+      return [...new Set(own)].filter(id => cnt(id) > wn(id)).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, price]) => { const e = me.esp && me.esp[id], extra = wn(id) > 0, lv = e && !extra ? e[1] : 0;
+        const pr = e ? (extra ? Math.round((price || 0) * 0.3) : e[0]) : Math.round((price || 0) * 0.3), nm = n + (lv ? ` +${lv}` : '');
+        return { ic: ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : '', label: nm + (extra ? ' (лишняя копия)' : ''), sub: `кузня · ${pr} з${lv ? ' · с учётом заточки' : ''}`, arg: id, confirm: `Продать «${nm}» за ${pr} золота?${lv ? `\nЗаточка +${lv} пропадёт.` : ''}` }; }); };
     const sellLootRows = () => {
       if (!(ref.gear && ref.gear.length) && !(me && me.lgs && me.lgs.length)) return [];
       const rows = (me && me.lgs && me.lgs.length) ? me.lgs : (me && me.lg || []).map(id => { const g = (ref.gear || []).find(x => x[0] === id); return g || null; }).filter(Boolean);
       return rows.map(r => { const id = r[0], n = r[1], price = r[3], bonus = r[4] || 'пассив сундука';
-        return { label: 'лут: ' + n, sub: `пассив · ${price} з · ${bonus}`, arg: 'лут ' + id, confirm: `Продать лут «${n}» за ${price} золота?\nПотеряете пассив: ${bonus}.\nЭто не кузнечная вещь.` }; });
+        const t5 = r.length > 5, act = t5 && r[5]; // v49.8: трофей; [5] — активный
+        return t5 ? { label: '🏆 Трофей: ' + n, sub: `${price} з · ${act ? 'активный: ' + bonus : 'не действует'}`, arg: 'лут ' + id, confirm: `Продать трофей «${n}» за ${price} золота?${act ? `\nЭто активный трофей: пропадёт ${bonus}, активным станет лучший из оставшихся.` : '\nОн сейчас не действует.'}` }
+          : { label: 'лут: ' + n, sub: `пассив · ${price} з · ${bonus}`, arg: 'лут ' + id, confirm: `Продать лут «${n}» за ${price} золота?\nПотеряете пассив: ${bonus}.\nЭто не кузнечная вещь.` }; });
     };
     const sellEq = () => sellSmith().concat(sellLootRows());
+    // v49.8: «Трофеи» — отдельно от снаряжения: действует только один, переключение «!экип трофей <id>»
+    const trophyList = () => me && me.lgs && me.lgs.length && me.lgs[0].length > 5 ? me.lgs : null;
+    const trophies = () => [{ label: 'Действует только один трофей', sub: 'трофеи не надеваются; остальные можно продать («Продать вещь»)', note: 1 }].concat(trophyList().map(r => { const [id, n, , price, bonus, act] = r;
+      return { label: (act ? '✓ ' : '') + n, sub: act ? `активный · ${bonus}` : `не действует · дал бы ${bonus} · продажа ${price} з`, arg: 'трофей ' + id, dis: !!act, confirm: `Сделать «${n}» активным трофеем?\nПрежний перестанет действовать.` }; }));
+    const trophyBtn = () => { const L = trophyList(); if (!L) return []; const a = L.find(r => r[5]); return [['🏆', 'Трофеи', 'экип', trophies, a ? `активный: ${a[1]}` : `${L.length} шт.`]]; };
     const px494 = +(ref && ref.px) >= 494; // v49.4: игра понимает «снять квест» и «купить семена N»
     const hairBtn = hairOk ? ['💈', 'Парикмахер', 'парикмахер', hair, `${ref.hairPrice || 250} з`] : ['💈', 'Парикмахер', 'парикмахер', '', HAIR_OFF_TEXT, null, true];
     return {
@@ -106,7 +117,7 @@
       boss: bossOrder(me, [['☠', 'Записаться', 'босс', '', 'в отряд на босса'], ['👊', 'Удар', 'удар', '', 'до 4 в минуту'], ['💚', 'Лечить', 'лечить', '', 'раз в 30 с'],
         ['💫', 'Оглушить', 'оглушить', '', 'красный каст'], ['🕸', 'Связать', 'связать', '', 'жёлтый каст'], ['🔮', 'Очистить', 'очистить', '', 'фиолетовый каст'],
         ['🐌', 'Замедлить', 'замедлить', '', 'замедлить каст'], ['🛡', 'Заслон', 'заслон', '', 'щит отряду'], ['✝', 'Воскресить', 'воскресить', '', 'поднять союзника']]),
-      me: me ? [turnBtn, ['🎒', 'Надеть', 'экип', wear, 'своё снаряжение'], ['🧤', 'Снять', 'снять', unwear, 'вещь со слота'], ['💰', 'Продать вещь', 'продать', sellEq, 'кузня 30% · лут'], ['🏷', 'Титул', 'титул', titles, me.ttOn || 'выбрать'],
+      me: me ? [turnBtn, ['🎒', 'Надеть', 'экип', wear, 'своё снаряжение'], ['🧤', 'Снять', 'снять', unwear, 'вещь со слота'], ['💰', 'Продать вещь', 'продать', sellEq, 'кузня · трофеи'], ...trophyBtn(), ['🏷', 'Титул', 'титул', titles, me.ttOn || 'выбрать'],
         ...(me.pt && me.pt.length ? [['🐾', 'Питомец', 'экип', pets, ((me.pt.find(p => p[0] === me.ptOn) || [])[1]) || 'не взят']] : []),
         hairBtn, ['🏰', 'Гильдия', 'гильдия', guilds, me.gd || 'выбрать'], ['⚒', 'Кузница', 'купить', shop, 'купить вещь'], ...(me.dr && me.dr.i && me.dr.i.length ? [['🔧', 'Починить', 'чинить', repair, 'у кузницы · ' + me.dr.t + ' з']] : [])]
         : [['🧙', 'Стать героем', 'вступить', '', 'нужна награда канала']]
