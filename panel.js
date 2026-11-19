@@ -600,6 +600,9 @@
     const tst = !!(on && state.test); // v7panel37: тестовый режим — relay присылает test:true только владельцу канала
     live.className = 'live ' + (tst ? 'on test' : on ? 'on' : 'off');
     live.textContent = !state ? 'Подключение…' : state.nocfg ? 'Пульт ещё не подключён к серверу (RELAY_URL пуст)' : tst ? '🧪 Тестовый режим (виден только вам)' : on ? '● Стрим идёт' : 'Стрим не идёт';
+    { const sg = $('sg499'), g = on && +((state.ref && state.ref.px) || 0) >= 499 && Array.isArray(state.ref.sg) ? state.ref.sg : null; // v49.8 (px ≥ 499): цель стрима, как плашка в OBS
+      if (sg) { sg.hidden = !g; if (g) { const [t, pr, nd, dn] = g, _g4 = g[4], pc = Math.max(0, Math.min(100, Math.round(100 * pr / (nd || 1))));
+        sg.innerHTML = `<span class="sgt">🎯 Цель стрима: ${esc(t)}</span><b class="sgn">${dn ? '✔ выполнено' : `${pr}/${nd}`}</b><span class="sgb"><i style="width:${dn ? 100 : pc}%"></i></span>${dn || !g[4] ? '' : `<small>награда: ${esc(g[4])} каждому участнику стрима</small>`}`; sg.className = 'sg499' + (dn ? ' done' : ''); } } }
     $('tabs').innerHTML = TABS.map(([id, t]) => `<button data-t="${id}" class="tab${id === tab ? ' on' : ''}" aria-pressed="${id === tab}">${t}</button>`).join('');
     const l = curLoc(), list = on && state.locs ? (state.locs[l] || []) : [];
     let info = on ? `${LOCN[l] || l}: героев ${list.length}` : 'Когда стример запустит игру, здесь появится карта.';
@@ -688,6 +691,7 @@
       if (!(MOCK_REF.eq || []).some(e => e[0] === 'o_tome')) MOCK_REF.eq.push(['o_tome', 'Гримуар новичка', 110, 'offhand', ['priest', 'mage'], 1, '+4 магия', 'tome']);
       syncMockEqS(me);
     }
+    { const m = /[?&]sg=(\d+)/.exec(location.search); if (m) state.ref = Object.assign({}, state.ref, { px: Math.max(499, +((state.ref || {}).px) || 0), sg: ['Сходить в 15 походов', Math.min(15, +m[1]), 15, +m[1] >= 15 ? 1 : 0, 'Деревянный сундук'] }); } // v49.8: макет цели стрима (?mock=1&sg=6)
     { const pm = /[?&]px=(\d+)/.exec(location.search); if (pm) state.ref = Object.assign({}, state.ref, { px: +pm[1] }); } // v49.4/49.5/49.6: макет — версия игры (494: «снять квест»; 495: корни трента; 496: таймер босса)
     { if (/[?&]bld=1/.test(location.search) || +((state.ref && state.ref.px) || 0) >= 497) { // v49.6: макет «сейчас / улучшение» у построек
       if (!(/[?&]px=\d+/.test(location.search))) state.ref = Object.assign({}, state.ref, { px: 497 });

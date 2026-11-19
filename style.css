@@ -364,3 +364,10 @@ details.hq .hq-body{padding:8px 10px 10px}
 
 /* v49.7 brb498: цирюльник — превью героя с цветом волос */
 .sopts button.hasp{height:auto;min-height:104px;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;text-align:left;padding:6px 10px}.sopts .opic{width:60px;height:92px;object-fit:contain;object-position:center bottom;flex:none;image-rendering:auto}.sopts .otx{display:flex;flex-direction:column;min-width:0}
+
+/* v49.8 (px499): цель стрима */
+.sg499{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;margin:6px 0;padding:8px 12px;border-radius:10px;background:#2a2112;border:1px solid #6b5426;color:#ffe2a8;font-size:14px}
+.sg499 .sgt{font-weight:600}.sg499 .sgn{color:#ffd24a;font-size:15px;white-space:nowrap}
+.sg499 .sgb{grid-column:1/-1;height:8px;border-radius:4px;background:#00000066;overflow:hidden}.sg499 .sgb i{display:block;height:100%;background:linear-gradient(90deg,#d9902b,#ffd24a)}
+.sg499 small{grid-column:1/-1;color:#c8b48a;font-size:12px}.sg499.done{border-color:#4f8a3a;background:#18251a}.sg499.done .sgn{color:#8fe07a}
+.sg499[hidden]{display:none}

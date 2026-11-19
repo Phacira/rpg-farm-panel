@@ -12,6 +12,7 @@
   // pick(ctx) → [{label, arg, sub, confirm, dis}] — выбор аргумента в окне
   function defs(ctx) {
     const me = ctx.me, ref = ctx.ref || {}, gold = me ? me.gold : 0;
+    const eqWorn = id => !!(me && me.eqOn && Object.values(me.eqOn).includes(id)); // v49.8: надето в любом слоте
     // v7panel18: вклад — выбор «Золото» или «Материалы» (материал → количество из сумки или докупить золотом по ref.matP)
     const MN = {}; (ref.mats || []).forEach(([id, n, ic]) => MN[id] = [n, ic]); const mtn = id => (MN[id] || [id])[0], mti = id => id === 'iron' ? '' : (MN[id] || [, ''])[1] || ''; // v7panel20 п.7: у железа вместо цепей — слиток (картинкой на карточке), в текстовых списках без значка
     const bldPick = loc => (ref.bld || []).filter(b => !loc || b[5] === loc).map(([id, name, lv, max, need, , eff, nextEff, ml, eff1, nextEff1]) => { ml = ml || {};
@@ -19,7 +20,10 @@
       if (need == null) return { label: `${name} (ур. ${lv}, максимум)`, sub: fxOn && now ? `Ур. ${lv}/${max} · сейчас: ${now}` : '', dis: true }; // v49.6: при px≥497 показываем, что даёт уровень; старая игра — как раньше
       const mlist = Object.entries(ml), left = [need ? need + ' з' : ''].concat(mlist.map(([m, n]) => `${mti(m)}${mtn(m)} ${n}`)).filter(Boolean).join(', ') || 'готово';
       const fx = fxOn ? `Ур. ${lv}/${max} · сейчас: ${now || '—'} · Улучшение: ${nxt || '—'} · ` : '';
-      const goldOpts = [50, 100, 250, 'всё'].filter(a => a === 'всё' || a < need).map(a => ({ label: a === 'всё' ? `Всё золото (${gold} з)` : `${a} золота`, arg: `${id} ${a === 'всё' ? 'всё' : a}`, dis: a === 'всё' ? gold < 1 : gold < a, confirm: `Вложить ${a === 'всё' ? 'всё золото' : a + ' золота'} в «${name}»?` }));
+      const put = Math.min(gold, need || 0); // v49.8: «всё» списывает не больше остатка до улучшения — показываем реальную сумму
+      const goldOpts = [50, 100, 250, 'всё'].filter(a => a === 'всё' || a < need).map(a => a === 'всё'
+        ? { label: gold >= need ? `Вложить ${need} з` : `Всё золото: ${gold} з`, sub: gold >= need ? `столько осталось до улучшения · у вас ${gold} з` : gold > 0 ? `до улучшения не хватит ${need - gold} з` : 'нет золота', arg: `${id} всё`, dis: put < 1, confirm: `Вложить ${put} золота в «${name}»?` }
+        : { label: `${a} золота`, arg: `${id} ${a}`, dis: gold < a, confirm: `Вложить ${a} золота в «${name}»?` });
       const matOpts = mlist.map(([m, n]) => { const have = me && me.mt ? +me.mt[m] || 0 : 0, k = Math.min(have, n), price = (ref.matP || {})[m] || 0, buy = n - k;
         return { label: `${mti(m)} ${mtn(m)}`, sub: `нужно ${n}, в сумке ${have}`, next: [1, 5, 10].filter(q => q < k).map(q => ({ label: `${mtn(m)}: ${q} из сумки`, arg: `${id} ${m} ${q}`, confirm: `Вложить ${mtn(m).toLowerCase()} ${q} шт. в «${name}»?` }))
           .concat(k ? [{ label: `${mtn(m)}: ${k} из сумки`, arg: `${id} ${m} ${k}`, confirm: `Вложить ${mtn(m).toLowerCase()} ${k} шт. в «${name}»?` }] : [])
@@ -36,7 +40,7 @@
     const recipes = () => [{ label: 'Лучшее из доступного', sub: 'игра выберет сама', arg: '' }].concat((ref.recipes || []).map(([n, kind, need, lv], i) => { const f = me && me.rcp ? me.rcp[i] || 0 : 1, open = f & 1, can = f & 2; return {
       label: (kind === 'potion' ? '🧪 ' : '🍲 ') + n, sub: !open ? `закрыт: нужен ур. ${lv}` : (can ? 'хватает: ' : 'не хватает: ') + need, dis: !open, arg: String(i + 1) + (ref.bc ? ' 1' : ''), confirm: `${kind === 'potion' ? 'Сварить' : 'Приготовить'} «${n}»?` }; }));
     const shop = () => (ref.eq || []).filter(i => !i[4] || (me && i[4].includes(me.cls))).map(([id, name, price, slot, , bs, stt]) => { // v7panel20 п.2: + статы вещи
-      const own = me && (me.eqOwn || []).includes(id), on = me && me.eqOn && me.eqOn[slot] === id;
+      const own = me && (me.eqOwn || []).includes(id), on = me && eqWorn(id);
       const ic = ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : ''; // v7panel21 п.1: иконка вещи на кнопке
       return own ? { ic, label: name, sub: (on ? 'надето' : 'есть — надеть') + (stt ? ' · ' + stt : ''), dis: on, arg: id, cmd: 'экип' } : { ic, label: name, sub: `${stt ? stt + ' · ' : ''}${price} з · ${SLOT_RU[slot] || slot}${bs > (ref.bsLv || 1) ? ' · кузница ур.' + bs : ''}`, dis: gold < price || bs > (ref.bsLv || 1), arg: id, confirm: `Купить «${name}» за ${price} золота?` }; });
     // v7panel31: «Сделать ход». ref.tb=0 — только подсказка (без запроса: баллы Twitch списывает только Twitch); tb=1 — ход с пульта, лимит ref.tl за стрим
@@ -50,7 +54,9 @@
     const hair = () => (ref.hair || []).filter(([id]) => !brb || !Array.isArray(me.ha) || me.ha.includes(id)).map(([id, n]) => ({ pic: brb && /^[a-z0-9_]{3,40}$/.test(me.hk + '_' + id) ? `img/h/${me.hk}_${id}.webp` : '', label: n, sub: me && me.hair === id ? 'сейчас' : `${ref.hairPrice || 250} з`, dis: (me && me.hair === id) || gold < (ref.hairPrice || 250), arg: brb ? id : n, confirm: `Покрасить волосы в «${n}» за ${ref.hairPrice || 250} золота?` }));
     const guilds = () => (ref.guilds || []).map(([id, n], i) => ({ label: n, sub: me && me.gid === id ? 'ваша гильдия' : '', dis: me && me.gid === id, arg: String(i + 1), confirm: `Вступить в гильдию «${n}»?` }));
     const quests = () => me && me.q ? [{ label: 'У вас уже есть задание', dis: true }] : (me && me.of || []).map((id, i) => ({ label: `${i + 1}. ${(ref.quests || {})[id] || id}`, arg: String(i + 1) })).concat([{ label: 'Показать список (без хода)', arg: '' }]);
-    const wear = () => (me && me.eqOwn || []).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, , slot, , , stt]) => ({ ic: ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : '', label: n, sub: (me.eqOn && me.eqOn[slot] === id ? 'надето' : SLOT_RU[slot] || slot) + (stt ? ' · ' + stt : ''), dis: me.eqOn && me.eqOn[slot] === id, arg: id, confirm: `Надеть «${n}»?` }));
+    // v49.8: «Надеть» — только то, что лежит в сумке и не надето (кольцо может быть в слоте ring1 или ring2); дубли id не показываем
+    const wear = () => { const L = [...new Set(me && me.eqOwn || [])].filter(id => !eqWorn(id)).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, , slot, , , stt]) => ({ ic: ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : '', label: n, sub: (SLOT_RU[slot] || slot) + (stt ? ' · ' + stt : ''), arg: id, confirm: `Надеть «${n}»?` }));
+      return L.length ? L : [{ label: 'В сумке нет вещей, которые можно надеть', sub: 'всё купленное уже надето', note: 1 }]; };
     const unwear = () => Object.entries(me && me.eqOn || {}).filter(([, v]) => v).map(([slot, id]) => { const i = (ref.eq || []).find(x => x[0] === id); return { label: `${SLOT_RU[slot] || slot}: ${i ? i[1] : id}`, arg: slot, confirm: `Снять ${i ? '«' + i[1] + '»' : SLOT_RU[slot]}?` }; });
     // v7panel42: починка — цены из снимка me.dr (durCost на сервере); кнопок нет если прочность выкл (нет me.dr)
     const repair = () => { const dr = me && me.dr; if (!dr || !Array.isArray(dr.i) || !dr.i.length) return [];
