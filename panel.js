@@ -778,8 +778,32 @@
         const lane = 970, hx = 900, mx = 1180;
         const row = ['demo_viewer', hx, lane, 'paladin', 5, 'forest', 'moon_m_paladin', 'black', '', 0, 192, 'm', 'rat', 70];
         state.locs.forest = [row];
-        Object.assign(state.me, { loc: 'forest', st: 'forest', cls: 'paladin', cn: 'Паладин', lv: 5, k6: 'moon_m_paladin', hair: 'black', gid: 'moon', gd: 'Лунные тени', fm: ['rat', 'Крыса', 35, 50, 0] });
+        Object.assign(state.me, { loc: 'forest', st: 'forest', cls: 'paladin', cn: 'Паладин', lv: 5, k6: 'moon_m_paladin', hair: 'black', gid: 'moon', gd: 'Лунные тени', fm: ['rat', 'Стая крыс', 35, 50, 0], hp: 86, mhp: 120, gold: 340 });
         state.mobs = [['rat', mx, lane, 70]];
+        const now0 = Date.now();
+        state.ref = Object.assign({}, state.ref, { log: [
+          [now0 - 4000, 'demo_viewer → Стая крыс: урон 139 (3 удара)', 'b'],
+          [now0 - 2500, 'demo_viewer: блок щитом', 'b'],
+          [now0 - 1800, 'Стая крыс → demo_viewer: урон 12 (1 удар)', 'b']
+        ] });
+        let fxSeq = 1;
+        const pushEv = (arr, loc, x, y, s, c, z) => { arr.push([fxSeq++, Date.now(), 't', loc, x, y, s, c, z]); };
+        const boot = [];
+        pushEv(boot, 'forest', mx + 40, lane - 80, '-18', '#ffffff', 30);
+        pushEv(boot, 'forest', hx - 40, lane - 80, '-12', '#ff7a6a', 30);
+        pushEv(boot, 'forest', hx - 40, lane - 120, 'Блок!', '#bfe0ff', 26);
+        state.fx = { ev: boot, an: [['demo_viewer', 'l', 25], ['rat', 'mh', 20]] };
+        if (!window.__mockFxT) window.__mockFxT = setInterval(function () {
+          if (!state || !state.me || !/[?&]solo=1/.test(location.search)) return;
+          const ev = [], an = [];
+          const step = (fxSeq % 4);
+          if (step === 1) { pushEv(ev, 'forest', mx + 40, lane - 80, '-21', '#ffffff', 30); an.push(['demo_viewer', 'l', 25], ['rat', 'mh', 20]); }
+          else if (step === 2) { pushEv(ev, 'forest', hx - 40, lane - 80, '-9', '#ff7a6a', 30); pushEv(ev, 'forest', hx - 40, lane - 120, 'Блок!', '#bfe0ff', 26); an.push(['demo_viewer', 'h', 20], ['rat', 'ma', 70]); }
+          else if (step === 3) { pushEv(ev, 'forest', hx - 20, lane - 150, '+8', '#7dff9a', 26); an.push(['demo_viewer', 'l', 20]); }
+          else { pushEv(ev, 'forest', hx, lane - 170, '+6 💰', '#ffd27a', 32); }
+          state.fx = { ev: (state.fx && state.fx.ev || []).concat(ev).slice(-40), an };
+          if (window.BigScreen && BigScreen.on) BigScreen.sync();
+        }, 1100);
       }
     }
     { const m = /[?&]turn=(\d)/.exec(location.search); state.ref = Object.assign({}, state.ref, { ch: 'demo_channel', tl: 1 }); if (m) { state.ref.tb = 1; state.me.tu = +m[1] - 1; } } // v7panel31: ?turn=1 — флаг включён, ?turn=2 — лимит исчерпан

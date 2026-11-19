@@ -1,10 +1,28 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs515. */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs517. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen';
   const LOCS = [['town', '🏘', 'Город'], ['garden', '🌱', 'Огород'], ['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс']];
   const LOCN = { camp: 'Лагерь', forest: 'Лес', boss: 'Босс', garden: 'Огород', town: 'Город' };
   const CLSN = { warrior: 'Воин', archer: 'Лучник', mage: 'Маг', priest: 'Жрец', paladin: 'Паладин', assassin: 'Ассасин' };
-  const MOB_RU = { wolf: 'Волк', goblin: 'Гоблин', slime: 'Слизень', rat: 'Крыса', tree_spirit: 'Дух дерева', mimic: 'Мимик', ogre_boss: 'Огр', queen_boss: 'Королева-Матка', treant_king_boss: 'Король Трентов' };
+  const MOB_RU = { wolf: 'Волк', goblin: 'Гоблин', slime: 'Слизень', rat: 'Стая крыс', tree_spirit: 'Дух дерева', mimic: 'Мимик', ogre_boss: 'Огр', queen_boss: 'Королева-Матка', treant_king_boss: 'Король Трентов' };
+  const MOB_H = { slime: 100, goblin: 150, wolf: 130, rat: 64, tree_spirit: 170, mimic: 120 };
+  const MOB_GROUP = { rat: 3 };
+  const MOB_PACK = [[-0.55, -0.34, 0.9], [0.55, -0.34, 0.9], [0, 0, 1]];
+  const GUILD_RU = { fire: 'Огненный легион', moon: 'Лунные тени', gold: 'Золотой колос', silver: 'Серебряный лист' };
+  const FOLD_KEY = 'rpgPanel.bsFold';
+  let fold = { loc: false, bar: false, feed: false };
+  try {
+    const o = JSON.parse(localStorage.getItem(FOLD_KEY) || '{}');
+    if (o && typeof o === 'object') { fold.loc = !!o.loc; fold.bar = !!o.bar; fold.feed = !!o.feed; }
+  } catch (e) {}
+  (function applyFoldQuery() {
+    const m = /[?&]fold=([^&]*)/.exec(location.search);
+    if (!m) return;
+    const v = decodeURIComponent(m[1] || '');
+    if (v === '0' || v === 'off') fold = { loc: false, bar: false, feed: false };
+    else if (v === '1' || v === 'on') fold = { loc: true, bar: true, feed: true };
+    else { const s = new Set(v.split(',').map(x => x.trim()).filter(Boolean)); fold.loc = s.has('loc'); fold.bar = s.has('bar'); fold.feed = s.has('feed'); }
+  })();
   const $ = (s, r) => (r || document).querySelector(s);
   const esc = s => window.__panel && __panel.esc ? __panel.esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const wantOn = () => { try { if (/[?&]big=1/.test(location.search)) return true; if (/[?&]big=0/.test(location.search)) return false; return localStorage.getItem(KEY) === '1'; } catch (e) { return /[?&]big=1/.test(location.search); } };
@@ -80,6 +98,7 @@
           <img class="bg" id="bsBg" alt="">
           <div class="glow" id="bsGlow"></div>
           <div id="bsActors"></div>
+          <div class="fx-layer" id="bsFx"></div>
         </div>
       </div>
       <div class="hud" id="bsHud">
@@ -90,9 +109,10 @@
         <aside class="bsp goal" id="bsGoal" hidden></aside>
         <aside class="bsp quests" id="bsQuests"></aside>
         <aside class="bsp feed" id="bsFeed">
-          <header>📜 Журнал <button type="button" class="exp" data-bslog="1">развернуть</button></header>
+          <header>📜 Журнал <span class="head-btns"><button type="button" class="exp" data-bslog="1">развернуть</button><button type="button" class="fold-chev" data-bsfold="feed" title="Свернуть журнал" aria-label="Свернуть журнал">▾</button></span></header>
           <ul id="bsFeedList"></ul>
         </aside>
+        <button type="button" class="fold-tab feed-tab" data-bsfold="feed" title="Показать журнал">📜 Журнал</button>
         <div class="ph-dock" id="bsDock">
           <div class="goal-strip" id="bsGoalStrip" hidden></div>
           <div class="dock-tabs" role="tablist">
@@ -106,8 +126,16 @@
           </div>
         </div>
         <div class="bars-wrap">
-          <nav class="locbar" id="bsLocbar"></nav>
-          <nav class="actionbar" id="bsBar"></nav>
+          <div class="bar-group" data-grp="loc">
+            <button type="button" class="fold-chev" data-bsfold="loc" title="Свернуть локации" aria-label="Свернуть локации">▾</button>
+            <nav class="locbar" id="bsLocbar"></nav>
+          </div>
+          <button type="button" class="fold-tab loc-tab" data-bsfold="loc" title="Показать локации">🗺️ Локации</button>
+          <div class="bar-group" data-grp="bar">
+            <button type="button" class="fold-chev" data-bsfold="bar" title="Свернуть кнопки" aria-label="Свернуть кнопки">▾</button>
+            <nav class="actionbar" id="bsBar"></nav>
+          </div>
+          <button type="button" class="fold-tab bar-tab" data-bsfold="bar" title="Показать кнопки">⚔️ Кнопки</button>
         </div>
       </div>
       <div class="overlay" id="bsOverlay" hidden>
@@ -170,6 +198,16 @@
       if (e.target.closest('[data-bslog]')) { e.preventDefault(); setLog(true); }
       const lf = e.target.closest('[data-bslf]');
       if (lf) { logMine = lf.dataset.bslf === '1'; fillLog(); }
+      const fb = e.target.closest('#bs [data-bsfold]');
+      if (fb) {
+        const k = fb.dataset.bsfold;
+        if (k === 'loc' || k === 'bar' || k === 'feed') {
+          e.preventDefault();
+          fold[k] = !fold[k];
+          try { localStorage.setItem(FOLD_KEY, JSON.stringify(fold)); } catch (err) {}
+          applyFold();
+        }
+      }
       const tab = e.target.closest('#bs [data-bstab]');
       if (tab) {
         const id = tab.dataset.bstab;
@@ -201,6 +239,19 @@
     const q = $('#bsDockQ'), l = $('#bsDockL');
     if (q) q.classList.toggle('on', dockOpen && dockTab === 'q');
     if (l) l.classList.toggle('on', dockOpen && dockTab === 'l');
+    if (on) layout();
+  }
+  function applyFold() {
+    const root = $('#bs'); if (!root) return;
+    root.classList.toggle('fold-loc', !!fold.loc);
+    root.classList.toggle('fold-bar', !!fold.bar);
+    root.classList.toggle('fold-feed', !!fold.feed);
+    const lab = { loc: fold.loc ? 'Показать локации' : 'Свернуть локации', bar: fold.bar ? 'Показать кнопки' : 'Свернуть кнопки', feed: fold.feed ? 'Показать журнал' : 'Свернуть журнал' };
+    root.querySelectorAll('[data-bsfold]').forEach(b => {
+      const k = b.dataset.bsfold, a = lab[k];
+      if (a) { b.setAttribute('title', a); b.setAttribute('aria-label', a); }
+      if (b.classList.contains('fold-chev')) b.textContent = fold[k] ? '▸' : '▾';
+    });
     if (on) layout();
   }
 
@@ -237,7 +288,7 @@
     document.body.classList.toggle('bs-on', on);
     document.documentElement.classList.toggle('bs-on', on);
     setViewport(on);
-    if (on) { actorTween = { loc: '', nodes: Object.create(null), raf: 0, lastAt: 0 }; mount(); applyDock(); const t = window.__panel && __panel.tab; if (t && t !== 'me') bsLoc = t; else if (__panel && __panel.state && __panel.state.me && __panel.state.me.loc) bsLoc = __panel.state.me.loc; sync(); }
+    if (on) { actorTween = { loc: '', nodes: Object.create(null), raf: 0, lastAt: 0 }; mount(); applyDock(); applyFold(); const t = window.__panel && __panel.tab; if (t && t !== 'me') bsLoc = t; else if (__panel && __panel.state && __panel.state.me && __panel.state.me.loc) bsLoc = __panel.state.me.loc; sync(); }
     else if (window.__panel) __panel.render();
   }
 
@@ -262,8 +313,8 @@
   }
 
   function bgOf(l, st) {
-    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs515';
-    return 'img/' + (l || 'camp') + '.jpg?v=bs515';
+    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs517';
+    return 'img/' + (l || 'camp') + '.jpg?v=bs517';
   }
 
   let lastDefs = [], lastMore = [], sheetKind = '', tipCmds = new Set();
@@ -382,18 +433,63 @@
     }
   }
 
+  function sprFromMe(me) {
+    if (!me) return '';
+    return sprUrl([me.n, 0, 0, me.cls, me.lv, me.mode || me.st, me.k6, me.hair, me.dy || '']);
+  }
+  const HEAD_OK = new WeakMap();
+  function paintHead(cv, src) {
+    if (!cv || !src) return;
+    if (HEAD_OK.get(cv) === src && cv.width) return;
+    const box = cv.parentElement, css = Math.max(40, (box && box.clientWidth) || 76);
+    const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    const S = Math.round(css * dpr);
+    const img = new Image();
+    img.onload = function () {
+      const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+      const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = h;
+      const tctx = tmp.getContext('2d'); tctx.drawImage(img, 0, 0);
+      // только верхние ~30% (голова); иначе широкий щит/плащ уводит кадр на грудь
+      let top = 0;
+      const full = tctx.getImageData(0, 0, w, h).data;
+      for (let y = 0; y < h; y++) { let hit = 0; for (let x = 0; x < w; x++) if (full[(y * w + x) * 4 + 3] > 18) { hit = 1; break; } if (hit) { top = y; break; } }
+      const band = Math.max(8, Math.floor(h * 0.30));
+      const y1 = Math.min(h, top + band);
+      let minx = w, miny = h, maxx = 0, maxy = 0, found = 0;
+      for (let y = top; y < y1; y++) for (let x = 0; x < w; x++) {
+        if (full[(y * w + x) * 4 + 3] > 18) { found = 1; if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y; }
+      }
+      if (!found) { minx = Math.floor(w * 0.2); maxx = Math.floor(w * 0.8); miny = top; maxy = y1; }
+      const bw = Math.max(8, maxx - minx + 1), bh = Math.max(8, maxy - miny + 1);
+      const side = Math.round(Math.max(bw * 1.2, bh * 1.35, h * 0.32));
+      let sx = Math.round((minx + maxx) / 2 - side / 2);
+      let sy = Math.max(0, miny - Math.round(side * 0.06));
+      if (sx < 0) sx = 0; if (sx + side > w) sx = Math.max(0, w - side);
+      if (sy + side > h) sy = Math.max(0, h - side);
+      cv.width = S; cv.height = S;
+      cv.style.width = css + 'px'; cv.style.height = css + 'px';
+      const ctx2 = cv.getContext('2d');
+      ctx2.imageSmoothingEnabled = true; ctx2.imageSmoothingQuality = 'high';
+      ctx2.clearRect(0, 0, S, S);
+      ctx2.drawImage(img, sx, sy, side, side, 0, 0, S, S);
+      HEAD_OK.set(cv, src);
+    };
+    img.onerror = function () { HEAD_OK.delete(cv); };
+    img.src = src;
+  }
   function fillUnit(c) {
     const me = c.me, el = $('#bsUnit');
     if (!me) { el.innerHTML = '<div class="unit-main"><div class="unit-top"><b>Нет героя</b></div><div class="unit-sub">Сначала вступите в игру</div></div>'; return; }
     const hp = +me.hp || 0, mhp = +me.mhp || 1, xp = +me.xp || 0, xpN = +me.xpN || 1;
-    const pic = window.__panel && __panel.heroPic ? __panel.heroPic(me.k6, me.hair, me.dy, me.cls, 'big') : '';
-    el.innerHTML = `<div class="port">${pic}</div><div class="unit-main">
+    const gtitle = me.gd || GUILD_RU[me.gid] || '';
+    el.innerHTML = `<div class="port"><canvas class="hpic big head" width="0" height="0" aria-hidden="true"></canvas></div><div class="unit-main">
       <div class="unit-top"><b>★ ${esc(me.n)}</b><span class="lvl">${esc(me.lv)} ур.</span></div>
-      <div class="unit-sub">${esc(me.cn || CLSN[me.cls] || me.cls || '')}${me.gd ? ' · ' + esc(me.gd) : ''}</div>
+      <div class="unit-sub">${esc(me.cn || CLSN[me.cls] || me.cls || '')}${gtitle ? ' · ' + esc(gtitle) : ''}</div>
       <div class="bar hp"><i style="width:${Math.max(0, Math.min(100, hp / mhp * 100))}%"></i><span>HP ${hp}/${mhp}</span></div>
       <div class="bar xp"><i style="width:${Math.max(0, Math.min(100, xp / xpN * 100))}%"></i><span>Опыт ${xp}/${xpN}</span></div>
       <div class="unit-res"><span>🪙 ${esc(me.gold || 0)}</span><span>🧪 ${esc(me.pot || 0)}</span><span>🍲 ${esc(me.food || 0)}</span></div>
     </div>`;
+    paintHead(el.querySelector('canvas'), sprFromMe(me));
   }
 
   function fillGoal(c) {
@@ -517,28 +613,38 @@
     const src = (window.C && window.C.monFacesRight) || (window.CFG && window.CFG.monFacesRight) || (window.CONFIG && window.CONFIG.monFacesRight) || [];
     return Array.isArray(src) && src.indexOf(id) >= 0;
   }
+  function mobMeta(id, name) {
+    return { id, name: name || MOB_RU[id] || id, h: MOB_H[id] || 140, group: MOB_GROUP[id] || 1, flip: mobFlip(id) };
+  }
   function forestMobs(st, list, meName) {
     const out = [];
+    const names = {};
+    const fm = st && st.me && st.me.fm;
+    if (fm && fm[0]) names[fm[0]] = fm[1] || names[fm[0]];
     const raw = st && Array.isArray(st.mobs) ? st.mobs : [];
     if (raw.length) {
-      raw.forEach(m => { if (m && m[0]) out.push({ id: m[0], x: +m[1], y: +m[2], hp: m[3], flip: mobFlip(m[0]) }); });
+      raw.forEach(m => { if (m && m[0]) out.push(Object.assign(mobMeta(m[0], names[m[0]]), { x: +m[1], y: +m[2], hp: m[3] })); });
       return out;
     }
     const seen = new Set();
     for (const t of list) {
       const id = t[12]; if (!id || seen.has(id)) continue;
       seen.add(id);
-      out.push({ id, x: +t[1] + FOREST_GAP, y: +t[2], hp: t[13], flip: mobFlip(id) });
+      out.push(Object.assign(mobMeta(id, names[id]), { x: +t[1] + FOREST_GAP, y: +t[2], hp: t[13] }));
     }
-    const fm = st && st.me && st.me.fm;
     if (fm && fm[0] && !seen.has(fm[0])) {
       const me = list.find(t => String(t[0]).toLowerCase() === meName) || list[0];
       const hx = me ? +me[1] : 900, hy = me ? +me[2] : 970;
       const hp = fm[3] ? Math.round((+fm[2] || 0) / (+fm[3] || 1) * 100) : null;
-      out.push({ id: fm[0], x: hx + FOREST_GAP, y: hy, hp, flip: mobFlip(fm[0]) });
+      out.push(Object.assign(mobMeta(fm[0], fm[1]), { x: hx + FOREST_GAP, y: hy, hp }));
     }
     return out;
   }
+  function mobSrc(id) {
+    if (id === 'mimic') return 'img/mob/mimic.png';
+    return 'img/mob/' + id + '.png';
+  }
+  function mobSrcFb(id) { return id === 'mimic' ? '' : 'img/mob/' + id + '.webp'; }
   function actorNow(it) {
     if (!it.from || !it.start) return { x: it.x, y: it.y };
     const u = Math.min(1, (performance.now() - it.start) / (it.dur || 1));
@@ -606,11 +712,15 @@
       const cn = CLSN[cls] || cls || '';
       const hs = t._hs || 1;
       let it = actorTween.nodes[key];
-      const nameHtml = (mine ? '★ ' : '') + esc(n) + '<small>' + esc(cn) + (lv != null && lv !== '' ? ' · ' + esc(lv) : '') + '</small>';
+      const gtitle = GUILD_RU[g] || '';
+      const nameHtml = '<i class="gmark" title="' + esc(gtitle ? ('Гильдия: ' + gtitle) : 'без гильдии') + '"></i>'
+        + (mine ? '★ ' : '') + '<span class="nick">' + esc(n) + '</span>'
+        + '<small>' + esc(cn) + (lv != null && lv !== '' ? ' · ' + esc(lv) : '') + (gtitle ? ' · ' + esc(gtitle) : '') + '</small>';
       if (!it) {
         const el = document.createElement('div');
         el.className = 'hero g-' + g + (mine ? ' me' : '') + (flip ? ' flip' : '');
         el.dataset.n = n;
+        el.dataset.cls = cls || '';
         el.style.setProperty('--hs', hs);
         el.innerHTML = '<div class="shadow"></div><div class="ring"></div>'
           + (src ? '<img alt="">' : '')
@@ -624,7 +734,8 @@
         it = actorTween.nodes[key] = { el, kind: 'hero', x: +t[1], y: +t[2], from: null };
         applyActorPos(it);
       } else {
-        it.el.className = 'hero g-' + g + (mine ? ' me' : '') + (flip ? ' flip' : '') + (it.el.classList.contains('walk') ? ' walk' : '');
+        it.el.className = 'hero g-' + g + (mine ? ' me' : '') + (flip ? ' flip' : '') + (it.el.classList.contains('walk') ? ' walk' : '') + (it.el.classList.contains('lunge') ? ' lunge' : '') + (it.el.classList.contains('hit') ? ' hit' : '');
+        it.el.dataset.cls = cls || '';
         it.el.style.setProperty('--hs', hs);
         const img = it.el.querySelector('img');
         if (src && img && img.getAttribute('src') !== src) img.src = src;
@@ -638,24 +749,47 @@
       forestMobs(st, list, meName).forEach(m => {
         const key = 'm:' + m.id;
         seen.add(key);
-        const ext = m.id === 'mimic' ? 'png' : 'webp';
-        const hp = m.hp;
+        const hp = m.hp, mh = m.h || MOB_H[m.id] || 140, grp = m.group || 1;
+        const nm = m.name || MOB_RU[m.id] || m.id;
         let it = actorTween.nodes[key];
+        const packHtml = function () {
+          const n = Math.max(1, grp);
+          const offs = n > 1 ? MOB_PACK.slice(-n) : [[0, 0, 1]];
+          return offs.map((o, i) => {
+            const img = '<img class="p' + i + '" alt="" style="--ox:' + o[0] + ';--oy:' + o[1] + ';--sc:' + o[2] + '">';
+            return img;
+          }).join('');
+        };
+        const bindImg = function (img) {
+          const src = mobSrc(m.id), fb = mobSrcFb(m.id);
+          img.src = src;
+          img.onerror = (fb && fb !== src) ? function () { img.onerror = function () { img.remove(); }; img.src = fb; } : function () { img.remove(); };
+          img.onload = function () {
+            const natW = img.naturalWidth || 1, natH = img.naturalHeight || 1;
+            const mw = Math.round(mh * natW / natH);
+            img.parentElement && img.parentElement.style.setProperty('--mw', mw + 'px');
+          };
+        };
         if (!it) {
           const el = document.createElement('div');
-          el.className = 'mob' + (m.flip ? ' flip' : '');
+          el.className = 'mob' + (grp > 1 ? ' pack' : '') + (m.flip ? ' flip' : '');
           el.dataset.id = m.id;
-          el.innerHTML = '<img src="img/mob/' + esc(m.id) + '.' + ext + '" alt="" onerror="this.remove()">'
-            + '<div class="mname">' + esc(MOB_RU[m.id] || m.id) + '</div>'
+          el.style.setProperty('--mh', mh + 'px');
+          el.innerHTML = packHtml()
+            + '<div class="mname">' + esc(nm) + '</div>'
             + (hp != null ? '<div class="mhp bar hp"><i style="width:' + Math.max(0, Math.min(100, +hp)) + '%"></i><span>' + esc(hp) + '%</span></div>' : '');
+          el.querySelectorAll('img').forEach(bindImg);
           box.appendChild(el);
           it = actorTween.nodes[key] = { el, kind: 'mob', x: +m.x, y: +m.y, from: null };
           applyActorPos(it);
         } else {
           it.el.classList.toggle('flip', !!m.flip);
+          it.el.classList.toggle('pack', grp > 1);
+          it.el.style.setProperty('--mh', mh + 'px');
           const bar = it.el.querySelector('.mhp i'), sp = it.el.querySelector('.mhp span');
           if (bar && hp != null) bar.style.width = Math.max(0, Math.min(100, +hp)) + '%';
           if (sp && hp != null) sp.textContent = hp + '%';
+          const lab = it.el.querySelector('.mname'); if (lab) lab.textContent = nm;
           moveActor(it, +m.x, +m.y, snapAll, dur);
         }
       });
@@ -692,8 +826,72 @@
 
     $('#bsBg').src = bgOf(l, st);
     $('#bs').dataset.view = l;
-    const n = list.length;
-    $('#bsChip').textContent = (LOCN[l] || l) + (n ? ' · героев ' + n : '');
+    const chip = $('#bsChip'); if (chip) chip.textContent = '';
+    ingestFx(st, l);
+  }
+
+  const seenFx = new Set();
+  let inferMem = { hp: null, gold: null, lastLunge: 0 };
+  function spawnFloat(x, y, text, color, size) {
+    const layer = $('#bsFx'); if (!layer || text == null || text === '') return;
+    const el = document.createElement('div');
+    el.className = 'fx';
+    el.textContent = String(text);
+    el.style.left = Math.round(x) + 'px';
+    el.style.top = Math.round(y) + 'px';
+    el.style.color = color || '#fff';
+    el.style.fontSize = (size || 28) + 'px';
+    layer.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1700);
+  }
+  function pulse(sel, cls, ms) {
+    const el = typeof sel === 'string' ? (actorTween.nodes[sel] && actorTween.nodes[sel].el) : sel;
+    if (!el) return;
+    el.classList.add(cls);
+    clearTimeout(el._t && el._t[cls]);
+    el._t = el._t || {};
+    el._t[cls] = setTimeout(function () { el.classList.remove(cls); }, ms || 400);
+  }
+  function ingestFx(st, loc) {
+    const pack = st && st.fx;
+    if (pack && Array.isArray(pack.ev)) {
+      pack.ev.forEach(function (e) {
+        const id = e && e[0]; if (id == null || seenFx.has(id)) return;
+        seenFx.add(id);
+        if (seenFx.size > 240) { const k = [...seenFx]; k.slice(0, 80).forEach(x => seenFx.delete(x)); }
+        const eloc = e[3];
+        if (eloc && eloc !== loc && eloc !== 'all') return;
+        spawnFloat(e[4], e[5], e[6], e[7], e[8]);
+      });
+    }
+    if (pack && Array.isArray(pack.an)) {
+      pack.an.forEach(function (a) {
+        const who = a[0], kind = a[1];
+        const it = actorTween.nodes['h:' + who] || actorTween.nodes['m:' + who];
+        if (!it) return;
+        if (kind === 'l') pulse(it.el, 'lunge', 280);
+        else if (kind === 'h' || kind === 'mh') pulse(it.el, 'hit', 220);
+        else if (kind === 'ma') pulse(it.el, 'atk', 700);
+        else if (kind === 'd' || kind === 'md') it.el.classList.add('dying');
+      });
+    } else {
+      inferCombat(st, loc);
+    }
+  }
+  function inferCombat(st, loc) {
+    const me = st && st.me; if (!me || loc !== 'forest') return;
+    const node = actorTween.nodes['h:' + me.n] || actorTween.nodes['h:' + String(me.n || '').toLowerCase()];
+    const mobId = me.fm && me.fm[0];
+    const mnode = mobId && actorTween.nodes['m:' + mobId];
+    const hx = node ? node.x : 900, hy = node ? node.y : 970;
+    const mx = mnode ? mnode.x : hx + 280, my = mnode ? mnode.y : hy;
+    if (inferMem.hp != null && me.hp < inferMem.hp) {
+      spawnFloat(hx - 20, hy - 90, '-' + (inferMem.hp - me.hp), '#ff7a6a', 30);
+      if (node) pulse(node.el, 'hit', 220);
+      if (mnode) pulse(mnode.el, 'atk', 700);
+    }
+    if (inferMem.gold != null && me.gold > inferMem.gold) spawnFloat(hx, hy - 140, '+' + (me.gold - inferMem.gold) + ' 💰', '#ffd27a', 32);
+    inferMem.hp = me.hp; inferMem.gold = me.gold;
   }
 
   function vpSize() {
@@ -847,7 +1045,7 @@
     if (window.__panel && __panel.tab && __panel.tab !== 'me') bsLoc = __panel.tab;
     c.tab = bsLoc;
     const tips = collectTips(c);
-    fillUnit(c); fillGoal(c); fillQuests(c); fillFeed(c); fillBoss(c); fillBar(c, tips); fillActors(c); fillTips(tips);
+    fillUnit(c); fillGoal(c); fillQuests(c); fillFeed(c); fillBoss(c); fillBar(c, tips); fillActors(c); fillTips(tips); applyFold();
     if (!$('#bsOverlay').hidden) setInv(true);
     if (!$('#bsLogOv').hidden) fillLog();
     requestAnimationFrame(() => { layout(); const imgs = [...document.querySelectorAll('#bs img')].filter(i => !i.complete); if (!imgs.length) { layout(); window.__bsReady = true; return; }
