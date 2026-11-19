@@ -727,6 +727,27 @@
       else if (k === 'win') state.boss = { ph: 'done', name: 'Огр', key: 'ogre_boss', flt: '', in: 0, n: 8, win: 1 };
       else if (k === 'done' || k === 'left') state.boss = { ph: 'done', name: 'Огр', key: 'ogre_boss', flt: '', in: 0, n: 8, win: 0 };
     } }
+    { // большой экран: спящие в палатке Золотого колоса (?mock=1&tab=camp&sleep=1). Как живой снимок: t[5]==='sleep', координаты TENTS.door 1680,600.
+      if (/[?&]sleep=1/.test(location.search)) {
+        const door = [1680, 600], floor = [[1180, 1180], [760, 1240], [1640, 1180], [2050, 1290], [980, 1260], [1420, 1220]];
+        const sleepers = [
+          ['gold_sleeper1', 'gold_f_priest', 'blond', 'f', 'priest'],
+          ['gold_sleeper2', 'gold_m_warrior', 'black', 'm', 'warrior'],
+          ['gold_sleeper3', 'gold_f_mage', 'red', 'f', 'mage'],
+          ['gold_sleeper4', 'gold_m_archer', 'chestnut', 'm', 'archer']
+        ].map((r, i) => [r[0], door[0] + (i % 2) * 8, door[1] + (i % 3) * 6, r[4], 8 + i, 'sleep', r[1] + '_' + r[2] + '_sit', r[2], '', 0, 192, r[3]]);
+        const awake = [
+          ['demo_viewer', floor[0][0], floor[0][1], 'warrior', 7, 'camp', 'moon_m_warrior', 'black', '', 0, 192, 'm'],
+          ['lisa_fox', floor[1][0], floor[1][1], 'archer', 11, 'camp', 'fire_f_archer', 'red', '', 0, 192, 'f'],
+          ['oak_knight', floor[2][0], floor[2][1], 'paladin', 15, 'camp', 'silver_m_paladin', '', '', 0, 192, 'm'],
+          ['kira_k', floor[3][0], floor[3][1], 'warrior', 11, 'camp', 'gold_f_warrior', 'blond', '', 0, 192, 'f'],
+          ['mira77', floor[4][0], floor[4][1], 'mage', 12, 'camp', 'moon_f_mage', 'red', '', 0, 192, 'f']
+        ];
+        // один бодрствующий тоже у палатки — его надо отвести на свободное место, не в кучу со спящими
+        awake.push(['gold_awake', door[0], door[1], 'priest', 9, 'camp', 'gold_m_priest', 'blond', '', 0, 192, 'm']);
+        state.locs.camp = sleepers.concat(awake);
+      }
+    }
     { // большой экран: макеты логов (?mock=1&tab=boss&ogre=1|stone=1|treant=1). Не влияет на живой пульт.
       const q = location.search, squad = [['demo_viewer', 1230, 1100, 'warrior', 12, 'boss', 'moon_m_warrior', 'black', '', 0, 120, 'm'], ['ironpaw', 1450, 1180, 'paladin', 14, 'boss', 'gold_f_paladin', '', '', 0, 120, 'f'], ['tima_pal', 1100, 1220, 'warrior', 16, 'boss', 'silver_f_warrior', 'chestnut', '', 0, 120, 'f'], ['kira_k', 1320, 1240, 'warrior', 11, 'boss', 'moon_f_warrior', 'blond', '', 0, 120, 'f'], ['mira77', 860, 980, 'mage', 12, 'boss', 'fire_f_mage', 'red', '', 0, 120, 'f'], ['redhood', 1680, 1080, 'archer', 6, 'boss', 'gold_f_archer', 'black', '', 0, 120, 'f'], ['luna_owl', 1540, 960, 'priest', 8, 'boss', 'silver_f_priest', 'blond', '', 0, 120, 'f'], ['gnomik', 980, 1160, 'priest', 11, 'boss', 'none_m_priest', 'blond', '', 0, 120, 'm']];
       if (/[?&](ogre|stone|treant)=1/.test(q)) {

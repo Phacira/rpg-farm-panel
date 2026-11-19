@@ -1,4 +1,4 @@
-/* Большой экран пульта (opt-in, v.bs510). Обычный пульт не меняется, пока body.bs-on нет. */
+/* Большой экран пульта (opt-in, v.bs511). Обычный пульт не меняется, пока body.bs-on нет. */
 body.bs-on{overflow:hidden;background:#000}
 body.bs-on #panel,body.bs-on .chatcmds,body.bs-on > footer{display:none !important}
 body.bs-on #sheet{z-index:40}

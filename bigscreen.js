@@ -1,4 +1,4 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs510. */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs511. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen';
   const LOCS = [['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс'], ['garden', '🌱', 'Огород'], ['town', '🏘', 'Город']];
@@ -205,8 +205,8 @@
   }
 
   function bgOf(l, st) {
-    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs510';
-    return 'img/' + (l || 'camp') + '.jpg?v=bs510';
+    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs511';
+    return 'img/' + (l || 'camp') + '.jpg?v=bs511';
   }
 
   let lastDefs = [];
@@ -335,12 +335,54 @@
     dockClassicBars($('#bsDocks'));
   }
 
+  // v49.10: в снимке пульта t[5] === 'sleep', если в игре rt.mode === 'sleep' (герой в палатке, в OBS не рисуется).
+  // Координаты спящих — вход в палатку Золотого колоса (TENTS.door 1680,600). Дополнительно: ключ спрайта *_sit.
+  function isSleeping(t) { return !t ? false : t[5] === 'sleep' || /_sit$/.test(String(t[6] || '')); }
+  const TENT_DOOR = [1680, 600];
+  function inTentZone(x, y) { return y < 980 || Math.hypot(x - TENT_DOOR[0], y - TENT_DOOR[1]) < 280; }
+  const CAMP_FLOOR = [];
+  [1080, 1160, 1240, 1320].forEach(y => { for (let x = 480; x <= 2280; x += 200) CAMP_FLOOR.push([x, y]); });
+  function spreadVisible(list, loc) {
+    const out = list.map(t => t.slice()), minD = loc === 'camp' ? 170 : 150;
+    const slots = loc === 'camp' ? CAMP_FLOOR : null;
+    const near = (x, y, arr) => arr.some(o => Math.hypot(x - o[1], y - o[2]) < minD);
+    const bad = t => (loc === 'camp' && inTentZone(+t[1], +t[2]));
+    // сначала оставляем тех, кто уже на свободном месте (чтобы увод от палатки их не сдвигал)
+    const kept = [];
+    out.forEach(t => { if (!bad(t) && !near(+t[1], +t[2], kept)) kept.push(t); });
+    const blocked = (x, y) => (loc === 'camp' && inTentZone(x, y)) || near(x, y, kept);
+    out.forEach(t => {
+      if (kept.includes(t)) return;
+      let x = +t[1], y = +t[2];
+      if (slots) {
+        let best = null, bd = 1e9;
+        for (const s of slots) {
+          if (blocked(s[0], s[1])) continue;
+          const d = Math.hypot(s[0] - x, s[1] - y);
+          if (d < bd) { bd = d; best = s; }
+        }
+        if (best) { t[1] = best[0]; t[2] = best[1]; }
+      } else if (kept.length) {
+        let ox = 0, oy = 0, n = 0;
+        kept.forEach(o => { const d = Math.hypot(x - o[1], y - o[2]) || 1; if (d < minD) { ox += (x - o[1]) / d; oy += (y - o[2]) / d; n++; } });
+        if (n) { const k = (minD + 10) / Math.max(0.2, Math.hypot(ox, oy)); t[1] = Math.round(x + ox * k); t[2] = Math.round(y + oy * k); }
+      }
+      kept.push(t);
+    });
+    return out;
+  }
+  function locActors(st, l) {
+    let list = ((st && st.locs && st.locs[l]) || []).filter(t => !isSleeping(t)).map(t => t.slice()).sort((a, b) => a[2] - b[2] || a[1] - b[1]);
+    const fight = l === 'boss' && st && st.boss && st.boss.ph === 'fight';
+    if (fight) return layoutBossHeroes(list, lairSpotOf(st));
+    return spreadVisible(list, l);
+  }
+
   function fillActors(c) {
     const box = $('#bsActors'), st = c.state, l = bsLoc;
     const meName = c.user && c.user.login ? String(c.user.login).toLowerCase() : (c.me && String(c.me.n).toLowerCase()) || '';
-    let list = ((st && st.locs && st.locs[l]) || []).map(t => t.slice()).sort((a, b) => a[2] - b[2] || a[1] - b[1]);
+    let list = locActors(st, l);
     const Lair = (l === 'boss' && st && st.boss) ? lairSpotOf(st) : null;
-    if (Lair && st.boss.ph === 'fight') list = layoutBossHeroes(list, Lair);
     const faceRight = l !== 'camp';
     let html = '';
     for (const t of list) {
@@ -392,7 +434,7 @@
     return 'pc';
   }
   function phoneCam(l, st) {
-    const list = ((st && st.locs && st.locs[l]) || []);
+    const list = locActors(st, l);
     const pts = list.map(t => [+t[1], +t[2]]);
     if (l === 'boss' && st && st.boss && st.boss.ph === 'fight') {
       const L = lairSpotOf(st); pts.push(L.boss);
