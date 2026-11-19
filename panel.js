@@ -618,6 +618,7 @@
     if (window.PanelActions) PanelActions.render($('acts'), { online: !!on, tab, me: on ? state.me : null, ref: state && state.ref });
     const ll = $('logl'); if (ll) ll.scrollTop = stick ? ll.scrollHeight : oldTop; // прокрутка: внизу — следим за новыми, иначе остаёмся где читали
     draw();
+    if (window.BigScreen) BigScreen.sync();
   }
   document.addEventListener('click', e => { const b = e.target.closest('#tabs button'); if (b) { tab = b.dataset.t; render(); } });
 
@@ -843,5 +844,9 @@
   setInterval(bossTimerTick, 1000); // v49.6: локальный отсчёт таймера босса между снимками
   takeHash();
   if (mock) { mockData(); const t0 = /[?&]tab=(\w+)/.exec(location.search); if (t0) tab = t0[1]; render(); } else validate();
-  window.__panel = { get state() { return state; }, get user() { return user; }, render };
+  window.__panel = {
+    get state() { return state; }, get user() { return user; }, get tab() { return tab; },
+    setTab(t) { tab = t; render(); },
+    render, cardHtml: me => card(me), logHtml, heroPic, bossTimerText, fightsHtml, partyHtml, esc
+  };
 })();
