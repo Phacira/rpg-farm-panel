@@ -1,4 +1,4 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Не публиковать, пока Tim не скажет «да». */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs510. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen';
   const LOCS = [['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс'], ['garden', '🌱', 'Огород'], ['town', '🏘', 'Город']];
@@ -67,7 +67,7 @@
     });
   }
 
-  let on = false, logMine = false, bsLoc = 'camp';
+  let on = false, logMine = false, bsLoc = 'camp', dockTab = 'q';
 
   function mount() {
     if ($('#bs')) return;
@@ -92,6 +92,18 @@
           <header>📜 Журнал <button type="button" class="exp" data-bslog="1">развернуть</button></header>
           <ul id="bsFeedList"></ul>
         </aside>
+        <div class="ph-dock" id="bsDock">
+          <div class="goal-strip" id="bsGoalStrip" hidden></div>
+          <div class="dock-tabs" role="tablist">
+            <button type="button" class="on" data-bstab="q">Задания</button>
+            <button type="button" data-bstab="l">Журнал</button>
+          </div>
+          <div class="dock-pane on" id="bsDockQ"></div>
+          <div class="dock-pane" id="bsDockL">
+            <button type="button" class="exp wide" data-bslog="1">Развернуть журнал</button>
+            <ul id="bsDockFeed"></ul>
+          </div>
+        </div>
         <div class="bars-wrap">
           <nav class="locbar" id="bsLocbar"></nav>
           <nav class="actionbar" id="bsBar"></nav>
@@ -131,16 +143,27 @@
       if (!defs) return;
       if (defs._ui === 'inv') return setInv(true);
       if (defs._ui === 'log') return setLog(true);
+      if (defs[2] && window.__bossLeft && __bossLeft(defs[2])) return;
       if (window.PanelActions && PanelActions.activate) PanelActions.activate(defs);
     });
     document.addEventListener('click', e => {
       if (e.target.closest('[data-bslog]')) { e.preventDefault(); setLog(true); }
       const lf = e.target.closest('[data-bslf]');
       if (lf) { logMine = lf.dataset.bslf === '1'; fillLog(); }
-      const tr = e.target.closest('#bsBoss [data-tr]');
-      if (tr && window.PanelActions) PanelActions.fire('удар', '', '🪓 Рубить');
+      const tab = e.target.closest('#bs [data-bstab]');
+      if (tab) {
+        dockTab = tab.dataset.bstab;
+        document.querySelectorAll('#bs [data-bstab]').forEach(x => x.classList.toggle('on', x === tab));
+        const q = $('#bsDockQ'), l = $('#bsDockL');
+        if (q) q.classList.toggle('on', dockTab === 'q');
+        if (l) l.classList.toggle('on', dockTab === 'l');
+      }
     });
     addEventListener('resize', layout);
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => { if (on) layout(); });
+      ['bsBoss', 'bsBar', 'bsDock'].forEach(id => { const n = document.getElementById(id); if (n) ro.observe(n); });
+    }
   }
 
   function enterBtn() {
@@ -182,8 +205,8 @@
   }
 
   function bgOf(l, st) {
-    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs501';
-    return 'img/' + (l || 'camp') + '.jpg?v=bs501';
+    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs510';
+    return 'img/' + (l || 'camp') + '.jpg?v=bs510';
   }
 
   let lastDefs = [];
@@ -212,11 +235,17 @@
     $('#bsLocbar').innerHTML = LOCS.map(l => `<button type="button" data-loc="${l[0]}"${l[0] === bsLoc ? ' class="on"' : ''}>${l[1]} <span>${l[2]}</span></button>`).join('');
     $('#bsBar').innerHTML = defs.map((d, i) => {
       const ic = d[0] || '•', lab = d[1] || '', sub = d[4] || '', dis = !!d[6], other = d[7] === 'other';
-      const hot = c.tab === 'camp' && /поход|пати/.test(d[2]) && !dis || (c.tab === 'boss' && !dis && !other && d[2] && d[2] !== 'босс');
-      return `<button type="button" data-i="${i}"${dis ? ' class="dis" disabled' : hot ? ' class="hot"' : ''}>`
+      const cmd = d._ui ? '' : (d[2] || '');
+      const left = cmd && window.__bossLeft ? __bossLeft(cmd) : 0;
+      const hot = !left && (c.tab === 'camp' && /поход|пати/.test(cmd) && !dis || (c.tab === 'boss' && !dis && !other && cmd && cmd !== 'босс'));
+      const off = dis || left;
+      const cls = off ? ' class="dis' + (left ? ' bcd' : '') + '"' : hot ? ' class="hot"' : '';
+      const bc = cmd ? ` data-bc="${esc(cmd)}" data-sub="${esc(sub)}" data-en="${dis ? 0 : 1}"` : '';
+      const subTxt = left ? ('⏳ откат ' + left + ' с') : sub;
+      return `<button type="button" data-i="${i}"${bc}${cls}${off ? ' disabled' : ''}>`
         + (other ? `<span class="grp">не твой класс</span>` : '')
         + `<span class="ic">${ic}</span><span class="lbl">${esc(lab)}</span>`
-        + (sub ? `<span class="sub">${esc(sub)}</span>` : '') + `</button>`;
+        + (subTxt ? `<small class="sub">${esc(subTxt)}</small>` : '') + `</button>`;
     }).join('');
   }
 
@@ -235,20 +264,31 @@
   }
 
   function fillGoal(c) {
-    const el = $('#bsGoal'), g = c.online && +((c.ref && c.ref.px) || 0) >= 499 && Array.isArray(c.ref.sg) ? c.ref.sg : null;
+    const el = $('#bsGoal'), strip = $('#bsGoalStrip');
+    const g = c.online && +((c.ref && c.ref.px) || 0) >= 499 && Array.isArray(c.ref.sg) ? c.ref.sg : null;
     el.hidden = !g;
+    if (strip) strip.hidden = !g;
     if (!g) return;
     const [t, pr, nd, dn] = g, pc = Math.max(0, Math.min(100, Math.round(100 * pr / (nd || 1))));
     el.innerHTML = `<header>🎯 Цель стрима</header>
       <div class="goal-title">${esc(t)}</div>
       <div class="bar goalb"><i style="width:${dn ? 100 : pc}%"></i><span>${dn ? '✔ выполнено' : `${pr} / ${nd}`}</span></div>
       ${dn || !g[4] ? '' : `<div class="muted">награда: ${esc(g[4])}</div>`}`;
+    if (strip) strip.innerHTML = `<span>🎯 Цель стрима: ${esc(t)}</span><b>${dn ? '✔' : `${pr}/${nd}`}</b><span class="sgb"><i style="width:${dn ? 100 : pc}%"></i></span>`;
   }
 
+  function questLis(c) {
+    const me = c.me, qn = (c.ref && c.ref.quests) || {}, of = (me && me.of) || [], qs = me && me.qs;
+    const rows = [];
+    if (qs && Array.isArray(qs.c) && qs.c[0]) rows.push(`<li><i class="qdot on"></i>${esc(qs.c[0])} <b>${esc(qs.c[1] || 0)}/${esc(qs.c[2] || 1)}</b></li>`);
+    if (qs && Array.isArray(qs.l)) qs.l.forEach(x => rows.push(`<li><i class="qdot"></i>${esc(x[0] || '')}</li>`));
+    if (!rows.length) of.forEach(id => rows.push(`<li><i class="qdot"></i>${esc(qn[id] || id)}</li>`));
+    return rows;
+  }
   function fillQuests(c) {
-    const el = $('#bsQuests'), me = c.me, qn = (c.ref && c.ref.quests) || {}, of = (me && me.of) || [];
-    const rows = of.map(id => { const n = qn[id] || id; return `<li><i class="qdot"></i>${esc(n)}</li>`; });
+    const el = $('#bsQuests'), rows = questLis(c);
     el.innerHTML = `<header>📜 Задания</header>${rows.length ? `<ul>${rows.join('')}</ul>` : '<div class="muted">сейчас нет заданий</div>'}`;
+    const dq = $('#bsDockQ'); if (dq) dq.innerHTML = rows.length ? `<ul>${rows.join('')}</ul>` : '<div class="muted">сейчас нет заданий</div>';
   }
 
   function logRows(c, mine, limit) {
@@ -267,7 +307,9 @@
     // simpler:
     const L = ((c.ref && c.ref.log) || []).slice(0, 5);
     const hm = t => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
-    $('#bsFeedList').innerHTML = L.length ? L.map(e => `<li><time>${hm(e[0])}</time> ${esc(e[1])}</li>`).join('') : '<li class="muted">событий пока нет</li>';
+    const lis = L.length ? L.map(e => `<li><time>${hm(e[0])}</time> ${esc(e[1])}</li>`).join('') : '<li class="muted">событий пока нет</li>';
+    $('#bsFeedList').innerHTML = lis;
+    const df = $('#bsDockFeed'); if (df) df.innerHTML = lis;
   }
   function fillLog() {
     const body = $('#bsLogBody'); if (!body) return;
@@ -343,12 +385,66 @@
     $('#bsChip').textContent = (LOCN[l] || l) + (n ? ' · героев ' + n : '');
   }
 
+  function layoutKind() {
+    const w = innerWidth, h = innerHeight;
+    if (w <= 520 && h > w) return 'phone-p';
+    if (h <= 500 && w > h) return 'phone-l';
+    return 'pc';
+  }
+  function phoneCam(l, st) {
+    const list = ((st && st.locs && st.locs[l]) || []);
+    const pts = list.map(t => [+t[1], +t[2]]);
+    if (l === 'boss' && st && st.boss && st.boss.ph === 'fight') {
+      const L = lairSpotOf(st); pts.push(L.boss);
+    }
+    if (l === 'forest') (st && st.locs && st.locs.forest || []).forEach(t => { if (t[12]) pts.push([+t[1] + 220, +t[2]]); });
+    if (!pts.length) {
+      if (l === 'boss') return { x: 640, y: 280, w: 1480, h: 1100 };
+      if (l === 'forest') return { x: 520, y: 420, w: 1400, h: 1000 };
+      return { x: 780, y: 620, w: 1100, h: 820 };
+    }
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    const minX = Math.min(...xs) - 300, maxX = Math.max(...xs) + 300;
+    const minY = Math.min(...ys) - 540, maxY = Math.max(...ys) + 180;
+    return { x: minX, y: minY, w: Math.max(1000, maxX - minX), h: Math.max(740, maxY - minY) };
+  }
   function layout() {
     if (!on) return;
-    const wrap = $('#bsWrap'), scene = $('#bsScene'); if (!wrap || !scene) return;
+    const root = $('#bs'), wrap = $('#bsWrap'), scene = $('#bsScene'); if (!root || !wrap || !scene) return;
+    const kind = layoutKind();
+    root.classList.remove('phone-p', 'phone-l', 'pc');
+    root.classList.add(kind);
     const wr = wrap.getBoundingClientRect();
-    const s = Math.min(wr.width / W, wr.height / H);
-    const ox = (wr.width - W * s) / 2, oy = (wr.height - H * s) / 2;
+    let s, ox, oy;
+    if (kind === 'phone-p') {
+      const bars = $('.bars-wrap', root);
+      const barsH = (bars && bars.offsetHeight) || 176;
+      root.style.setProperty('--barsH', (barsH + 10) + 'px');
+      const boss = $('#bsBoss');
+      const bossH = (boss && !boss.hidden) ? boss.offsetHeight : 0;
+      root.style.setProperty('--bossH', bossH + 'px');
+      const dockMin = 120;
+      const maxScene = innerHeight - barsH - 12 - dockMin - (bossH ? bossH + 8 : 0);
+      const sh = Math.max(200, Math.min(Math.round(innerHeight * 0.42), maxScene));
+      wrap.style.height = sh + 'px';
+      root.style.setProperty('--sceneH', sh + 'px');
+      const r = wrap.getBoundingClientRect();
+      const cam = phoneCam(bsLoc, window.__panel && __panel.state);
+      s = Math.max(r.width / cam.w, r.height / cam.h);
+      ox = r.width / 2 - (cam.x + cam.w / 2) * s;
+      oy = r.height / 2 - (cam.y + cam.h / 2) * s;
+    } else if (kind === 'phone-l') {
+      wrap.style.height = '';
+      const floor = 72;
+      s = Math.max(wr.width / W, (wr.height - floor) / (H - 120));
+      ox = (wr.width - W * s) / 2;
+      oy = (wr.height - floor - 8) - 1220 * s;
+    } else {
+      wrap.style.height = '';
+      s = Math.min(wr.width / W, wr.height / H);
+      ox = (wr.width - W * s) / 2;
+      oy = (wr.height - H * s) / 2;
+    }
     scene.style.transform = 'translate(' + ox + 'px,' + oy + 'px) scale(' + s + ')';
     clipNames();
   }
@@ -356,7 +452,7 @@
   function clipNames() {
     const wrap = $('#bsWrap'); if (!wrap) return;
     const r = wrap.getBoundingClientRect();
-    const blockers = ['.unitframe', '.bossbar:not([hidden])', '.bars-wrap', '#bsGoal:not([hidden])', '#bsQuests', '#bsFeed', '.bs-off']
+    const blockers = ['.unitframe', '.bossbar:not([hidden])', '.bars-wrap', '#bsGoal:not([hidden])', '#bsQuests', '#bsFeed', '.bs-off', '.ph-dock']
       .flatMap(s => [...document.querySelectorAll('#bs ' + s)])
       .map(el => el.getBoundingClientRect())
       .filter(b => b.width > 2 && b.height > 2);
@@ -407,7 +503,12 @@
 
   window.BigScreen = { sync, setOn, get on() { return on; }, get loc() { return bsLoc; } };
 
-  function boot() { enterBtn(); if (wantOn()) setOn(true); }
+  function boot() {
+    enterBtn();
+    if (wantOn()) setOn(true);
+    if (/[?&]bslog=1/.test(location.search)) setLog(true);
+    if (/[?&]bsinv=1/.test(location.search)) setInv(true);
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();

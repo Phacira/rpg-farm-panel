@@ -1,4 +1,4 @@
-/* Большой экран пульта (opt-in, v.bs501). Обычный пульт не меняется, пока body.bs-on нет. */
+/* Большой экран пульта (opt-in, v.bs510). Обычный пульт не меняется, пока body.bs-on нет. */
 body.bs-on{overflow:hidden;background:#000}
 body.bs-on #panel,body.bs-on .chatcmds,body.bs-on > footer{display:none !important}
 body.bs-on #sheet{z-index:40}
@@ -131,3 +131,88 @@ button.exp{border:1px solid rgba(232,195,106,.45);background:#2a1c30;color:#ffd2
 #bs .bossbar .bs-docks{margin-top:8px}
 #bs .bossbar #castbox{position:static;margin:0;z-index:auto}
 #bs .bossbar #rm49,#bs .bossbar #tr495{margin:8px 0 0}
+
+#bs .actionbar button.bcd{opacity:.55;filter:none}
+#bs .actionbar button.bcd .sub{color:#ffcf7a}
+#bs .ph-dock{display:none}
+button.exp.wide{display:block;width:100%;margin-bottom:6px;padding:6px}
+
+/* ===== phone portrait: вкладки, узкая цель стрима, журнал на весь экран, окна не наезжают ===== */
+#bs.phone-p .scene-wrap{inset:auto;top:0;left:0;right:0;height:var(--sceneH,46%)}
+#bs.phone-p .bs-off{top:8px;left:auto;right:8px;font-size:10px;padding:3px 8px}
+#bs.phone-p .loc-chip{display:none}
+#bs.phone-p .unitframe{top:8px;left:8px;width:min(220px,62vw);padding:5px 7px 5px 5px;gap:7px}
+#bs.phone-p .unitframe .port{width:52px;height:52px}
+#bs.phone-p .unit-top b{font-size:12px}
+#bs.phone-p .unit-sub{font-size:10px;margin:0 0 3px}
+#bs.phone-p .bar{height:11px;margin-top:2px}
+#bs.phone-p .bar span{font-size:8px;line-height:10px}
+#bs.phone-p .unit-res{font-size:10px;gap:7px;margin-top:2px}
+#bs.phone-p .bsp.goal,#bs.phone-p .bsp.quests,#bs.phone-p .bsp.feed{display:none !important}
+#bs.phone-p .ph-dock{display:flex;flex-direction:column;position:absolute;left:8px;right:8px;top:calc(var(--sceneH,46%) + var(--bossH,0px) + 8px);bottom:var(--barsH,176px);z-index:6;gap:6px}
+#bs.phone-p .goal-strip[hidden]{display:none !important}
+#bs.phone-p .goal-strip{display:flex;align-items:center;gap:6px;padding:5px 8px;background:rgba(26,16,34,.92);border:1px solid rgba(232,195,106,.45);border-radius:10px;font-size:11px;color:#f3eadc}
+#bs.phone-p .goal-strip span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bs.phone-p .goal-strip b{color:#ffd27a;flex:none}
+#bs.phone-p .goal-strip .sgb{flex:none;width:56px;height:8px;border-radius:4px;background:#0009;border:1px solid #fff2;overflow:hidden;position:relative}
+#bs.phone-p .goal-strip .sgb i{display:block;height:100%;background:linear-gradient(#7dcb6a,#3d8a3a)}
+#bs.phone-p .dock-tabs{display:flex;gap:4px}
+#bs.phone-p .dock-tabs button{flex:1;height:32px;border:1px solid #5a4470;border-radius:8px;background:#221430;color:#b7a9c6;font:700 12px system-ui,sans-serif;cursor:pointer}
+#bs.phone-p .dock-tabs button.on{border-color:#ffd27a;color:#ffd27a;background:#3a2a10}
+#bs.phone-p .dock-pane{display:none;background:rgba(26,16,34,.92);border:1px solid rgba(232,195,106,.45);border-radius:10px;padding:6px 8px;flex:1;overflow:auto}
+#bs.phone-p .dock-pane.on{display:block}
+#bs.phone-p .dock-pane li{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;border-bottom:1px solid #fff1}
+#bs.phone-p .dock-pane li:last-child{border:0}
+#bs.phone-p .dock-pane li b{margin-left:auto;color:#ffd27a}
+#bs.phone-p .dock-pane time{color:#b7a9c6;margin-right:4px}
+#bs.phone-p .bars-wrap{left:8px;right:8px;bottom:6px;transform:none;width:auto}
+#bs.phone-p .locbar{width:100%;justify-content:space-between;padding:4px}
+#bs.phone-p .locbar button{flex:1;height:34px;padding:0 2px;font-size:10px;justify-content:center}
+#bs.phone-p .locbar button span{display:inline}
+#bs.phone-p .actionbar{width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:5px;max-height:min(200px,32vh);overflow:auto}
+#bs.phone-p .actionbar button{min-width:0;width:auto;height:58px;padding:2px}
+#bs.phone-p .actionbar .lbl{font-size:10px}
+#bs.phone-p .actionbar button .sub{font-size:8px;max-width:none;white-space:normal}
+#bs.phone-p .bossbar:not([hidden]){display:block !important;z-index:7;width:auto;left:8px;right:8px;transform:none;top:var(--sceneH,46%);bottom:auto;margin-top:4px;padding:5px 8px 6px;max-height:none;overflow:visible}
+#bs.phone-p .bossbar .fmob small{font-size:11px}
+#bs.phone-p .bossbar #castbox{margin:4px 0 0;padding:6px 8px}
+#bs.phone-p .bossbar .castbox .ct{font-size:13px;margin-bottom:3px;gap:6px}
+#bs.phone-p .bossbar .castbox .cl{font-size:16px}
+#bs.phone-p .bossbar .castbox .cbar{height:16px}
+#bs.phone-p .bossbar .castbox .cnow{margin:4px 0 3px;font-size:11px}
+#bs.phone-p .bossbar .castbox .cb{padding:6px 10px;font-size:13px}
+#bs.phone-p .bossbar .castbox .cb.pri{font-size:14px;padding:6px 12px}
+#bs.phone-p .bossbar #tr495{margin:4px 0 0;padding:5px 8px;font-size:12px}
+#bs.phone-p .bossbar .tr495 .trb{font-size:13px}
+#bs.phone-p .bossbar .tr495 .trb b{font-size:14px}
+#bs.phone-p .bossbar .tr495 .trs{font-size:11px}
+#bs.phone-p .bossbar .tr495 .trbtn{padding:5px 10px;min-height:32px;font-size:13px}
+#bs.phone-p .bossbar #rm49{margin:4px 0 0;font-size:11px}
+#bs.phone-p .log-overlay{align-items:stretch;justify-content:stretch;padding:0;background:#120b16;z-index:30}
+#bs.phone-p .log-win{width:100%;height:100%;max-height:none;border-radius:0;border:0;background:#1a1024}
+#bs.phone-p .log-win .win-h{flex-wrap:wrap;gap:6px;padding:10px 12px}
+#bs.phone-p .log-win .win-h h2{font-size:16px;flex:1 1 140px;min-width:0}
+#bs.phone-p .overlay{align-items:flex-end;padding:0;background:rgba(0,0,0,.5)}
+#bs.phone-p .window{width:100%;max-height:82%;border-radius:18px 18px 0 0;border-bottom:0}
+
+/* ===== phone landscape ===== */
+#bs.phone-l .bsp.quests,#bs.phone-l .ph-dock{display:none !important}
+#bs.phone-l .bsp.goal{top:6px;right:6px;width:210px;padding:5px 8px}
+#bs.phone-l .bsp.goal .muted{display:none}
+#bs.phone-l .bsp.feed{left:auto;right:6px;bottom:78px;width:200px;padding:5px 8px}
+#bs.phone-l .feed li:nth-child(n+3){display:none}
+#bs.phone-l .bars-wrap{left:50%;bottom:5px;transform:translateX(-50%);flex-direction:row;gap:6px;width:auto;max-width:calc(100% - 12px)}
+#bs.phone-l .locbar{padding:3px 5px;flex:none}
+#bs.phone-l .locbar button{height:42px;width:42px;padding:0;font-size:16px;justify-content:center}
+#bs.phone-l .locbar button span{display:none}
+#bs.phone-l .actionbar{gap:3px;padding:4px 5px;max-width:70vw;overflow:auto}
+#bs.phone-l .actionbar button{min-width:52px;width:52px;height:52px}
+#bs.phone-l .actionbar .lbl{font-size:9px}
+#bs.phone-l .actionbar button .sub{display:none}
+#bs.phone-l .bossbar{top:6px;width:min(360px,44vw)}
+#bs.phone-l .log-overlay{padding:6px}
+#bs.phone-l .log-win{width:96vw;height:96vh;max-height:96vh;border-radius:12px}
+#bs.phone-l .bs-off{top:6px;left:6px;font-size:10px;padding:3px 8px}
+#bs.phone-l .unitframe{top:6px;left:6px;width:210px;padding:4px 6px 4px 4px}
+#bs.phone-l .unitframe .port{width:44px;height:44px}
+#bs.phone-l .unit-sub{display:none}

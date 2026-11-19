@@ -727,6 +727,18 @@
       else if (k === 'win') state.boss = { ph: 'done', name: 'Огр', key: 'ogre_boss', flt: '', in: 0, n: 8, win: 1 };
       else if (k === 'done' || k === 'left') state.boss = { ph: 'done', name: 'Огр', key: 'ogre_boss', flt: '', in: 0, n: 8, win: 0 };
     } }
+    { // большой экран: макеты логов (?mock=1&tab=boss&ogre=1|stone=1|treant=1). Не влияет на живой пульт.
+      const q = location.search, squad = [['demo_viewer', 1230, 1100, 'warrior', 12, 'boss', 'moon_m_warrior', 'black', '', 0, 120, 'm'], ['ironpaw', 1450, 1180, 'paladin', 14, 'boss', 'gold_f_paladin', '', '', 0, 120, 'f'], ['tima_pal', 1100, 1220, 'warrior', 16, 'boss', 'silver_f_warrior', 'chestnut', '', 0, 120, 'f'], ['kira_k', 1320, 1240, 'warrior', 11, 'boss', 'moon_f_warrior', 'blond', '', 0, 120, 'f'], ['mira77', 860, 980, 'mage', 12, 'boss', 'fire_f_mage', 'red', '', 0, 120, 'f'], ['redhood', 1680, 1080, 'archer', 6, 'boss', 'gold_f_archer', 'black', '', 0, 120, 'f'], ['luna_owl', 1540, 960, 'priest', 8, 'boss', 'silver_f_priest', 'blond', '', 0, 120, 'f'], ['gnomik', 980, 1160, 'priest', 11, 'boss', 'none_m_priest', 'blond', '', 0, 120, 'm']];
+      if (/[?&](ogre|stone|treant)=1/.test(q)) {
+        locs.boss = squad; state.locs.boss = squad;
+        state.ref = Object.assign({}, state.ref, { px: Math.max(499, +((state.ref && state.ref.px) || 0)) });
+        const n = squad.length;
+        if (/[?&]treant=1/.test(q)) state.boss = { ph: 'fight', name: 'Король Трентов', key: 'treant_king_boss', lair: 'boss_treant', flt: '', hp: 61000, mhp: 96000, in: 0, n, tr: { r: [['ironpaw', 5, 1], ['kira_k', 4, 0]], sp: 2, st: 0, fh: 3 } };
+        else if (/[?&]stone=1/.test(q)) state.boss = { ph: 'fight', name: 'Каменный', key: 'troll_boss', flt: 'saturate(.4) brightness(.9)', hp: 18000, mhp: 24000, in: 0, n };
+        else state.boss = { ph: 'fight', name: 'Огр', key: 'ogre_boss', flt: '', hp: 131400, mhp: 214000, in: 0, n };
+        state.me.loc = 'boss'; state.me.st = 'boss';
+      }
+    }
     { const m = /[?&]barber=(\w+)/.exec(location.search); if (m) { // v49.7: макет цирюльника (?mock=1&tab=me&barber=1 | mf — магиня, есть «распущенные»)
       const mf = m[1] === 'mf', hk = mf ? 'moon_f_mage' : 'moon_m_warrior', hr = mf ? 'chestnut_loose' : 'chestnut';
       state.ref = Object.assign({}, state.ref, { px: 498, hb: 1, hairOn: true, hairPrice: 250, hair: [['black', 'чёрный', null, null], ['chestnut', 'каштановый', null, null], ['red', 'рыжий', null, null], ['blond', 'блонд', null, null], ['chestnut_loose', 'каштановые распущенные', null, ['mage_f']]] });
