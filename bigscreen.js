@@ -9,6 +9,25 @@
   const esc = s => window.__panel && __panel.esc ? __panel.esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const wantOn = () => { try { if (/[?&]big=1/.test(location.search)) return true; if (/[?&]big=0/.test(location.search)) return false; return localStorage.getItem(KEY) === '1'; } catch (e) { return /[?&]big=1/.test(location.search); } };
 
+  // как в game.js: ogre/queen нарисованы лицом вправо — зеркалим, голова влево к героям; трент почти анфас.
+  const BOSS_MIRROR = { ogre_boss: 1, troll_boss: 1, queen_boss: 1 };
+  const BOSS_FILE = { ogre_boss: 'ogre_boss.png', troll_boss: 'ogre_boss.png', queen_boss: 'queen_boss.png', treant_boss: 'treant_king_boss.png', treant_king_boss: 'treant_king_boss.png' };
+  const BOSS_SPOT = { x: 2300, y: 1260, h: 460, clear: 500 };
+  function bossSrc(key) { const f = BOSS_FILE[key] || 'ogre_boss.png'; return 'img/boss/' + f; }
+  function dockClassicBars(into) {
+    ['castbox', 'rm49', 'tr495'].forEach(id => {
+      const n = document.getElementById(id); if (!n || !into) return;
+      if (!n._bsHome) n._bsHome = n.parentElement;
+      if (n.parentElement !== into) into.appendChild(n);
+    });
+  }
+  function undockClassicBars() {
+    ['castbox', 'rm49', 'tr495'].forEach(id => {
+      const n = document.getElementById(id);
+      if (n && n._bsHome && n.parentElement !== n._bsHome) n._bsHome.appendChild(n);
+    });
+  }
+
   let on = false, logMine = false, bsLoc = 'camp';
 
   function mount() {
@@ -97,6 +116,7 @@
   function setOn(v) {
     on = !!v;
     try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
+    if (!on) undockClassicBars();
     document.body.classList.toggle('bs-on', on);
     if (on) { mount(); const t = window.__panel && __panel.tab; if (t && t !== 'me') bsLoc = t; else if (__panel && __panel.state && __panel.state.me && __panel.state.me.loc) bsLoc = __panel.state.me.loc; sync(); }
     else if (window.__panel) __panel.render();
@@ -219,38 +239,29 @@
   function fillBoss(c) {
     const el = $('#bsBoss'), b = c.state && c.state.boss;
     const show = c.tab === 'boss' && b;
+    undockClassicBars();
     el.hidden = !show;
     if (!show) return;
     const timer = window.__panel && __panel.bossTimerText ? (__panel.bossTimerText() || '') : '';
     const ph = b.ph === 'fight' ? 'в бою' : b.ph === 'signup' ? 'запись' : b.ph === 'wait' ? 'ожидание' : b.ph === 'done' ? (b.win ? 'побеждён' : 'ушёл') : '';
     const fmt = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-    const hp = b.mhp ? `<div class="bar boss"><i style="width:${Math.max(0, Math.min(100, b.hp / b.mhp * 100))}%"></i><span>${esc(fmt(b.hp))} / ${esc(fmt(b.mhp))} HP${Array.isArray(b.sw) ? ` · 🐛 личинок ${esc(+b.sw[0] || 0)}, коконов ${esc(+b.sw[1] || 0)}` : ''}</span></div>` : '';
-    let cast = '';
-    const cs = b.ph === 'fight' && b.cast;
-    if (cs && typeof cs.p === 'number') {
-      const left = cs.r > 0 ? Math.max(0, (1 - cs.p) / cs.r) : 0;
-      cast = `<div class="castrow"><span class="cast-lab">🔴 Каст: ${esc(cs.nm || 'каст босса')}${cs.sl ? ' · 🐌' : ''}</span><div class="bar cast"><i style="width:${Math.max(0, Math.min(100, cs.p * 100))}%"></i><span>${left ? left.toFixed(1) + ' с' : ''}</span></div></div>`;
-    }
-    let rumble = '';
-    if (b.ph === 'fight' && b.rm && b.rm.e > 0) {
-      const rx = (c.state._rx || c.state.t || Date.now()), dt = (Date.now() - rx) / 1000;
-      let left = (+b.rm.l || 0) - dt; if (left < 0) left = b.rm.e - ((-left) % b.rm.e);
-      rumble = `<div class="rumble">🔥 Раскат через ${Math.ceil(left)} с · −${esc(b.rm.p)}% HP всем · заслон режет вдвое</div>`;
-    }
-    let tr = '';
-    if (b.ph === 'fight' && b.tr && +((c.ref && c.ref.px) || 0) >= 495) {
-      const roots = Array.isArray(b.tr.r) ? b.tr.r : [], nm = c.me && String(c.me.n || '').toLowerCase();
-      const mine = roots.find(r => String(r[0]).toLowerCase() === nm);
-      if (mine) tr = `<div class="trline">🌿 Опутан ${Math.max(1, Math.ceil(+mine[1] || 0))} с</div>`;
-      else if (roots.length || b.tr.sp || b.tr.st) tr = `<div class="trline"><button type="button" data-tr="1">🪓 Рубить</button>${roots.length ? 'в корнях: ' + roots.map(r => esc(r[0])).join(', ') : (b.tr.sp ? 'ростков: ' + b.tr.sp : 'пней: ' + b.tr.st)}</div>`;
-    }
-    el.innerHTML = `<div class="bossbar-top"><div class="bossbar-name">${esc(b.name || 'Босс')} · ${esc(ph)}${b.n ? ' ' + b.n : ''}</div><div class="bossbar-timer">${esc(timer)}</div></div>${hp}${cast}${rumble}${tr}`;
+    const pct = b.mhp ? Math.max(0, Math.min(100, b.hp / b.mhp * 100)) : 0;
+    const swarm = Array.isArray(b.sw) ? ` · 🐛 личинок ${esc(+b.sw[0] || 0)}, коконов ${esc(+b.sw[1] || 0)}` : '';
+    const hp = b.mhp ? `<div class="fight boss"><span class="fmob"><span class="fhp"><i style="width:${pct}%"></i></span><small>${esc(fmt(b.hp))} / ${esc(fmt(b.mhp))} HP${swarm}</small></span></div>` : '';
+    el.innerHTML = `<div class="bossbar-top"><div class="bossbar-name">${esc(b.name || 'Босс')} · ${esc(ph)}${b.n ? ' ' + b.n : ''}</div></div>`
+      + (timer ? `<div class="bt496" id="bt496c">${esc(timer)}</div>` : '')
+      + hp + `<div class="bs-docks" id="bsDocks"></div>`;
+    dockClassicBars($('#bsDocks'));
   }
 
   function fillActors(c) {
     const box = $('#bsActors'), st = c.state, l = bsLoc;
     const meName = c.user && c.user.login ? String(c.user.login).toLowerCase() : (c.me && String(c.me.n).toLowerCase()) || '';
-    const list = ((st && st.locs && st.locs[l]) || []).slice().sort((a, b) => a[2] - b[2] || a[1] - b[1]);
+    let list = ((st && st.locs && st.locs[l]) || []).map(t => t.slice()).sort((a, b) => a[2] - b[2] || a[1] - b[1]);
+    if (l === 'boss' && st && st.boss && st.boss.ph === 'fight') {
+      const limit = BOSS_SPOT.x - BOSS_SPOT.clear;
+      list.forEach(t => { if (+t[1] > limit) t[1] = limit; });
+    }
     const faceRight = l !== 'camp';
     let html = '';
     for (const t of list) {
@@ -279,9 +290,11 @@
       }
     }
     if (l === 'boss' && st && st.boss && st.boss.ph === 'fight' && st.boss.key) {
-      const id = st.boss.key, ext = /queen|treant|ogre/.test(id) ? 'webp' : 'webp';
-      html += `<div class="mob" style="left:2080px;top:1000px;z-index:900">`
-        + `<img src="img/mob/${esc(id)}.${ext}" alt="" style="height:440px" onerror="this.remove()">`
+      const id = st.boss.key, src = bossSrc(id), flip = !!BOSS_MIRROR[id];
+      const flt = /^[a-z0-9().,\s-]*$/i.test(st.boss.flt || '') && st.boss.flt ? ` filter:${esc(st.boss.flt)};` : '';
+      const h = /treant/.test(id) ? 500 : BOSS_SPOT.h;
+      html += `<div class="mob boss${flip ? ' flip' : ''}" style="left:${BOSS_SPOT.x}px;top:${BOSS_SPOT.y}px;z-index:${BOSS_SPOT.y}">`
+        + `<img src="${esc(src)}" alt="" style="height:${h}px;${flt}" onerror="this.remove()">`
         + `<div class="mname">${esc(st.boss.name || '')}</div></div>`;
     }
     box.innerHTML = html;
