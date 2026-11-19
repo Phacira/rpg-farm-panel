@@ -200,7 +200,7 @@
   // ---------- Король Трентов (v49.5): «Опутан N с» и кнопка «Рубить» — только если игра ≥ v49.5 (ref.px ≥ 495) и прислала boss.tr ----------
   // boss.tr = { r: [[ник, секунд, ударов], …], sp: ростков, st: пней, fh: ударов на корень }. «Рубить» шлёт обычный «удар» — игра сама рубит корни/ростки.
   const trBox = (() => { const c = document.getElementById('rm49') || document.getElementById('castbox'); if (!c) return null; const d = document.createElement('div'); d.id = 'tr495'; d.className = 'tr495'; d.hidden = true; c.insertAdjacentElement('afterend', d);
-    d.addEventListener('click', e => { const b = e.target.closest('button[data-tr]'); if (!b || b.disabled || !window.PanelActions) return; window.PanelActions.fire('удар', '', '🪓 Рубить'); b.disabled = true; trLock = Date.now() + 1500; }); return d; })();
+    d.addEventListener('click', e => { const b = e.target.closest('button[data-tr]'); if (!b || b.disabled || !window.PanelActions) return; if (window.__bossLeft && window.__bossLeft('удар')) return; window.PanelActions.fire('удар', '', '🪓 Рубить'); b.disabled = true; trLock = Date.now() + 1500; }); return d; })();
   let trHtml = '', trLock = 0;
   function trTick() {
     if (!trBox) return; const s = st(), b = s && s.online !== false && s.boss, t = b && b.ph === 'fight' && b.tr, m = me();
@@ -213,7 +213,7 @@
     let h = '';
     if (mine) { const left = Math.max(1, Math.ceil((+mine[1] || 0) - (mock ? 0 : dt))); h = `<div class="trrow"><span class="trb">🌿 Опутан <b>${left} с</b></span><span class="trs">не бьёшь и не лечишь — союзники рубят корни (${+mine[2] || 0}/${+t.fh || 3}) или вырывают !оглушить/!заслон</span></div>`; }
     else { const what = others.length ? 'в корнях: ' + others.map(r => esc(r[0])).join(', ') : sp ? `ростков: ${sp} — лечат Короля` : `пней: ${stp} — добить, пока не проросли`;
-      h = `<div class="trrow"><button class="trbtn" data-tr="1"${Date.now() < trLock ? ' disabled' : ''}>🪓 Рубить</button><span class="trs">${what}${others.length && sp ? ` · ростков: ${sp}` : ''}</span></div>`; }
+      h = `<div class="trrow"><button class="trbtn" data-tr="1" data-bc="удар" data-en="1"${Date.now() < trLock || (window.__bossLeft && window.__bossLeft('удар')) ? ' disabled' : ''}>🪓 Рубить</button><span class="trs">${what}${others.length && sp ? ` · ростков: ${sp}` : ''}</span></div>`; }
     if (h !== trHtml) { trHtml = h; trBox.innerHTML = h; } trBox.hidden = false; trBox.className = 'tr495' + (mine ? ' me' : '');
   }
   setInterval(trTick, 250);

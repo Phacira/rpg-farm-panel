@@ -838,7 +838,7 @@
     $('cast-now').innerHTML = `Сейчас <b style="color:${W.col}">${W.n}</b> окно — сбивает <b>${W.ic} ${W.cmd[0].toUpperCase() + W.cmd.slice(1)}</b> (${W.who})`;
     const pb = box.querySelector('.cb.pri'); if (pb) { pb.dataset.cc = W.cmd; pb.innerHTML = W.ic + ' ' + W.cmd[0].toUpperCase() + W.cmd.slice(1); }
   }
-  document.addEventListener('click', e => { const b = e.target.closest('#castbox button[data-cc]'); if (!b || b.disabled || !window.PanelActions) return; const cmd = b.dataset.cc; PanelActions.fire(cmd, '', cmd[0].toUpperCase() + cmd.slice(1)); });
+  document.addEventListener('click', e => { const b = e.target.closest('#castbox button[data-cc]'); if (!b || b.disabled || !window.PanelActions) return; const cmd = b.dataset.cc; if (window.__bossLeft && window.__bossLeft(cmd)) return; PanelActions.fire(cmd, '', cmd[0].toUpperCase() + cmd.slice(1)); });
   setInterval(castTick, 100);
   setInterval(bossTimerTick, 1000); // v49.6: локальный отсчёт таймера босса между снимками
   takeHash();

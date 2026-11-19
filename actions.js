@@ -121,7 +121,7 @@
       camp: [['🏰', 'Гильдия', 'гильдия', guilds, me && me.gd ? me.gd : 'выбрать'],
         ['✔', 'Да', 'да', '', 'подтвердить гильдию'], ['✖', 'Нет', 'нет', '', 'отменить выбор'], ['🏗', 'Вклад', 'вклад', () => bldPick('camp'), 'костёр, палатка']],
       forest: [['⚔', 'В поход', 'поход', '', hike], ...(me ? [turnBtn] : []), ['🛡', 'Пати-поход', 'пати', '', me && me.pty ? 'вы в очереди' : 'вместе с другими']],
-      boss: bossOrder(me, [['☠', 'Записаться', 'босс', '', 'в отряд на босса'], ['👊', 'Удар', 'удар', '', 'до 4 в минуту'], ['💚', 'Лечить', 'лечить', '', 'раз в 30 с'],
+      boss: bossOrder(me, [['☠', 'Записаться', 'босс', '', 'в отряд на босса'], ['👊', 'Удар', 'удар', '', 'раз в 60 с'], ['💚', 'Лечить', 'лечить', '', 'раз в 30 с'],
         ['💫', 'Оглушить', 'оглушить', '', 'красный каст'], ['🕸', 'Связать', 'связать', '', 'жёлтый каст'], ['🔮', 'Очистить', 'очистить', '', 'фиолетовый каст'],
         ['🐌', 'Замедлить', 'замедлить', '', 'замедлить каст'], ['🛡', 'Заслон', 'заслон', '', 'щит отряду'], ['✝', 'Воскресить', 'воскресить', '', 'поднять союзника']]),
       me: me ? [turnBtn, ['🎒', 'Надеть', 'экип', wear, 'своё снаряжение'], ['🧤', 'Снять', 'снять', unwear, 'вещь со слота'], ['💰', 'Продать вещь', 'продать', sellEq, 'кузня · трофеи'], ...trophyBtn(), ['🏷', 'Титул', 'титул', titles, me.ttOn || 'выбрать'],
@@ -142,6 +142,39 @@
     return mine.concat(rest);
   }
   window.__bossOrder = bossOrder;
+  // v49.10: откаты кнопок босса. Игра v49.10+ шлёт me.bk (сек на момент снимка): c — общий КД контроля (один на все умения), l — блок за спам/не то окно,
+  // s — !удар, h — !лечить, r — воскрешение/очищение, q — антиспам чата по командам. Старая игра bk не шлёт — тогда берём секунды из ответа игры.
+  // Нажатие во время КД/блока игра наказывает блоком 20 с (spamLockout), поэтому кнопка на откате неактивна и показывает отсчёт.
+  const CC_CMDS = ['оглушить', 'связать', 'очистить', 'замедлить', 'заслон'], BOSS_CMDS = ['босс', 'удар', 'лечить', 'воскресить'].concat(CC_CMDS);
+  const LOC = {}; // cmd → [до (ms), предположение?]
+  const setLoc = (cmds, sec, guess) => { const t = Date.now() + sec * 1000; cmds.forEach(c => { const o = LOC[c]; if (!o || o[0] < t || (o[1] && !guess)) LOC[c] = [t, !!guess]; }); };
+  function bossReply(cmd, m) {
+    if (!BOSS_CMDS.includes(cmd)) return; const msg = String(m.msg || ''); let x;
+    if ((x = /блок (\d+)\s*с/.exec(msg))) setLoc(CC_CMDS, +x[1]); // блок общий на все умения контроля
+    if ((x = /(?:откате|ещё) (\d+)\s*с/.exec(msg))) setLoc(cmd === 'очистить' || cmd === 'воскресить' ? (/откате/.test(msg) ? ['очистить', 'воскресить'] : [cmd]) : [cmd], +x[1]);
+    if ((x = /^кулдаун(?: (\d+))?/.exec(msg))) setLoc([cmd], x[1] ? +x[1] : 5, !x[1]);
+    if (m.ok) { if (cmd === 'удар') setLoc([cmd], 60, 1); else if (cmd === 'лечить') setLoc([cmd], 30, 1); else if (cmd === 'воскресить') setLoc(['воскресить', 'очистить'], 60, 1);
+      else if (CC_CMDS.includes(cmd)) { setLoc(CC_CMDS, 20, 1); if (cmd === 'очистить' && /отброшен/.test(msg)) setLoc(['воскресить'], 60, 1); } }
+  }
+  function bossLeft(cmd) {
+    if (!BOSS_CMDS.includes(cmd)) return 0;
+    const P = window.__panel, st = P && P.state, me = st && st.me, bk = me && me.bk, now = Date.now(); let v = 0;
+    if (bk && st.boss && st.boss.ph === 'fight') { const age = (now - (st._rx || st.t || now)) / 1000, g = k => Math.max(0, (+bk[k] || 0) - age);
+      v = CC_CMDS.includes(cmd) ? Math.max(g('c'), g('l'), cmd === 'очистить' ? g('r') : 0) : cmd === 'удар' ? g('s') : cmd === 'лечить' ? g('h') : cmd === 'воскресить' ? g('r') : 0;
+      const q = bk.q && +bk.q[cmd]; if (q) v = Math.max(v, q - age); }
+    const o = LOC[cmd]; if (o && o[0] > now && !(bk && o[1])) v = Math.max(v, (o[0] - now) / 1000);
+    return v > 0.05 ? Math.ceil(v) : 0;
+  }
+  function bossCdTick() {
+    document.querySelectorAll('button[data-bc]').forEach(b => { const n = bossLeft(b.dataset.bc), sm = b.querySelector('small');
+      if (n) { b.disabled = true; b.classList.add('bcd'); if (sm) sm.textContent = '⏳ откат ' + n + ' с'; }
+      else if (b.classList.contains('bcd')) { b.classList.remove('bcd'); if (sm) sm.textContent = b.dataset.sub || ''; if (b.dataset.en === '1') b.disabled = false; } });
+    document.querySelectorAll('#castbox button[data-cc]').forEach(b => { const n = bossLeft(b.dataset.cc);
+      if (n) { if (!b.disabled || b.dataset.cdx === '1') { b.disabled = true; b.dataset.cdx = '1'; b.dataset.cdt = '⏳ ' + n + ' с'; } }
+      else if (b.dataset.cdx === '1') { b.disabled = false; delete b.dataset.cdx; delete b.dataset.cdt; } });
+  }
+  setInterval(bossCdTick, 250);
+  window.__bossLeft = bossLeft;
   let ctxNow = null, curList = [];
   function render(el, ctx) {
     ctxNow = ctx; if (!el) return;
@@ -150,8 +183,10 @@
     const title = { town: 'Город', garden: 'Огород', camp: 'Лагерь', forest: 'Лес', boss: 'Босс', me: 'Мой герой' }[ctx.tab] || '';
     el.innerHTML = `<h2>Действия: ${esc(title)}</h2>${!on ? '<p class="note">Кнопки работают, когда идёт стрим.</p>' : !ctx.me && ctx.tab !== 'me' ? '<p class="note">У вас пока нет героя — кнопки появятся, когда он будет.</p>' : ''}
       <div class="acts">${list.map((d, i) => { const grp = d[7] === 'other' && (!list[i - 1] || list[i - 1][7] !== 'other') ? '<div class="agrp">Не твой класс</div>' : ''; const busy = Object.values(pend).some(p => p.cmd === d[2]);
-        return `<button class="act${busy ? ' busy' : ''}${d[6] ? ' off' : ''}" data-a="${i}"${d[6] ? ' disabled aria-disabled="true" title="' + esc(d[4]) + '"' : !on || (!ctx.me && d[2] !== 'вступить') || busy ? ' disabled' : ''}><span class="ai">${d[0]}</span><span class="al">${esc(d[1])}</span><small>${esc(d[4] || '')}</small></button>`.replace(/^/, grp); }).join('')}</div>
+        const bc = ctx.tab === 'boss' && !d[6] && BOSS_CMDS.includes(d[2]) ? ` data-bc="${d[2]}" data-sub="${esc(d[4] || '')}" data-en="${!on || (!ctx.me && d[2] !== 'вступить') || busy ? 0 : 1}"` : '';
+        return `<button class="act${busy ? ' busy' : ''}${d[6] ? ' off' : ''}" data-a="${i}"${bc}${d[6] ? ' disabled aria-disabled="true" title="' + esc(d[4]) + '"' : !on || (!ctx.me && d[2] !== 'вступить') || busy ? ' disabled' : ''}><span class="ai">${d[0]}</span><span class="al">${esc(d[1])}</span><small>${esc(d[4] || '')}</small></button>`.replace(/^/, grp); }).join('')}</div>
       <div class="cres" aria-live="polite">${results.map(r => `<div class="${r.ok ? 'ok' : r.ok === false ? 'bad' : 'wait'}">${r.ok ? '✔' : r.ok === false ? '✖' : '…'} <b>${esc(r.label)}</b>: ${esc(r.msg)}</div>`).join('')}</div>`;
+    bossCdTick();
   }
   // окно выбора/подтверждения
   function sheet(title, opts) {
@@ -168,7 +203,7 @@
     sheet(title, opts.map(o => Object.assign({}, o, { go: () => o.url ? window.open(o.url, '_blank', 'noopener') : o.next ? choose(d, o.next, o.label) : ask(d, o.arg, d[1] + (o.label ? ' · ' + o.label : ''), o.confirm, o.cmd) })));
   }
   function click(i) {
-    const d = curList[i]; if (!d || d[6]) return; // v7panel10: выключенная кнопка команду не шлёт
+    const d = curList[i]; if (!d || d[6]) return; if (bossLeft(d[2])) return; // v7panel10: выключенная кнопка команду не шлёт
     if (typeof d[3] === 'function') return choose(d, d[3](), d[1]);
     ask(d, d[3] || '', d[1], d[5]);
   }
@@ -179,7 +214,7 @@
     setTimeout(() => { if (pend[id]) done({ id, ok: false, msg: 'нет ответа — проверьте связь' }); }, 12000);
   }
   function push(r) { results = [r].concat(results.filter(x => x.id !== r.id)).slice(0, 4); window.__panel && window.__panel.render(); }
-  function done(m) { const p = pend[m.id]; if (!p) return; delete pend[m.id]; push({ id: m.id, label: p.label, msg: m.msg || (m.ok ? 'готово' : 'не получилось'), ok: !!m.ok }); if (typeof p.cb === 'function') { try { p.cb(m); } catch (e) {} } }
+  function done(m) { const p = pend[m.id]; if (!p) return; delete pend[m.id]; try { bossReply(p.cmd, m); } catch (e) {} push({ id: m.id, label: p.label, msg: m.msg || (m.ok ? 'готово' : 'не получилось'), ok: !!m.ok }); if (typeof p.cb === 'function') { try { p.cb(m); } catch (e) {} } }
   document.addEventListener('click', e => { const b = e.target.closest('button.act'); if (b && !b.disabled) click(+b.dataset.a); });
   window.PanelActions = { render, done, defs, fire, sellList: ctx => { const d = defs(ctx).me || []; const b = d.find(x => x[2] === 'продать'); return b && typeof b[3] === 'function' ? b[3]() : []; } };
 })();

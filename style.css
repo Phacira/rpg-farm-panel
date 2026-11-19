@@ -377,3 +377,7 @@ details.hq .hq-body{padding:8px 10px 10px}
 .snote.sinfo .sl{display:grid;grid-template-columns:minmax(120px,38%) 1fr;gap:10px;align-items:baseline}
 .snote.sinfo .sl>span:first-child{color:#c8b48a;font-size:13px}.snote.sinfo .sl>span:last-child{color:#f3e3c2}
 .snote.sinfo .sl.nx>span:last-child{color:#9fe08a}.snote.sinfo .sl.mx>span:last-child{color:#c8b48a}
+/* v49.10: кнопка босса на откате */
+.act.bcd{opacity:.55}
+.act.bcd small{color:#ffcf7a}
+.castbox .cb[data-cdt]::after{content:' ' attr(data-cdt);font-size:13px;font-weight:600;color:#ffcf7a}
