@@ -1,0 +1,218 @@
+/* Большой экран пульта (opt-in, v.bs510). Обычный пульт не меняется, пока body.bs-on нет. */
+body.bs-on{overflow:hidden;background:#000}
+body.bs-on #panel,body.bs-on .chatcmds,body.bs-on > footer{display:none !important}
+body.bs-on #sheet{z-index:40}
+#bs{display:none}
+body.bs-on #bs{display:block;position:fixed;inset:0;z-index:15;background:#000;color:#f3eadc;font:13px/1.35 system-ui,sans-serif;font-weight:700}
+
+#bs .scene-wrap{position:absolute;inset:0;overflow:hidden;background:#100a12}
+#bs .scene{position:absolute;left:0;top:0;width:2560px;height:1440px;transform-origin:0 0;will-change:transform}
+#bs .scene .bg{position:absolute;inset:0;width:2560px;height:1440px;display:block;pointer-events:none}
+#bs .glow{position:absolute;left:1280px;top:650px;width:840px;height:520px;transform:translate(-50%,-45%);background:radial-gradient(ellipse,rgba(255,140,50,.28) 0%,rgba(180,70,20,.12) 42%,transparent 70%);mix-blend-mode:screen;pointer-events:none}
+#bs[data-view="boss"] .glow,#bs[data-view="forest"] .glow,#bs[data-view="town"] .glow,#bs[data-view="garden"] .glow{display:none}
+
+#bs .hero{position:absolute;width:0;height:0;z-index:1}
+#bs .hero .shadow{position:absolute;left:0;bottom:0;width:calc(90px * var(--hs,1));height:calc(20px * var(--hs,1));transform:translate(-50%,20%);background:radial-gradient(ellipse,rgba(0,0,0,.45) 0%,transparent 70%);pointer-events:none}
+#bs .hero .ring{display:none;position:absolute;left:0;bottom:2px;width:calc(120px * var(--hs,1));height:calc(30px * var(--hs,1));transform:translate(-50%,40%);border:3px solid #ffd27a;border-radius:50%;box-shadow:0 0 14px rgba(255,210,122,.8),inset 0 0 8px rgba(255,210,122,.35);pointer-events:none}
+#bs .hero.me .ring{display:block}
+#bs .hero img{position:absolute;left:0;bottom:0;height:calc(192px * var(--hs,1));width:auto;transform:translateX(-50%);image-rendering:pixelated;pointer-events:none;filter:drop-shadow(0 6px 3px rgba(0,0,0,.35))}
+#bs .hero.flip img{transform:translateX(-50%) scaleX(-1)}
+#bs .hero .name{position:absolute;left:0;bottom:calc(200px * var(--hs,1));transform:translateX(-50%);white-space:nowrap;text-align:center;font-size:calc(22px * var(--hs,1));line-height:1.15;color:#fff;text-shadow:0 1px 0 #000,0 0 6px #000,0 2px 8px #000;padding:2px 8px;pointer-events:none}
+#bs .hero.me .name{color:#ffd27a;font-size:calc(24px * var(--hs,1));text-shadow:0 1px 0 #000,0 0 8px #000,0 0 12px rgba(255,210,122,.4)}
+#bs .hero .name small{display:block;font-size:.72em;color:#efe6d4;opacity:.9}
+#bs .hero.me .name small{color:#ffd27a}
+#bs .g-fire{--gc:#ee7a3a}#bs .g-moon{--gc:#8ea0ff}#bs .g-gold{--gc:#e8c24a}#bs .g-silver{--gc:#d0d6e2}#bs .g-none{--gc:#c0b0c8}
+#bs .hero .name::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--gc,#fff);margin-right:6px;vertical-align:middle;box-shadow:0 0 0 1px #0008}
+
+#bs .mob{position:absolute;width:0;height:0;z-index:2}
+#bs .mob img{position:absolute;left:0;bottom:0;height:160px;width:auto;transform:translateX(-50%);filter:drop-shadow(0 8px 6px rgba(0,0,0,.45))}
+#bs .mob .mname{position:absolute;left:0;bottom:168px;transform:translateX(-50%);color:#ffe8a0;font-size:22px;text-shadow:0 2px 4px #000;white-space:nowrap}
+#bs .mob .mhp{position:absolute;left:0;bottom:148px;transform:translateX(-50%);width:140px}
+#bs .mob.boss img{height:460px;image-rendering:auto;filter:drop-shadow(0 14px 10px rgba(0,0,0,.55))}
+#bs .mob.boss.flip img{transform:translateX(-50%) scaleX(-1)}
+#bs .mob.boss .mname{bottom:auto;top:100%;margin-top:8px;font-size:24px}
+
+#bs .hud{position:absolute;inset:0;pointer-events:none;z-index:5}
+#bs .hud > *{pointer-events:auto}
+
+#bs .bs-off{position:absolute;top:132px;left:14px;z-index:8;background:rgba(18,10,24,.82);border:1px solid rgba(232,195,106,.45);color:#ffd27a;padding:4px 12px;border-radius:999px;font:700 12px/1.3 system-ui,sans-serif;cursor:pointer}
+
+#bs .loc-chip{position:absolute;top:44px;left:50%;transform:translateX(-50%);background:rgba(18,10,24,.82);border:1px solid rgba(232,195,106,.45);color:#ffd27a;padding:4px 12px;border-radius:8px;font-size:13px;backdrop-filter:blur(6px)}
+#bs[data-view="boss"] .loc-chip{display:none}
+
+#bs .unitframe{position:absolute;top:14px;left:14px;display:flex;gap:10px;width:316px;padding:8px 10px 8px 8px;background:rgba(18,10,24,.82);border:1px solid rgba(232,195,106,.45);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.45);backdrop-filter:blur(8px)}
+#bs .unitframe .port{flex:none;width:76px;height:76px;border-radius:10px;overflow:hidden;border:2px solid #ffd27a;background:#1a1020}
+#bs .unitframe .port img{width:150%;height:auto;margin:-12% 0 0 -28%;display:block;image-rendering:pixelated}
+#bs .unit-main{flex:1;min-width:0}
+#bs .unit-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+#bs .unit-top b{color:#ffd27a;font-size:14px}
+#bs .unit-top .lvl{color:#fff;font-size:12px}
+#bs .unit-sub{color:#b7a9c6;font-size:11px;margin:1px 0 5px}
+#bs .bar{position:relative;height:14px;border-radius:7px;background:#000c;border:1px solid #fff2;overflow:hidden;margin-top:3px}
+#bs .bar i{display:block;height:100%;border-radius:7px}
+#bs .bar.hp i{background:linear-gradient(#ff7a6a,#c8322a)}
+#bs .bar.xp i{background:linear-gradient(#ffd27a,#c99a2a)}
+#bs .bar.boss i{background:linear-gradient(#ff6a5a,#a01810)}
+#bs .bar.goalb i{background:linear-gradient(#7dcb6a,#3d8a3a)}
+#bs .bar.cast i{background:linear-gradient(#ff8a4a,#c43010)}
+#bs .bar span{position:absolute;inset:0;text-align:center;font-size:10px;line-height:13px;color:#fff;text-shadow:0 1px 2px #000}
+#bs .unit-res{display:flex;gap:10px;margin-top:4px;font-size:11px;color:#f3eadc}
+
+#bs .bossbar{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:min(560px,46vw);padding:8px 14px 10px;background:rgba(18,10,24,.88);border:1px solid #e07060aa;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.45);backdrop-filter:blur(8px);text-align:center}
+#bs .bossbar-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:4px}
+#bs .bossbar-name{color:#ffc8b8;font-size:14px}
+#bs .bossbar-timer{font-size:11px;color:#ffc8b8}
+#bs .castrow{display:flex;align-items:center;gap:8px;margin-top:5px}
+#bs .cast-lab{font-size:11px;color:#ffb4a8;white-space:nowrap}
+#bs .bar.cast{flex:1;height:12px}
+#bs .rumble,#bs .trline{margin-top:5px;font-size:11px;color:#ffd27a;text-align:left}
+#bs .trline button{margin-right:8px;border:1px solid #c9a25a;background:#3a2a10;color:#ffd27a;border-radius:8px;padding:3px 10px;font:inherit;cursor:pointer}
+
+#bs .bsp{position:absolute;width:280px;padding:8px 10px 10px;background:rgba(18,10,24,.82);border:1px solid rgba(232,195,106,.45);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.45);backdrop-filter:blur(8px)}
+#bs .bsp header{color:#ffd27a;font-size:12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+#bs .bsp.goal{top:14px;right:14px;width:300px}
+#bs .goal-title{font-size:13px;margin-bottom:4px;line-height:1.3;white-space:normal}
+#bs .muted{color:#b7a9c6;font-size:11px;font-weight:700;margin-top:5px;white-space:normal;line-height:1.35}
+#bs .bsp.quests{top:168px;right:14px}
+#bs .bsp.feed{bottom:108px;left:14px;width:300px}
+#bs .quests ul,#bs .feed ul{list-style:none;margin:0;padding:0}
+#bs .quests li{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #fff1;font-size:12px}
+#bs .quests li:last-child{border:0}
+#bs .quests li b{margin-left:auto;color:#ffd27a;font-size:11px}
+#bs .qdot{flex:none;width:8px;height:8px;border-radius:50%;background:#5a3a3a;border:1px solid #fff3}
+#bs .qdot.on{background:#7dcb6a}
+#bs .feed li{font-size:12px;padding:3px 0;color:#efe6d4}
+#bs .feed time{color:#b7a9c6;margin-right:4px}
+button.exp{border:1px solid rgba(232,195,106,.45);background:#2a1c30;color:#ffd27a;border-radius:8px;padding:3px 8px;font:700 11px system-ui,sans-serif;cursor:pointer}
+
+#bs .bars-wrap{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:6}
+#bs .locbar{display:flex;gap:4px;padding:5px 7px;background:rgba(18,10,24,.78);border:1px solid rgba(232,195,106,.45);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+#bs .locbar button{height:36px;padding:0 10px;border:1px solid #5a4470;border-radius:8px;background:#221430;color:#b7a9c6;font:700 12px system-ui,sans-serif;display:flex;align-items:center;gap:5px;cursor:pointer}
+#bs .locbar button.on{border-color:#ffd27a;color:#ffd27a;background:#3a2a10}
+#bs .actionbar{display:flex;gap:6px;padding:8px 10px;background:linear-gradient(#2a1c34ee,#160e1ef2);border:1px solid rgba(232,195,106,.45);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+#bs .actionbar button{position:relative;min-width:72px;height:78px;padding:4px 6px;border:1px solid #5a4470;border-radius:12px;background:linear-gradient(#3a2a48,#221430);color:#f3eadc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:700 12px/1.15 system-ui,sans-serif;cursor:pointer}
+#bs .actionbar button:hover,#bs .actionbar button.on{border-color:#ffd27a;background:linear-gradient(#5a3a18,#3a2410);color:#ffd27a}
+#bs .actionbar button.hot{border-color:#ffd27a;background:linear-gradient(#5a3a18,#3a2410);color:#ffd27a}
+#bs .actionbar button:disabled,#bs .actionbar button.dis{opacity:.42;cursor:default;filter:grayscale(.3)}
+#bs .actionbar .ic{font-size:20px;line-height:1;color:#ffd27a}
+#bs .actionbar .sub{display:block;font-size:9px;color:#b7a9c6;line-height:1.1;font-weight:700;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bs .actionbar button.hot .sub{color:#ffe6a8}
+#bs .actionbar button .grp{position:absolute;top:-8px;font-size:8px;color:#b7a9c6;background:#221430;padding:0 4px;border-radius:4px}
+
+#bs .overlay,#bs .log-overlay{position:absolute;inset:0;z-index:12;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:24px}
+#bs .overlay[hidden],#bs .log-overlay[hidden]{display:none}
+#bs .window,#bs .log-win{width:min(720px,92vw);max-height:86vh;overflow:auto;background:rgba(26,16,34,.96);border:2px solid #c9a25a;border-radius:14px;box-shadow:0 16px 40px rgba(0,0,0,.55)}
+#bs .log-win{width:min(860px,94vw);height:min(720px,86vh);display:flex;flex-direction:column}
+#bs .win-h{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(232,195,106,.35)}
+#bs .win-h h2{margin:0;color:#ffd27a;font-size:18px;flex:1}
+#bs .win-h .x{border:1px solid #5a4470;background:#221430;color:#ffd27a;border-radius:8px;width:36px;height:36px;font:700 16px system-ui;cursor:pointer}
+#bs .inv-body{padding:12px 14px 16px}
+#bs .inv-body .hcard,#bs .inv-body .uc{background:transparent;border:0;box-shadow:none}
+#bs .log-body{flex:1;overflow:auto;padding:10px 16px 16px}
+#bs .log-body .lg{padding:5px 0;border-bottom:1px solid #fff1;font-size:13px}
+#bs .log-body .lg.mine,#bs .log-body .lg.le{/* default */}
+#bs .log-body .lg time{color:#b7a9c6;margin-right:8px}
+#bs .logf button{border:1px solid #5a4470;background:#221430;color:#b7a9c6;border-radius:8px;padding:4px 10px;font:700 12px system-ui;cursor:pointer;margin-right:4px}
+#bs .logf button.on{border-color:#ffd27a;color:#ffd27a;background:#3a2a10}
+
+/* кнопка включения на обычном пульте */
+#bsEnter{margin-left:10px;border:1px solid #c9a25a;background:#2a1c14;color:#ffd27a;border-radius:8px;padding:4px 10px;font:700 13px system-ui;cursor:pointer;vertical-align:middle}
+#bsEnter:hover{background:#3a2a10}
+
+/* большой экран: полоски босса — те же классы, что на обычном пульте */
+#bs .bossbar{width:min(720px,54vw);text-align:left;padding:10px 14px 12px}
+#bs .bossbar-name{color:#ffc8b8;font-size:15px;font-weight:700}
+#bs .bossbar .fights,#bs .bossbar .fight.boss{margin:0;padding:0;border:0;background:transparent}
+#bs .bossbar .fmob{display:block;width:100%;flex:none}
+#bs .bossbar .fhp{display:block;max-width:none;width:100%;height:16px;margin:6px 0 2px;background:#3a1a1a;border-radius:4px;overflow:hidden}
+#bs .bossbar .fhp i{display:block;height:100%;background:#d94a3a}
+#bs .bossbar .fmob small{display:block;text-align:center;font-size:13px;line-height:1.3;color:#ffd0b0;opacity:1;margin-top:2px;text-shadow:0 1px 2px #000;font-variant-numeric:tabular-nums}
+#bs .bossbar .bt496{margin:4px 0 6px}
+#bs .bossbar .bs-docks{margin-top:8px}
+#bs .bossbar #castbox{position:static;margin:0;z-index:auto}
+#bs .bossbar #rm49,#bs .bossbar #tr495{margin:8px 0 0}
+
+#bs .actionbar button.bcd{opacity:.55;filter:none}
+#bs .actionbar button.bcd .sub{color:#ffcf7a}
+#bs .ph-dock{display:none}
+button.exp.wide{display:block;width:100%;margin-bottom:6px;padding:6px}
+
+/* ===== phone portrait: вкладки, узкая цель стрима, журнал на весь экран, окна не наезжают ===== */
+#bs.phone-p .scene-wrap{inset:auto;top:0;left:0;right:0;height:var(--sceneH,46%)}
+#bs.phone-p .bs-off{top:8px;left:auto;right:8px;font-size:10px;padding:3px 8px}
+#bs.phone-p .loc-chip{display:none}
+#bs.phone-p .unitframe{top:8px;left:8px;width:min(220px,62vw);padding:5px 7px 5px 5px;gap:7px}
+#bs.phone-p .unitframe .port{width:52px;height:52px}
+#bs.phone-p .unit-top b{font-size:12px}
+#bs.phone-p .unit-sub{font-size:10px;margin:0 0 3px}
+#bs.phone-p .bar{height:11px;margin-top:2px}
+#bs.phone-p .bar span{font-size:8px;line-height:10px}
+#bs.phone-p .unit-res{font-size:10px;gap:7px;margin-top:2px}
+#bs.phone-p .bsp.goal,#bs.phone-p .bsp.quests,#bs.phone-p .bsp.feed{display:none !important}
+#bs.phone-p .ph-dock{display:flex;flex-direction:column;position:absolute;left:8px;right:8px;top:calc(var(--sceneH,46%) + var(--bossH,0px) + 8px);bottom:var(--barsH,176px);z-index:6;gap:6px}
+#bs.phone-p .goal-strip[hidden]{display:none !important}
+#bs.phone-p .goal-strip{display:flex;align-items:center;gap:6px;padding:5px 8px;background:rgba(26,16,34,.92);border:1px solid rgba(232,195,106,.45);border-radius:10px;font-size:11px;color:#f3eadc}
+#bs.phone-p .goal-strip span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bs.phone-p .goal-strip b{color:#ffd27a;flex:none}
+#bs.phone-p .goal-strip .sgb{flex:none;width:56px;height:8px;border-radius:4px;background:#0009;border:1px solid #fff2;overflow:hidden;position:relative}
+#bs.phone-p .goal-strip .sgb i{display:block;height:100%;background:linear-gradient(#7dcb6a,#3d8a3a)}
+#bs.phone-p .dock-tabs{display:flex;gap:4px}
+#bs.phone-p .dock-tabs button{flex:1;height:32px;border:1px solid #5a4470;border-radius:8px;background:#221430;color:#b7a9c6;font:700 12px system-ui,sans-serif;cursor:pointer}
+#bs.phone-p .dock-tabs button.on{border-color:#ffd27a;color:#ffd27a;background:#3a2a10}
+#bs.phone-p .dock-pane{display:none;background:rgba(26,16,34,.92);border:1px solid rgba(232,195,106,.45);border-radius:10px;padding:6px 8px;flex:1;overflow:auto}
+#bs.phone-p .dock-pane.on{display:block}
+#bs.phone-p .dock-pane li{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;border-bottom:1px solid #fff1}
+#bs.phone-p .dock-pane li:last-child{border:0}
+#bs.phone-p .dock-pane li b{margin-left:auto;color:#ffd27a}
+#bs.phone-p .dock-pane time{color:#b7a9c6;margin-right:4px}
+#bs.phone-p .bars-wrap{left:8px;right:8px;bottom:6px;transform:none;width:auto}
+#bs.phone-p .locbar{width:100%;justify-content:space-between;padding:4px}
+#bs.phone-p .locbar button{flex:1;height:34px;padding:0 2px;font-size:10px;justify-content:center}
+#bs.phone-p .locbar button span{display:inline}
+#bs.phone-p .actionbar{width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:5px;max-height:min(200px,32vh);overflow:auto}
+#bs.phone-p .actionbar button{min-width:0;width:auto;height:58px;padding:2px}
+#bs.phone-p .actionbar .lbl{font-size:10px}
+#bs.phone-p .actionbar button .sub{font-size:8px;max-width:none;white-space:normal}
+#bs.phone-p .bossbar:not([hidden]){display:block !important;z-index:7;width:auto;left:8px;right:8px;transform:none;top:var(--sceneH,46%);bottom:auto;margin-top:4px;padding:5px 8px 6px;max-height:none;overflow:visible}
+#bs.phone-p .bossbar .fmob small{font-size:11px}
+#bs.phone-p .bossbar #castbox{margin:4px 0 0;padding:6px 8px}
+#bs.phone-p .bossbar .castbox .ct{font-size:13px;margin-bottom:3px;gap:6px}
+#bs.phone-p .bossbar .castbox .cl{font-size:16px}
+#bs.phone-p .bossbar .castbox .cbar{height:16px}
+#bs.phone-p .bossbar .castbox .cnow{margin:4px 0 3px;font-size:11px}
+#bs.phone-p .bossbar .castbox .cb{padding:6px 10px;font-size:13px}
+#bs.phone-p .bossbar .castbox .cb.pri{font-size:14px;padding:6px 12px}
+#bs.phone-p .bossbar #tr495{margin:4px 0 0;padding:5px 8px;font-size:12px}
+#bs.phone-p .bossbar .tr495 .trb{font-size:13px}
+#bs.phone-p .bossbar .tr495 .trb b{font-size:14px}
+#bs.phone-p .bossbar .tr495 .trs{font-size:11px}
+#bs.phone-p .bossbar .tr495 .trbtn{padding:5px 10px;min-height:32px;font-size:13px}
+#bs.phone-p .bossbar #rm49{margin:4px 0 0;font-size:11px}
+#bs.phone-p .log-overlay{align-items:stretch;justify-content:stretch;padding:0;background:#120b16;z-index:30}
+#bs.phone-p .log-win{width:100%;height:100%;max-height:none;border-radius:0;border:0;background:#1a1024}
+#bs.phone-p .log-win .win-h{flex-wrap:wrap;gap:6px;padding:10px 12px}
+#bs.phone-p .log-win .win-h h2{font-size:16px;flex:1 1 140px;min-width:0}
+#bs.phone-p .overlay{align-items:flex-end;padding:0;background:rgba(0,0,0,.5)}
+#bs.phone-p .window{width:100%;max-height:82%;border-radius:18px 18px 0 0;border-bottom:0}
+
+/* ===== phone landscape ===== */
+#bs.phone-l .bsp.quests,#bs.phone-l .ph-dock{display:none !important}
+#bs.phone-l .bsp.goal{top:6px;right:6px;width:210px;padding:5px 8px}
+#bs.phone-l .bsp.goal .muted{display:none}
+#bs.phone-l .bsp.feed{left:auto;right:6px;bottom:78px;width:200px;padding:5px 8px}
+#bs.phone-l .feed li:nth-child(n+3){display:none}
+#bs.phone-l .bars-wrap{left:50%;bottom:5px;transform:translateX(-50%);flex-direction:row;gap:6px;width:auto;max-width:calc(100% - 12px)}
+#bs.phone-l .locbar{padding:3px 5px;flex:none}
+#bs.phone-l .locbar button{height:42px;width:42px;padding:0;font-size:16px;justify-content:center}
+#bs.phone-l .locbar button span{display:none}
+#bs.phone-l .actionbar{gap:3px;padding:4px 5px;max-width:70vw;overflow:auto}
+#bs.phone-l .actionbar button{min-width:52px;width:52px;height:52px}
+#bs.phone-l .actionbar .lbl{font-size:9px}
+#bs.phone-l .actionbar button .sub{display:none}
+#bs.phone-l .bossbar{top:6px;width:min(360px,44vw)}
+#bs.phone-l .log-overlay{padding:6px}
+#bs.phone-l .log-win{width:96vw;height:96vh;max-height:96vh;border-radius:12px}
+#bs.phone-l .bs-off{top:6px;left:6px;font-size:10px;padding:3px 8px}
+#bs.phone-l .unitframe{top:6px;left:6px;width:210px;padding:4px 6px 4px 4px}
+#bs.phone-l .unitframe .port{width:44px;height:44px}
+#bs.phone-l .unit-sub{display:none}
