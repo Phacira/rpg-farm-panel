@@ -1,9 +1,9 @@
-/* Большой экран пульта (opt-in, v.bs511). Обычный пульт не меняется, пока body.bs-on нет. */
-body.bs-on{overflow:hidden;background:#000}
-body.bs-on #panel,body.bs-on .chatcmds,body.bs-on > footer{display:none !important}
+/* Большой экран пульта (opt-in, v.bs512). Обычный пульт не меняется, пока body.bs-on нет. */
+html.bs-on,body.bs-on{width:100%;max-width:100%;height:100%;height:100dvh;min-height:100%;min-height:100dvh;min-height:-webkit-fill-available;margin:0;padding:0;overflow:hidden !important;overscroll-behavior:none;background:#000;touch-action:manipulation}
+body.bs-on #panel,body.bs-on .chatcmds,body.bs-on > footer{display:none !important;visibility:hidden !important;pointer-events:none !important;height:0 !important;overflow:hidden !important;margin:0 !important;padding:0 !important}
 body.bs-on #sheet{z-index:40}
 #bs{display:none}
-body.bs-on #bs{display:block;position:fixed;inset:0;z-index:15;background:#000;color:#f3eadc;font:13px/1.35 system-ui,sans-serif;font-weight:700}
+body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:100%;height:100%;height:100dvh;min-height:100%;min-height:100dvh;min-height:-webkit-fill-available;max-width:none;z-index:15;background:#000;color:#f3eadc;font:13px/1.35 system-ui,sans-serif;font-weight:700;overflow:hidden;-webkit-backface-visibility:hidden}
 
 #bs .scene-wrap{position:absolute;inset:0;overflow:hidden;background:#100a12}
 #bs .scene{position:absolute;left:0;top:0;width:2560px;height:1440px;transform-origin:0 0;will-change:transform}
@@ -138,10 +138,10 @@ button.exp{border:1px solid rgba(232,195,106,.45);background:#2a1c30;color:#ffd2
 button.exp.wide{display:block;width:100%;margin-bottom:6px;padding:6px}
 
 /* ===== phone portrait: вкладки, узкая цель стрима, журнал на весь экран, окна не наезжают ===== */
-#bs.phone-p .scene-wrap{inset:auto;top:0;left:0;right:0;height:var(--sceneH,46%)}
-#bs.phone-p .bs-off{top:8px;left:auto;right:8px;font-size:10px;padding:3px 8px}
+#bs.phone-p .scene-wrap{inset:0;height:auto !important}
+#bs.phone-p .bs-off{top:calc(8px + env(safe-area-inset-top,0px));left:auto;right:calc(8px + env(safe-area-inset-right,0px));font-size:10px;padding:3px 8px}
 #bs.phone-p .loc-chip{display:none}
-#bs.phone-p .unitframe{top:8px;left:8px;width:min(220px,62vw);padding:5px 7px 5px 5px;gap:7px}
+#bs.phone-p .unitframe{top:calc(8px + env(safe-area-inset-top,0px));left:calc(8px + env(safe-area-inset-left,0px));width:min(220px,62vw);padding:5px 7px 5px 5px;gap:7px}
 #bs.phone-p .unitframe .port{width:52px;height:52px}
 #bs.phone-p .unit-top b{font-size:12px}
 #bs.phone-p .unit-sub{font-size:10px;margin:0 0 3px}
@@ -149,7 +149,7 @@ button.exp.wide{display:block;width:100%;margin-bottom:6px;padding:6px}
 #bs.phone-p .bar span{font-size:8px;line-height:10px}
 #bs.phone-p .unit-res{font-size:10px;gap:7px;margin-top:2px}
 #bs.phone-p .bsp.goal,#bs.phone-p .bsp.quests,#bs.phone-p .bsp.feed{display:none !important}
-#bs.phone-p .ph-dock{display:flex;flex-direction:column;position:absolute;left:8px;right:8px;top:calc(var(--sceneH,46%) + var(--bossH,0px) + 8px);bottom:var(--barsH,176px);z-index:6;gap:6px}
+#bs.phone-p .ph-dock{display:flex;flex-direction:column;position:absolute;left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));top:auto;bottom:calc(var(--barsH,176px) + env(safe-area-inset-bottom,0px));z-index:6;gap:6px;max-height:min(34vh,260px);pointer-events:auto}
 #bs.phone-p .goal-strip[hidden]{display:none !important}
 #bs.phone-p .goal-strip{display:flex;align-items:center;gap:6px;padding:5px 8px;background:rgba(26,16,34,.92);border:1px solid rgba(232,195,106,.45);border-radius:10px;font-size:11px;color:#f3eadc}
 #bs.phone-p .goal-strip span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -159,13 +159,16 @@ button.exp.wide{display:block;width:100%;margin-bottom:6px;padding:6px}
 #bs.phone-p .dock-tabs{display:flex;gap:4px}
 #bs.phone-p .dock-tabs button{flex:1;height:32px;border:1px solid #5a4470;border-radius:8px;background:#221430;color:#b7a9c6;font:700 12px system-ui,sans-serif;cursor:pointer}
 #bs.phone-p .dock-tabs button.on{border-color:#ffd27a;color:#ffd27a;background:#3a2a10}
-#bs.phone-p .dock-pane{display:none;background:rgba(26,16,34,.92);border:1px solid rgba(232,195,106,.45);border-radius:10px;padding:6px 8px;flex:1;overflow:auto}
+#bs.phone-p .dock-pane{display:none;background:rgba(26,16,34,.88);border:1px solid rgba(232,195,106,.45);border-radius:10px;padding:6px 8px;flex:0 1 auto;max-height:min(20vh,160px);overflow:auto}
+#bs.phone-p .ph-dock.collapsed .dock-pane{display:none !important}
+#bs.phone-p[data-view="boss"] .dock-tabs{display:none}
+
 #bs.phone-p .dock-pane.on{display:block}
 #bs.phone-p .dock-pane li{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;border-bottom:1px solid #fff1}
 #bs.phone-p .dock-pane li:last-child{border:0}
 #bs.phone-p .dock-pane li b{margin-left:auto;color:#ffd27a}
 #bs.phone-p .dock-pane time{color:#b7a9c6;margin-right:4px}
-#bs.phone-p .bars-wrap{left:8px;right:8px;bottom:6px;transform:none;width:auto}
+#bs.phone-p .bars-wrap{left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));bottom:calc(6px + env(safe-area-inset-bottom,0px));transform:none;width:auto}
 #bs.phone-p .locbar{width:100%;justify-content:space-between;padding:4px}
 #bs.phone-p .locbar button{flex:1;height:34px;padding:0 2px;font-size:10px;justify-content:center}
 #bs.phone-p .locbar button span{display:inline}
@@ -173,7 +176,7 @@ button.exp.wide{display:block;width:100%;margin-bottom:6px;padding:6px}
 #bs.phone-p .actionbar button{min-width:0;width:auto;height:58px;padding:2px}
 #bs.phone-p .actionbar .lbl{font-size:10px}
 #bs.phone-p .actionbar button .sub{font-size:8px;max-width:none;white-space:normal}
-#bs.phone-p .bossbar:not([hidden]){display:block !important;z-index:7;width:auto;left:8px;right:8px;transform:none;top:var(--sceneH,46%);bottom:auto;margin-top:4px;padding:5px 8px 6px;max-height:none;overflow:visible}
+#bs.phone-p .bossbar:not([hidden]){display:block !important;z-index:7;width:auto;left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));transform:none;top:calc(var(--unitH,72px) + 10px + env(safe-area-inset-top,0px));bottom:auto;margin-top:0;padding:5px 8px 6px;max-height:min(40vh,280px);overflow:auto}
 #bs.phone-p .bossbar .fmob small{font-size:11px}
 #bs.phone-p .bossbar #castbox{margin:4px 0 0;padding:6px 8px}
 #bs.phone-p .bossbar .castbox .ct{font-size:13px;margin-bottom:3px;gap:6px}
@@ -197,11 +200,11 @@ button.exp.wide{display:block;width:100%;margin-bottom:6px;padding:6px}
 
 /* ===== phone landscape ===== */
 #bs.phone-l .bsp.quests,#bs.phone-l .ph-dock{display:none !important}
-#bs.phone-l .bsp.goal{top:6px;right:6px;width:210px;padding:5px 8px}
+#bs.phone-l .bsp.goal{top:calc(6px + env(safe-area-inset-top,0px));right:calc(6px + env(safe-area-inset-right,0px));width:210px;padding:5px 8px}
 #bs.phone-l .bsp.goal .muted{display:none}
 #bs.phone-l .bsp.feed{left:auto;right:6px;bottom:78px;width:200px;padding:5px 8px}
 #bs.phone-l .feed li:nth-child(n+3){display:none}
-#bs.phone-l .bars-wrap{left:50%;bottom:5px;transform:translateX(-50%);flex-direction:row;gap:6px;width:auto;max-width:calc(100% - 12px)}
+#bs.phone-l .bars-wrap{left:50%;bottom:calc(5px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);flex-direction:row;gap:6px;width:auto;max-width:calc(100% - 12px)}
 #bs.phone-l .locbar{padding:3px 5px;flex:none}
 #bs.phone-l .locbar button{height:42px;width:42px;padding:0;font-size:16px;justify-content:center}
 #bs.phone-l .locbar button span{display:none}
@@ -209,10 +212,10 @@ button.exp.wide{display:block;width:100%;margin-bottom:6px;padding:6px}
 #bs.phone-l .actionbar button{min-width:52px;width:52px;height:52px}
 #bs.phone-l .actionbar .lbl{font-size:9px}
 #bs.phone-l .actionbar button .sub{display:none}
-#bs.phone-l .bossbar{top:6px;width:min(360px,44vw)}
+#bs.phone-l .bossbar{top:calc(6px + env(safe-area-inset-top,0px));width:min(360px,44vw)}
 #bs.phone-l .log-overlay{padding:6px}
 #bs.phone-l .log-win{width:96vw;height:96vh;max-height:96vh;border-radius:12px}
-#bs.phone-l .bs-off{top:6px;left:6px;font-size:10px;padding:3px 8px}
-#bs.phone-l .unitframe{top:6px;left:6px;width:210px;padding:4px 6px 4px 4px}
+#bs.phone-l .bs-off{top:calc(6px + env(safe-area-inset-top,0px));left:calc(6px + env(safe-area-inset-left,0px));font-size:10px;padding:3px 8px}
+#bs.phone-l .unitframe{top:calc(6px + env(safe-area-inset-top,0px));left:calc(6px + env(safe-area-inset-left,0px));width:210px;padding:4px 6px 4px 4px}
 #bs.phone-l .unitframe .port{width:44px;height:44px}
 #bs.phone-l .unit-sub{display:none}

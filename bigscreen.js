@@ -1,4 +1,4 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs511. */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs512. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen';
   const LOCS = [['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс'], ['garden', '🌱', 'Огород'], ['town', '🏘', 'Город']];
@@ -67,7 +67,7 @@
     });
   }
 
-  let on = false, logMine = false, bsLoc = 'camp', dockTab = 'q';
+  let on = false, logMine = false, bsLoc = 'camp', dockTab = 'q', dockOpen = false;
 
   function mount() {
     if ($('#bs')) return;
@@ -152,18 +152,36 @@
       if (lf) { logMine = lf.dataset.bslf === '1'; fillLog(); }
       const tab = e.target.closest('#bs [data-bstab]');
       if (tab) {
-        dockTab = tab.dataset.bstab;
-        document.querySelectorAll('#bs [data-bstab]').forEach(x => x.classList.toggle('on', x === tab));
-        const q = $('#bsDockQ'), l = $('#bsDockL');
-        if (q) q.classList.toggle('on', dockTab === 'q');
-        if (l) l.classList.toggle('on', dockTab === 'l');
+        const id = tab.dataset.bstab;
+        if (dockOpen && dockTab === id) dockOpen = false;
+        else { dockOpen = true; dockTab = id; }
+        applyDock();
       }
     });
     addEventListener('resize', layout);
+    if (window.visualViewport) {
+      visualViewport.addEventListener('resize', layout);
+      visualViewport.addEventListener('scroll', layout);
+    }
+    document.addEventListener('touchmove', function (e) {
+      if (!on) return;
+      const ok = e.target.closest && e.target.closest('#bs .dock-pane, #bs .log-body, #bs .inv-body, #bs .actionbar, #bs .window, #bs .bossbar');
+      if (!ok) e.preventDefault();
+    }, { passive: false });
     if (window.ResizeObserver) {
       const ro = new ResizeObserver(() => { if (on) layout(); });
       ['bsBoss', 'bsBar', 'bsDock'].forEach(id => { const n = document.getElementById(id); if (n) ro.observe(n); });
     }
+  }
+
+  function applyDock() {
+    const dock = $('#bsDock');
+    if (dock) dock.classList.toggle('collapsed', !dockOpen);
+    document.querySelectorAll('#bs [data-bstab]').forEach(x => x.classList.toggle('on', dockOpen && x.dataset.bstab === dockTab));
+    const q = $('#bsDockQ'), l = $('#bsDockL');
+    if (q) q.classList.toggle('on', dockOpen && dockTab === 'q');
+    if (l) l.classList.toggle('on', dockOpen && dockTab === 'l');
+    if (on) layout();
   }
 
   function enterBtn() {
@@ -180,7 +198,8 @@
     try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
     if (!on) undockClassicBars();
     document.body.classList.toggle('bs-on', on);
-    if (on) { mount(); const t = window.__panel && __panel.tab; if (t && t !== 'me') bsLoc = t; else if (__panel && __panel.state && __panel.state.me && __panel.state.me.loc) bsLoc = __panel.state.me.loc; sync(); }
+    document.documentElement.classList.toggle('bs-on', on);
+    if (on) { mount(); applyDock(); const t = window.__panel && __panel.tab; if (t && t !== 'me') bsLoc = t; else if (__panel && __panel.state && __panel.state.me && __panel.state.me.loc) bsLoc = __panel.state.me.loc; sync(); }
     else if (window.__panel) __panel.render();
   }
 
@@ -205,8 +224,8 @@
   }
 
   function bgOf(l, st) {
-    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs511';
-    return 'img/' + (l || 'camp') + '.jpg?v=bs511';
+    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs512';
+    return 'img/' + (l || 'camp') + '.jpg?v=bs512';
   }
 
   let lastDefs = [];
@@ -427,8 +446,13 @@
     $('#bsChip').textContent = (LOCN[l] || l) + (n ? ' · героев ' + n : '');
   }
 
+  function vpSize() {
+    const vv = window.visualViewport;
+    if (vv && vv.width && vv.height) return { w: vv.width, h: vv.height, x: vv.offsetLeft || 0, y: vv.offsetTop || 0 };
+    return { w: innerWidth, h: innerHeight, x: 0, y: 0 };
+  }
   function layoutKind() {
-    const w = innerWidth, h = innerHeight;
+    const v = vpSize(), w = v.w, h = v.h;
     if (w <= 520 && h > w) return 'phone-p';
     if (h <= 500 && w > h) return 'phone-l';
     return 'pc';
@@ -456,33 +480,45 @@
     const kind = layoutKind();
     root.classList.remove('phone-p', 'phone-l', 'pc');
     root.classList.add(kind);
+    const v = vpSize();
+    if (kind === 'pc') {
+      root.style.top = root.style.right = root.style.bottom = root.style.left = '';
+      root.style.width = root.style.height = '';
+    } else {
+      root.style.top = v.y + 'px';
+      root.style.left = v.x + 'px';
+      root.style.width = v.w + 'px';
+      root.style.height = v.h + 'px';
+      root.style.right = 'auto';
+      root.style.bottom = 'auto';
+    }
+    wrap.style.height = '';
     const wr = wrap.getBoundingClientRect();
     let s, ox, oy;
     if (kind === 'phone-p') {
       const bars = $('.bars-wrap', root);
       const barsH = (bars && bars.offsetHeight) || 176;
       root.style.setProperty('--barsH', (barsH + 10) + 'px');
+      const unit = $('.unitframe', root);
+      root.style.setProperty('--unitH', ((unit && unit.offsetHeight) || 72) + 'px');
       const boss = $('#bsBoss');
       const bossH = (boss && !boss.hidden) ? boss.offsetHeight : 0;
       root.style.setProperty('--bossH', bossH + 'px');
-      const dockMin = 120;
-      const maxScene = innerHeight - barsH - 12 - dockMin - (bossH ? bossH + 8 : 0);
-      const sh = Math.max(200, Math.min(Math.round(innerHeight * 0.42), maxScene));
-      wrap.style.height = sh + 'px';
-      root.style.setProperty('--sceneH', sh + 'px');
-      const r = wrap.getBoundingClientRect();
+      const dock = $('#bsDock');
+      const dockH = (dock && dock.offsetHeight) || 0;
       const cam = phoneCam(bsLoc, window.__panel && __panel.state);
-      s = Math.max(r.width / cam.w, r.height / cam.h);
-      ox = r.width / 2 - (cam.x + cam.w / 2) * s;
-      oy = r.height / 2 - (cam.y + cam.h / 2) * s;
+      const topPad = 8 + ((unit && unit.offsetHeight) || 72) + (bossH ? bossH + 10 : 0);
+      const botPad = 8 + barsH + dockH;
+      const vx = 0, vy = topPad, vw = wr.width, vh = Math.max(160, wr.height - topPad - botPad);
+      s = Math.max(vw / cam.w, vh / cam.h);
+      ox = vx + vw / 2 - (cam.x + cam.w / 2) * s;
+      oy = vy + vh / 2 - (cam.y + cam.h / 2) * s;
     } else if (kind === 'phone-l') {
-      wrap.style.height = '';
       const floor = 72;
       s = Math.max(wr.width / W, (wr.height - floor) / (H - 120));
       ox = (wr.width - W * s) / 2;
       oy = (wr.height - floor - 8) - 1220 * s;
     } else {
-      wrap.style.height = '';
       s = Math.min(wr.width / W, wr.height / H);
       ox = (wr.width - W * s) / 2;
       oy = (wr.height - H * s) / 2;
