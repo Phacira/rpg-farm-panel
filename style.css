@@ -32,12 +32,13 @@ button.small{min-height:44px;padding:0 14px;font-size:15px}.who{font-size:17px}
 #pbody{display:block}
 #pbody[hidden]{display:none}
 @container panel (min-width:720px){
-  #pbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,500px);gap:0 16px;align-items:start}
-  #live,#tabs,#linfo,#map,#acts{grid-column:1}
-  #pbody>#hero{grid-column:2;grid-row:1/8;align-self:start;position:sticky;top:10px;min-width:0}
+  #pbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,500px);gap:0 16px;align-items:start;align-content:start}
+  #pleft{grid-column:1;min-width:0}
+  #pbody>#hero{grid-column:2;grid-row:1;align-self:start;position:sticky;top:10px;min-width:0}
 }
 @container panel (max-width:719px){
   #pbody{display:flex;flex-direction:column}
+  #pleft{display:contents}
   #pbody>#hero{order:2;position:static;width:100%;max-width:500px;margin:0 auto}
   #acts{order:3}
   #map,#linfo,#live,#tabs{order:1}
