@@ -371,3 +371,9 @@ details.hq .hq-body{padding:8px 10px 10px}
 .sg499 .sgb{grid-column:1/-1;height:8px;border-radius:4px;background:#00000066;overflow:hidden}.sg499 .sgb i{display:block;height:100%;background:linear-gradient(90deg,#d9902b,#ffd24a)}
 .sg499 small{grid-column:1/-1;color:#c8b48a;font-size:12px}.sg499.done{border-color:#4f8a3a;background:#18251a}.sg499.done .sgn{color:#8fe07a}
 .sg499[hidden]{display:none}
+
+/* v49.8 (макет «Вклад»): справка о постройке в окне выбора */
+.snote.sinfo{grid-column:1/-1;display:flex;flex-direction:column;gap:6px}
+.snote.sinfo .sl{display:grid;grid-template-columns:minmax(120px,38%) 1fr;gap:10px;align-items:baseline}
+.snote.sinfo .sl>span:first-child{color:#c8b48a;font-size:13px}.snote.sinfo .sl>span:last-child{color:#f3e3c2}
+.snote.sinfo .sl.nx>span:last-child{color:#9fe08a}.snote.sinfo .sl.mx>span:last-child{color:#c8b48a}
