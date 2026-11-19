@@ -1,5 +1,6 @@
-/* Большой экран пульта (opt-in, v.bs513). Обычный пульт не меняется, пока body.bs-on нет. */
+/* Большой экран пульта (opt-in, v.bs514). Обычный пульт не меняется, пока body.bs-on нет. */
 html.bs-on,body.bs-on{width:100%;max-width:100%;height:100%;height:100dvh;min-height:100%;min-height:100dvh;min-height:-webkit-fill-available;margin:0;padding:0;overflow:hidden !important;overscroll-behavior:none;background:#000;touch-action:manipulation}
+html:not(.bs-on),body:not(.bs-on){height:auto !important;min-height:0 !important;overflow:visible !important;overscroll-behavior:auto;touch-action:auto}
 body.bs-on #panel,body.bs-on .chatcmds,body.bs-on > footer{display:none !important;visibility:hidden !important;pointer-events:none !important;height:0 !important;overflow:hidden !important;margin:0 !important;padding:0 !important}
 body.bs-on #sheet{z-index:40}
 #bs{display:none}
@@ -83,7 +84,7 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs .qdot.on{background:#7dcb6a}
 #bs .feed li{font-size:12px;padding:3px 0;color:#efe6d4}
 #bs .feed time{color:#b7a9c6;margin-right:4px}
-button.exp{border:1px solid rgba(232,195,106,.45);background:#2a1c30;color:#ffd27a;border-radius:8px;padding:3px 8px;font:700 11px system-ui,sans-serif;cursor:pointer}
+#bs button.exp{border:1px solid rgba(232,195,106,.45);background:#2a1c30;color:#ffd27a;border-radius:8px;padding:3px 8px;font:700 11px system-ui,sans-serif;cursor:pointer}
 
 #bs .bars-wrap{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:6}
 #bs .locbar{display:flex;gap:4px;padding:5px 7px;background:rgba(18,10,24,.78);border:1px solid rgba(232,195,106,.45);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
@@ -116,7 +117,7 @@ button.exp{border:1px solid rgba(232,195,106,.45);background:#2a1c30;color:#ffd2
 #bs .logf button.on{border-color:#ffd27a;color:#ffd27a;background:#3a2a10}
 
 /* кнопка включения на обычном пульте */
-#bsEnter{margin-left:10px;border:1px solid #c9a25a;background:#2a1c14;color:#ffd27a;border-radius:8px;padding:4px 10px;font:700 13px system-ui;cursor:pointer;vertical-align:middle}
+#bsEnter{display:inline-block;margin:0 0 0 10px;border:1px solid #c9a25a;background:#2a1c14;color:#ffd27a;border-radius:8px;padding:2px 8px;font:700 12px/1.2 system-ui,sans-serif;cursor:pointer;vertical-align:middle;min-height:0;height:auto;width:auto;box-shadow:none;font-weight:700}
 #bsEnter:hover{background:#3a2a10}
 
 /* большой экран: полоски босса — те же классы, что на обычном пульте */
@@ -135,7 +136,7 @@ button.exp{border:1px solid rgba(232,195,106,.45);background:#2a1c30;color:#ffd2
 #bs .actionbar button.bcd{opacity:.55;filter:none}
 #bs .actionbar button.bcd .sub{color:#ffcf7a}
 #bs .ph-dock{display:none}
-button.exp.wide{display:block;width:100%;margin-bottom:6px;padding:6px}
+#bs button.exp.wide{display:block;width:100%;margin-bottom:6px;padding:6px}
 
 /* ===== phone portrait: сцена на весь экран, камера за героем, HUD поверх ===== */
 #bs.phone-p .scene-wrap{inset:0;height:auto !important}

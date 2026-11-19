@@ -1,4 +1,4 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs513. */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs514. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen';
   const LOCS = [['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс'], ['garden', '🌱', 'Огород'], ['town', '🏘', 'Город']];
@@ -208,12 +208,30 @@
     h.appendChild(b);
   }
 
+  const VP_CLASSIC = 'width=device-width,initial-scale=1';
+  const VP_BS = 'width=device-width,initial-scale=1,viewport-fit=cover';
+  function setViewport(bs) {
+    let m = document.querySelector('meta[name="viewport"]');
+    if (!m) { m = document.createElement('meta'); m.name = 'viewport'; document.head.appendChild(m); }
+    m.setAttribute('content', bs ? VP_BS : VP_CLASSIC);
+  }
+  function clearBsStyles() {
+    const root = document.getElementById('bs');
+    if (!root || !root.style) return;
+    root.style.top = root.style.right = root.style.bottom = root.style.left = '';
+    root.style.width = root.style.height = '';
+    root.style.removeProperty('--barsH');
+    root.style.removeProperty('--unitH');
+    root.style.removeProperty('--bossH');
+  }
+
   function setOn(v) {
     on = !!v;
     try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
-    if (!on) { undockClassicBars(); setSheet(false); }
+    if (!on) { undockClassicBars(); setSheet(false); clearBsStyles(); }
     document.body.classList.toggle('bs-on', on);
     document.documentElement.classList.toggle('bs-on', on);
+    setViewport(on);
     if (on) { mount(); applyDock(); const t = window.__panel && __panel.tab; if (t && t !== 'me') bsLoc = t; else if (__panel && __panel.state && __panel.state.me && __panel.state.me.loc) bsLoc = __panel.state.me.loc; sync(); }
     else if (window.__panel) __panel.render();
   }
@@ -239,8 +257,8 @@
   }
 
   function bgOf(l, st) {
-    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs513';
-    return 'img/' + (l || 'camp') + '.jpg?v=bs513';
+    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs514';
+    return 'img/' + (l || 'camp') + '.jpg?v=bs514';
   }
 
   let lastDefs = [], lastMore = [], sheetKind = '';
@@ -669,6 +687,7 @@
 
   function boot() {
     enterBtn();
+    setViewport(false);
     if (wantOn()) setOn(true);
     if (/[?&]bslog=1/.test(location.search)) setLog(true);
     if (/[?&]bsinv=1/.test(location.search)) setInv(true);
