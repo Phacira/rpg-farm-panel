@@ -1,4 +1,4 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs519. */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs520. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen';
   const LOCS = [['town', '🏘', 'Город'], ['garden', '🌱', 'Огород'], ['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс']];
@@ -221,10 +221,9 @@
         applyDock();
       }
     });
-    addEventListener('resize', layout);
+    addEventListener('resize', requestLayout);
     if (window.visualViewport) {
-      visualViewport.addEventListener('resize', layout);
-      visualViewport.addEventListener('scroll', layout);
+      visualViewport.addEventListener('resize', requestLayout);
     }
     document.addEventListener('touchmove', function (e) {
       if (!on) return;
@@ -232,7 +231,7 @@
       if (!ok) e.preventDefault();
     }, { passive: false });
     if (window.ResizeObserver) {
-      const ro = new ResizeObserver(() => { if (on) layout(); });
+      const ro = new ResizeObserver(() => { if (on) requestLayout(); });
       ['bsBoss', 'bsBar', 'bsDock'].forEach(id => { const n = document.getElementById(id); if (n) ro.observe(n); });
     }
     bindZoom();
@@ -980,6 +979,12 @@
     el.style.left = Math.max(44, Math.min(vw - 44, sx)) + 'px';
     el.style.top = Math.max(80, Math.min(vh - 110, sy)) + 'px';
   }
+  let layoutRaf = 0;
+  function requestLayout() {
+    if (!on) return;
+    if (layoutRaf) return;
+    layoutRaf = requestAnimationFrame(function () { layoutRaf = 0; layout(); });
+  }
   function layout() {
     if (!on) return;
     const root = $('#bs'), wrap = $('#bsWrap'), scene = $('#bsScene'); if (!root || !wrap || !scene) return;
@@ -988,24 +993,23 @@
     layout._kind = kind;
     root.classList.remove('phone-p', 'phone-l', 'pc');
     root.classList.add(kind);
-    const v = vpSize();
     const bars = $('.bars-wrap', root);
     root.style.setProperty('--barsH', (((bars && bars.offsetHeight) || 110) + 8) + 'px');
-    root.classList.toggle('short', kind === 'pc' && vpSize().h <= 860);
-    if (kind === 'pc') {
-      root.style.top = root.style.right = root.style.bottom = root.style.left = '';
-      root.style.width = root.style.height = '';
-    } else {
-      root.style.top = v.y + 'px';
-      root.style.left = v.x + 'px';
-      root.style.width = v.w + 'px';
-      root.style.height = v.h + 'px';
-      root.style.right = 'auto';
-      root.style.bottom = 'auto';
-    }
+    root.classList.toggle('short', kind === 'pc' && (root.clientHeight || innerHeight) <= 860);
+    // не подгоняем #bs под visualViewport: на Android это дёргает масштаб при появлении адресной строки и щипке страницы
+    root.style.top = root.style.right = root.style.bottom = root.style.left = '';
+    root.style.width = root.style.height = '';
     wrap.style.height = '';
-    const wr = wrap.getBoundingClientRect();
-    const vw = wr.width, vh = wr.height;
+    let vw = root.clientWidth || wrap.clientWidth || innerWidth;
+    let vh = root.clientHeight || wrap.clientHeight || innerHeight;
+    // на телефоне держим большую высоту: короткие скачки (адресная строка Chrome) не меняют масштаб
+    if (kind !== 'pc') {
+      const key = kind + 'x' + Math.round(vw);
+      if (layout._maxKey === key && layout._maxH) {
+        if (vh < layout._maxH && layout._maxH - vh < 180) vh = layout._maxH;
+        else if (vh > layout._maxH) layout._maxH = vh;
+      } else { layout._maxKey = key; layout._maxH = vh; }
+    }
     const st = window.__panel && __panel.state;
     let s, ox, oy;
     if (kind === 'phone-p') {
@@ -1057,7 +1061,7 @@
       [ox, oy] = clampCam(ox, oy, s, vw, vh);
     }
     updateBossHint(s, ox, oy, vw, vh, st);
-    scene.style.transform = 'translate(' + ox + 'px,' + oy + 'px) scale(' + s + ')';
+    scene.style.transform = 'translate3d(' + ox + 'px,' + oy + 'px,0) scale(' + s + ')';
     clipNames();
     const zlab = $('#bsZoom [data-z="reset"]');
     if (zlab && !zlab.matches(':active')) zlab.textContent = zoomLabel(camZ);

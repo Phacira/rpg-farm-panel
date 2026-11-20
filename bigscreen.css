@@ -1,4 +1,4 @@
-/* Большой экран пульта (opt-in, v.bs519). Обычный пульт не меняется, пока body.bs-on нет. */
+/* Большой экран пульта (opt-in, v.bs520). Обычный пульт не меняется, пока body.bs-on нет. */
 html.bs-on,body.bs-on{width:100%;max-width:100%;height:100%;height:100dvh;min-height:100%;min-height:100dvh;min-height:-webkit-fill-available;margin:0;padding:0;overflow:hidden !important;overscroll-behavior:none;background:#000;touch-action:none}
 html:not(.bs-on),body:not(.bs-on){height:auto !important;min-height:0 !important;overflow:visible !important;overscroll-behavior:auto;touch-action:auto}
 body.bs-on #panel,body.bs-on .chatcmds,body.bs-on > footer{display:none !important;visibility:hidden !important;pointer-events:none !important;height:0 !important;overflow:hidden !important;margin:0 !important;padding:0 !important}
@@ -7,8 +7,8 @@ body.bs-on #sheet{z-index:40}
 body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:100%;height:100%;height:100dvh;min-height:100%;min-height:100dvh;min-height:-webkit-fill-available;max-width:none;z-index:15;background:#000;color:#f3eadc;font:13px/1.35 system-ui,sans-serif;font-weight:700;overflow:hidden;-webkit-backface-visibility:hidden}
 
 #bs .scene-wrap{position:absolute;inset:0;overflow:hidden;background:#100a12}
-#bs .scene{position:absolute;left:0;top:0;width:2560px;height:1440px;transform-origin:0 0;will-change:transform}
-#bs .scene .bg{position:absolute;inset:0;width:2560px;height:1440px;display:block;pointer-events:none}
+#bs .scene{position:absolute;left:0;top:0;width:2560px;height:1440px;transform-origin:0 0;-webkit-backface-visibility:hidden}
+#bs .scene .bg{position:absolute;inset:0;width:2560px;height:1440px;display:block;object-fit:fill;pointer-events:none}
 #bs .glow{position:absolute;left:1280px;top:650px;width:840px;height:520px;transform:translate(-50%,-45%);background:radial-gradient(ellipse,rgba(255,140,50,.28) 0%,rgba(180,70,20,.12) 42%,transparent 70%);mix-blend-mode:screen;pointer-events:none}
 #bs[data-view="boss"] .glow,#bs[data-view="forest"] .glow,#bs[data-view="town"] .glow,#bs[data-view="garden"] .glow{display:none}
 
@@ -149,7 +149,7 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs button.exp.wide{display:block;width:100%;margin-bottom:6px;padding:6px}
 
 /* ===== phone portrait: сцена на весь экран, камера за героем, HUD поверх ===== */
-#bs.phone-p .scene-wrap{inset:0;height:auto !important}
+#bs.phone-p .scene-wrap{inset:0;width:100%;height:100% !important}
 #bs.phone-p .bs-off{top:calc(8px + env(safe-area-inset-top,0px));left:auto;right:calc(8px + env(safe-area-inset-right,0px));font-size:10px;padding:3px 8px;z-index:9}
 #bs.phone-p .loc-chip{display:none}
 #bs.phone-p .unitframe{top:calc(8px + env(safe-area-inset-top,0px));left:calc(8px + env(safe-area-inset-left,0px));width:min(196px,58vw);padding:4px 6px 4px 4px;gap:6px;background:rgba(18,10,24,.62);backdrop-filter:blur(8px)}
@@ -224,7 +224,7 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs.phone-p .sheet-body .qlist li b{margin-left:auto;color:#ffd27a}
 
 /* ===== phone landscape: вся локация как на ПК, те же оверлеи компактнее ===== */
-#bs.phone-l .scene-wrap{inset:0;height:auto !important}
+#bs.phone-l .scene-wrap{inset:0;width:100%;height:100% !important}
 #bs.phone-l .bsp.quests,#bs.phone-l .ph-dock,#bs.phone-l .bsp.feed{display:none !important}
 #bs.phone-l .bsp.goal{display:none !important}
 #bs.phone-l .goal-strip[hidden]{display:none !important}
