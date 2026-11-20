@@ -1,4 +1,4 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs524. */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs525. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen', SEE_KEY = 'rpgPanel.bsSeen';
   const LOCS = [['town', '🏘', 'Город'], ['garden', '🌱', 'Огород'], ['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс']];
@@ -383,14 +383,15 @@
     const ic = d[0] || '•', lab = d[1] || '', sub = d[4] || '', dis = !!d[6], other = d[7] === 'other';
     const ui = d._ui || '';
     const cmd = ui ? '' : (d[2] || '');
-    const left = cmd && window.__bossLeft ? __bossLeft(cmd) : 0;
+    const lock = cmd && window.__bossLock ? __bossLock(cmd) : { n: (cmd && window.__bossLeft ? __bossLeft(cmd) : 0), text: '' };
+    const left = lock.n || 0;
     const tab = (window.__panel && __panel.tab) || bsLoc;
     const off = dis || left;
     const tip = !off && tipCmds.has(cmd);
     const cls = (more ? 'more-btn' : '') + (off ? ' dis' + (left ? ' bcd' : '') : '') + (tip ? ' tip-hot' : '');
     const bc = cmd ? ` data-bc="${esc(cmd)}" data-sub="${esc(sub)}" data-en="${dis ? 0 : 1}"` : '';
     const uiA = ui ? ` data-ui="${esc(ui)}"` : '';
-    const subTxt = left ? ('⏳ откат ' + left + ' с') : sub;
+    const subTxt = lock.text || (left ? ('⏳ откат ' + left + ' с') : sub);
     return `<button type="button" data-i="${i}"${uiA}${bc} class="${cls.trim()}"${off ? ' disabled' : ''}>`
       + (other && !more ? `<span class="grp">не твой класс</span>` : '')
       + `<span class="ic">${ic}</span><span class="lbl">${esc(lab)}</span>`
@@ -1092,15 +1093,15 @@
     el._t[cls] = setTimeout(function () { el.classList.remove(cls); }, ms || 400);
   }
   function ingestFx(st, loc) {
-    const pack = fxPack(st);
+    const pack = fxPack(st), pending = [], now = Date.now();
+    function keep(idk) { if (seenFx.size > 400) { const k = [...seenFx]; k.slice(0, 120).forEach(x => seenFx.delete(x)); } }
     if (pack && Array.isArray(pack.ev)) {
       pack.ev.forEach(function (e) {
         const id = e && e[0]; if (id == null || seenFx.has('e:' + id)) return;
-        seenFx.add('e:' + id);
-        if (seenFx.size > 400) { const k = [...seenFx]; k.slice(0, 120).forEach(x => seenFx.delete(x)); }
+        seenFx.add('e:' + id); keep();
         const eloc = e[3];
         if (eloc && eloc !== loc && eloc !== 'all') return;
-        spawnFloat(e[4], e[5], e[6], e[7], e[8]);
+        pending.push({ t: +e[1] || now, go: function () { spawnFloat(e[4], e[5], e[6], e[7], e[8]); } });
       });
     }
     if (pack && Array.isArray(pack.an)) {
@@ -1111,12 +1112,19 @@
         else { who = a[0]; kind = a[1]; aloc = a[2]; id = null; }
         if (id != null) {
           if (seenFx.has('a:' + id)) return;
-          seenFx.add('a:' + id);
-          if (seenFx.size > 400) { const k = [...seenFx]; k.slice(0, 120).forEach(x => seenFx.delete(x)); }
+          seenFx.add('a:' + id); keep();
         }
         if (aloc && aloc !== loc && aloc !== 'all') return;
         const want = (kind === 'mh' || kind === 'ma' || kind === 'md') ? 'mob' : (kind === 'l' || kind === 'h' || kind === 'd') ? 'hero' : '';
-        findActors(who).filter(it => !want || it.kind === want).forEach(it => pulseKind(it, kind));
+        pending.push({ t: (id != null && a[1]) ? +a[1] : now, go: function () { findActors(who).filter(it => !want || it.kind === want).forEach(it => pulseKind(it, kind)); } });
+      });
+    }
+    pending.sort((a, b) => a.t - b.t);
+    if (pending.length) {
+      const t0 = pending[0].t, t1 = pending[pending.length - 1].t, late = now - t1 > 120;
+      pending.forEach(function (p) {
+        const d = late ? Math.min(450, Math.max(0, p.t - t0)) : Math.max(0, Math.min(500, p.t + 80 - now));
+        if (d < 8) p.go(); else setTimeout(p.go, d);
       });
     }
     inferCombat(st, loc);

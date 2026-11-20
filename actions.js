@@ -147,7 +147,12 @@
     archer: ['босс', 'связать', 'удар', 'лечить'], assassin: ['босс', 'связать', 'удар', 'лечить'], mage: ['босс', 'замедлить', 'удар', 'лечить'] };
   function bossOrder(me, L) {
     const cls = me && me.cls; if (!cls || !BOSS_ORD[cls]) return L;
-    const ord = BOSS_ORD[cls], mine = ord.map(c => L.find(d => d[2] === c)).filter(Boolean);
+    const HINT = {
+      paladin: { заслон: 'щит отряду · общий откат с Оглушить', оглушить: 'красный каст · общий откат с Заслоном' },
+      priest: { очистить: 'фиолетовый каст · общий откат с Воскресить', воскресить: 'поднять союзника · общий откат с Очистить' }
+    };
+    const hint = HINT[cls] || {};
+    const ord = BOSS_ORD[cls], mine = ord.map(c => L.find(d => d[2] === c)).filter(Boolean).map(d => { const x = d.slice(); if (hint[x[2]]) x[4] = hint[x[2]]; return x; });
     const rest = L.filter(d => !ord.includes(d[2])).map(d => { const w = (BOSS_CLS[d[2]] || []).map(c => CLS_RU[c]).join(', '); const x = d.slice(); x[4] = 'только: ' + w; x[6] = 1; x[7] = 'other'; return x; });
     return mine.concat(rest);
   }
@@ -166,8 +171,15 @@
     if (m.ok) { if (cmd === 'удар') setLoc([cmd], 60, 1); else if (cmd === 'лечить') setLoc([cmd], 30, 1); else if (cmd === 'воскресить') setLoc(['воскресить', 'очистить'], 60, 1);
       else if (CC_CMDS.includes(cmd)) { setLoc(CC_CMDS, 20, 1); if (cmd === 'очистить' && /отброшен/.test(msg)) setLoc(['воскресить'], 60, 1); } }
   }
+  function bossKo() {
+    const P = window.__panel, st = P && P.state, me = st && st.me, bk = me && me.bk;
+    if (!(st && st.boss && st.boss.ph === 'fight' && me)) return false;
+    if (bk && +bk.d) return true;
+    return (me.hp != null && +me.hp <= 0 && (me.mode === 'boss' || me.loc === 'boss'));
+  }
   function bossLeft(cmd) {
     if (!BOSS_CMDS.includes(cmd)) return 0;
+    if (cmd !== 'босс' && bossKo()) return 1;
     const P = window.__panel, st = P && P.state, me = st && st.me, bk = me && me.bk, now = Date.now(); let v = 0;
     if (bk && st.boss && st.boss.ph === 'fight') { const age = (now - (st._rx || st.t || now)) / 1000, g = k => Math.max(0, (+bk[k] || 0) - age);
       v = CC_CMDS.includes(cmd) ? Math.max(g('c'), g('l'), cmd === 'очистить' ? g('r') : 0) : cmd === 'удар' ? g('s') : cmd === 'лечить' ? g('h') : cmd === 'воскресить' ? g('r') : 0;
@@ -175,16 +187,26 @@
     const o = LOC[cmd]; if (o && o[0] > now && !(bk && o[1])) v = Math.max(v, (o[0] - now) / 1000);
     return v > 0.05 ? Math.ceil(v) : 0;
   }
+  function bossLock(cmd) {
+    if (!BOSS_CMDS.includes(cmd)) return { n: 0, text: '' };
+    const P = window.__panel, st = P && P.state, me = st && st.me, bk = me && me.bk;
+    if (cmd !== 'босс' && bossKo()) return { n: 1, text: 'в нокауте' };
+    const n = bossLeft(cmd);
+    const why = bk && bk.why && bk.why[cmd];
+    if (why && n) return { n, text: why };
+    if (n) return { n, text: '⏳ откат ' + n + ' с' };
+    return { n: 0, text: '' };
+  }
   function bossCdTick() {
-    document.querySelectorAll('button[data-bc]').forEach(b => { const n = bossLeft(b.dataset.bc), sm = b.querySelector('small');
-      if (n) { b.disabled = true; b.classList.add('bcd'); if (sm) sm.textContent = '⏳ откат ' + n + ' с'; }
+    document.querySelectorAll('button[data-bc]').forEach(b => { const lock = bossLock(b.dataset.bc), sm = b.querySelector('small');
+      if (lock.n) { b.disabled = true; b.classList.add('bcd'); if (sm) sm.textContent = lock.text; }
       else if (b.classList.contains('bcd')) { b.classList.remove('bcd'); if (sm) sm.textContent = b.dataset.sub || ''; if (b.dataset.en === '1') b.disabled = false; } });
-    document.querySelectorAll('#castbox button[data-cc]').forEach(b => { const n = bossLeft(b.dataset.cc);
-      if (n) { if (!b.disabled || b.dataset.cdx === '1') { b.disabled = true; b.dataset.cdx = '1'; b.dataset.cdt = '⏳ ' + n + ' с'; } }
+    document.querySelectorAll('#castbox button[data-cc]').forEach(b => { const lock = bossLock(b.dataset.cc);
+      if (lock.n) { if (!b.disabled || b.dataset.cdx === '1') { b.disabled = true; b.dataset.cdx = '1'; b.dataset.cdt = lock.text; } }
       else if (b.dataset.cdx === '1') { b.disabled = false; delete b.dataset.cdx; delete b.dataset.cdt; } });
   }
   setInterval(bossCdTick, 250);
-  window.__bossLeft = bossLeft;
+  window.__bossLeft = bossLeft; window.__bossLock = bossLock;
   let ctxNow = null, curList = [];
   function render(el, ctx) {
     ctxNow = ctx; if (!el) return;
