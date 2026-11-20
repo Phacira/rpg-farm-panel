@@ -1,4 +1,4 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs520. */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs521. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen';
   const LOCS = [['town', '🏘', 'Город'], ['garden', '🌱', 'Огород'], ['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс']];
@@ -154,6 +154,7 @@
         <button type="button" data-z="in" title="Приблизить" aria-label="Приблизить">+</button>
         <button type="button" data-z="out" title="Отдалить" aria-label="Отдалить">−</button>
         <button type="button" data-z="reset" title="Сбросить масштаб" aria-label="Сбросить масштаб">1×</button>
+        <button type="button" data-z="me" title="Мой герой" aria-label="Мой герой" hidden>🎯</button>
       </div>
       <div class="bs-tips" id="bsTips" hidden></div>
       <div class="bs-hint" id="bsHint" hidden></div>
@@ -612,38 +613,51 @@
     return spreadVisible(list, l);
   }
 
-  const FOREST_GAP = 280, TWEEN_JUMP = 420;
+  const FOREST_GAP = 240, TWEEN_JUMP = 420; // как в OBS: MON_X - (HERO_X+40)
+  const FACES_RIGHT = ['slime', 'queen_boss']; // как в живом config.js Tim (monFacesRight)
 
-  function mobFlip(id) {
-    const src = (window.C && window.C.monFacesRight) || (window.CFG && window.CFG.monFacesRight) || (window.CONFIG && window.CONFIG.monFacesRight) || [];
-    return Array.isArray(src) && src.indexOf(id) >= 0;
+  function facesRightList(st) {
+    const src = (st && st.ref && Array.isArray(st.ref.faces) && st.ref.faces)
+      || (window.C && window.C.monFacesRight)
+      || (window.CFG && window.CFG.monFacesRight)
+      || (window.CONFIG && window.CONFIG.monFacesRight);
+    return Array.isArray(src) && src.length ? src : FACES_RIGHT;
   }
-  function mobMeta(id, name) {
-    return { id, name: name || MOB_RU[id] || id, h: MOB_H[id] || 140, group: MOB_GROUP[id] || 1, flip: mobFlip(id) };
+  function mobFlip(id, st) {
+    return facesRightList(st).indexOf(id) >= 0;
+  }
+  function mobMeta(id, name, st) {
+    return { id, name: name || MOB_RU[id] || id, h: MOB_H[id] || 140, group: MOB_GROUP[id] || 1, flip: mobFlip(id, st) };
   }
   function forestMobs(st, list, meName) {
-    const out = [];
     const names = {};
     const fm = st && st.me && st.me.fm;
     if (fm && fm[0]) names[fm[0]] = fm[1] || names[fm[0]];
-    const raw = st && Array.isArray(st.mobs) ? st.mobs : [];
-    if (raw.length) {
-      raw.forEach(m => { if (m && m[0]) out.push(Object.assign(mobMeta(m[0], names[m[0]]), { x: +m[1], y: +m[2], hp: m[3] })); });
-      return out;
-    }
-    const seen = new Set();
-    for (const t of list) {
-      const id = t[12]; if (!id || seen.has(id)) continue;
-      seen.add(id);
-      out.push(Object.assign(mobMeta(id, names[id]), { x: +t[1] + FOREST_GAP, y: +t[2], hp: t[13] }));
-    }
-    if (fm && fm[0] && !seen.has(fm[0])) {
+    const raw = (st && Array.isArray(st.mobs) && st.mobs.length) ? st.mobs
+      : (st && st.ref && Array.isArray(st.ref.mobs) ? st.ref.mobs : []);
+    raw.forEach(m => { if (m && m[0] && m[1] != null) names[m[0]] = names[m[0]] || (MOB_RU[m[0]] || m[0]); });
+    const fighters = (list || []).filter(t => t[12]);
+    const groups = [];
+    fighters.forEach(t => {
+      const id = String(t[12]), y = +t[2], x = +t[1];
+      let g = groups.find(z => z.id === id && Math.abs(z.y - y) < 100);
+      if (!g) { g = { id, heroes: [], y: y, x: x, hp: t[13], owner: t[0] }; groups.push(g); }
+      g.heroes.push(t);
+      g.y = g.heroes.reduce((s, h) => s + +h[2], 0) / g.heroes.length;
+      g.x = Math.max.apply(null, g.heroes.map(h => +h[1]));
+      if (t[13] != null) g.hp = t[13];
+    });
+    if (fm && fm[0] && !groups.some(g => g.id === fm[0])) {
       const me = list.find(t => String(t[0]).toLowerCase() === meName) || list[0];
       const hx = me ? +me[1] : 900, hy = me ? +me[2] : 970;
       const hp = fm[3] ? Math.round((+fm[2] || 0) / (+fm[3] || 1) * 100) : null;
-      out.push(Object.assign(mobMeta(fm[0], fm[1]), { x: hx + FOREST_GAP, y: hy, hp }));
+      groups.push({ id: fm[0], heroes: me ? [me] : [], y: hy, x: hx, hp: hp, owner: me ? me[0] : 'me' });
+      names[fm[0]] = fm[1] || names[fm[0]];
     }
-    return out;
+    return groups.map(g => {
+      const key = g.heroes.length > 1 ? ('m:' + g.id + ':' + Math.round(g.y / 50)) : ('m:' + (g.owner || g.id));
+      return Object.assign(mobMeta(g.id, names[g.id], st), { key: key, x: g.x + FOREST_GAP, y: g.y, hp: g.hp, owner: g.owner, id: g.id });
+    });
   }
   function mobSrc(id) {
     if (id === 'mimic') return 'img/mob/mimic.png';
@@ -716,20 +730,25 @@
       const src = sprUrl(t), fb = sprFb(t);
       const cn = CLSN[cls] || cls || '';
       const hs = t._hs || 1;
+      const hpN = t.length > 16 ? +t[15] : (mine && st && st.me ? +st.me.hp : NaN);
+      const hpM = t.length > 16 ? +t[16] : (mine && st && st.me ? +st.me.mhp : NaN);
+      const showHp = hpM > 0 && (l === 'forest' || l === 'boss' || (isFinite(hpN) && hpN < hpM - 0.5));
+      const hpPct = showHp ? Math.max(0, Math.min(100, hpN / hpM * 100)) : 0;
       let it = actorTween.nodes[key];
       const gtitle = GUILD_RU[g] || '';
       const nameHtml = '<i class="gmark" title="' + esc(gtitle ? ('Гильдия: ' + gtitle) : 'без гильдии') + '"></i>'
         + (mine ? '★ ' : '') + '<span class="nick">' + esc(n) + '</span>'
         + '<small>' + esc(cn) + (lv != null && lv !== '' ? ' · ' + esc(lv) : '') + (gtitle ? ' · ' + esc(gtitle) : '') + '</small>';
+      const hpHtml = showHp ? ('<div class="hhp bar hp' + (hpPct <= 35 ? ' low' : '') + '"><i style="width:' + hpPct + '%"></i></div>') : '';
       if (!it) {
         const el = document.createElement('div');
-        el.className = 'hero g-' + g + (mine ? ' me' : '') + (flip ? ' flip' : '');
+        el.className = 'hero g-' + g + (mine ? ' me' : '') + (flip ? ' flip' : '') + (showHp ? ' has-hp' : '');
         el.dataset.n = n;
         el.dataset.cls = cls || '';
         el.style.setProperty('--hs', hs);
         el.innerHTML = '<div class="shadow"></div><div class="ring"></div>'
           + (src ? '<img alt="">' : '')
-          + '<div class="name">' + nameHtml + '</div>';
+          + '<div class="name">' + nameHtml + '</div>' + hpHtml;
         const img = el.querySelector('img');
         if (img) {
           img.src = src;
@@ -739,20 +758,27 @@
         it = actorTween.nodes[key] = { el, kind: 'hero', x: +t[1], y: +t[2], from: null };
         applyActorPos(it);
       } else {
-        it.el.className = 'hero g-' + g + (mine ? ' me' : '') + (flip ? ' flip' : '') + (it.el.classList.contains('walk') ? ' walk' : '') + (it.el.classList.contains('lunge') ? ' lunge' : '') + (it.el.classList.contains('hit') ? ' hit' : '');
+        it.el.className = 'hero g-' + g + (mine ? ' me' : '') + (flip ? ' flip' : '') + (showHp ? ' has-hp' : '') + (it.el.classList.contains('walk') ? ' walk' : '') + (it.el.classList.contains('lunge') ? ' lunge' : '') + (it.el.classList.contains('hit') ? ' hit' : '');
         it.el.dataset.cls = cls || '';
         it.el.style.setProperty('--hs', hs);
         const img = it.el.querySelector('img');
         if (src && img && img.getAttribute('src') !== src) img.src = src;
         const nm = it.el.querySelector('.name');
         if (nm) nm.innerHTML = nameHtml;
+        let bar = it.el.querySelector('.hhp');
+        if (showHp) {
+          if (!bar) { bar = document.createElement('div'); it.el.appendChild(bar); }
+          bar.className = 'hhp bar hp' + (hpPct <= 35 ? ' low' : '');
+          bar.innerHTML = '<i style="width:' + hpPct + '%"></i>';
+        } else if (bar) bar.remove();
+        it.hp = isFinite(hpN) ? hpN : null; it.mhp = isFinite(hpM) ? hpM : null;
         moveActor(it, +t[1], +t[2], snapAll, dur);
       }
     }
 
     if (l === 'forest') {
       forestMobs(st, list, meName).forEach(m => {
-        const key = 'm:' + m.id;
+        const key = m.key || ('m:' + m.id);
         seen.add(key);
         const hp = m.hp, mh = m.h || MOB_H[m.id] || 140, grp = m.group || 1;
         const nm = m.name || MOB_RU[m.id] || m.id;
@@ -785,7 +811,7 @@
             + (hp != null ? '<div class="mhp bar hp"><i style="width:' + Math.max(0, Math.min(100, +hp)) + '%"></i><span>' + esc(hp) + '%</span></div>' : '');
           el.querySelectorAll('img').forEach(bindImg);
           box.appendChild(el);
-          it = actorTween.nodes[key] = { el, kind: 'mob', x: +m.x, y: +m.y, from: null };
+          it = actorTween.nodes[key] = { el, kind: 'mob', id: m.id, owner: m.owner, x: +m.x, y: +m.y, from: null, hp: m.hp };
           applyActorPos(it);
         } else {
           it.el.classList.toggle('flip', !!m.flip);
@@ -795,6 +821,7 @@
           if (bar && hp != null) bar.style.width = Math.max(0, Math.min(100, +hp)) + '%';
           if (sp && hp != null) sp.textContent = hp + '%';
           const lab = it.el.querySelector('.mname'); if (lab) lab.textContent = nm;
+          it.id = m.id; it.owner = m.owner; it.hp = m.hp;
           moveActor(it, +m.x, +m.y, snapAll, dur);
         }
       });
@@ -836,7 +863,31 @@
   }
 
   const seenFx = new Set();
-  let inferMem = { hp: null, gold: null, lastLunge: 0 };
+  let inferMem = { hp: {}, gold: null };
+  function fxPack(st) { return (st && st.fx) || (st && st.ref && st.ref.fx) || null; }
+  function findActors(who) {
+    if (who == null || who === '') return [];
+    const out = [], seen = new Set();
+    const add = it => { if (it && it.el && !seen.has(it)) { seen.add(it); out.push(it); } };
+    add(actorTween.nodes['h:' + who]);
+    add(actorTween.nodes['m:' + who]);
+    const whoL = String(who).toLowerCase();
+    Object.keys(actorTween.nodes).forEach(k => {
+      const it = actorTween.nodes[k];
+      if (!it) return;
+      if (k === 'h:' + who || k.toLowerCase() === 'h:' + whoL) add(it);
+      else if (it.kind === 'mob' && (it.id === who || it.owner === who)) add(it);
+      else if (it.kind === 'hero' && it.el && String(it.el.dataset.n || '').toLowerCase() === whoL) add(it);
+    });
+    return out;
+  }
+  function pulseKind(it, kind) {
+    if (!it || !it.el) return;
+    if (kind === 'l') pulse(it.el, 'lunge', 280);
+    else if (kind === 'h' || kind === 'mh') pulse(it.el, 'hit', 220);
+    else if (kind === 'ma') pulse(it.el, 'atk', 700);
+    else if (kind === 'd' || kind === 'md') it.el.classList.add('dying');
+  }
   function spawnFloat(x, y, text, color, size) {
     const layer = $('#bsFx'); if (!layer || text == null || text === '') return;
     const el = document.createElement('div');
@@ -858,12 +909,12 @@
     el._t[cls] = setTimeout(function () { el.classList.remove(cls); }, ms || 400);
   }
   function ingestFx(st, loc) {
-    const pack = st && st.fx;
+    const pack = fxPack(st);
     if (pack && Array.isArray(pack.ev)) {
       pack.ev.forEach(function (e) {
-        const id = e && e[0]; if (id == null || seenFx.has(id)) return;
-        seenFx.add(id);
-        if (seenFx.size > 240) { const k = [...seenFx]; k.slice(0, 80).forEach(x => seenFx.delete(x)); }
+        const id = e && e[0]; if (id == null || seenFx.has('e:' + id)) return;
+        seenFx.add('e:' + id);
+        if (seenFx.size > 400) { const k = [...seenFx]; k.slice(0, 120).forEach(x => seenFx.delete(x)); }
         const eloc = e[3];
         if (eloc && eloc !== loc && eloc !== 'all') return;
         spawnFloat(e[4], e[5], e[6], e[7], e[8]);
@@ -871,32 +922,68 @@
     }
     if (pack && Array.isArray(pack.an)) {
       pack.an.forEach(function (a) {
-        const who = a[0], kind = a[1];
-        const it = actorTween.nodes['h:' + who] || actorTween.nodes['m:' + who];
-        if (!it) return;
-        if (kind === 'l') pulse(it.el, 'lunge', 280);
-        else if (kind === 'h' || kind === 'mh') pulse(it.el, 'hit', 220);
-        else if (kind === 'ma') pulse(it.el, 'atk', 700);
-        else if (kind === 'd' || kind === 'md') it.el.classList.add('dying');
+        if (!a || !a.length) return;
+        let id, who, kind, aloc;
+        if (a.length >= 5) { id = a[0]; who = a[2]; kind = a[3]; aloc = a[4]; }
+        else { who = a[0]; kind = a[1]; aloc = a[2]; id = null; }
+        if (id != null) {
+          if (seenFx.has('a:' + id)) return;
+          seenFx.add('a:' + id);
+          if (seenFx.size > 400) { const k = [...seenFx]; k.slice(0, 120).forEach(x => seenFx.delete(x)); }
+        }
+        if (aloc && aloc !== loc && aloc !== 'all') return;
+        const want = (kind === 'mh' || kind === 'ma' || kind === 'md') ? 'mob' : (kind === 'l' || kind === 'h' || kind === 'd') ? 'hero' : '';
+        findActors(who).filter(it => !want || it.kind === want).forEach(it => pulseKind(it, kind));
       });
-    } else {
-      inferCombat(st, loc);
     }
+    inferCombat(st, loc);
+  }
+  function nearestOf(it, kind) {
+    let best = null, nd = 1e9;
+    Object.keys(actorTween.nodes).forEach(k => {
+      const o = actorTween.nodes[k];
+      if (!o || o.kind !== kind) return;
+      const d = Math.abs((o.y || 0) - (it.y || 0)) + Math.abs((o.x || 0) - (it.x || 0));
+      if (d < nd) { nd = d; best = o; }
+    });
+    return best;
   }
   function inferCombat(st, loc) {
-    const me = st && st.me; if (!me || loc !== 'forest') return;
-    const node = actorTween.nodes['h:' + me.n] || actorTween.nodes['h:' + String(me.n || '').toLowerCase()];
-    const mobId = me.fm && me.fm[0];
-    const mnode = mobId && actorTween.nodes['m:' + mobId];
-    const hx = node ? node.x : 900, hy = node ? node.y : 970;
-    const mx = mnode ? mnode.x : hx + 280, my = mnode ? mnode.y : hy;
-    if (inferMem.hp != null && me.hp < inferMem.hp) {
-      spawnFloat(hx - 20, hy - 90, '-' + (inferMem.hp - me.hp), '#ff7a6a', 30);
-      if (node) pulse(node.el, 'hit', 220);
-      if (mnode) pulse(mnode.el, 'atk', 700);
+    if (!st) return;
+    Object.keys(actorTween.nodes).forEach(k => {
+      const it = actorTween.nodes[k];
+      if (!it || it.hp == null) return;
+      const prev = inferMem.hp[k];
+      if (prev != null && it.hp < prev - 0.4) {
+        const drop = Math.round(prev - it.hp);
+        if (it.kind === 'hero') {
+          spawnFloat(it.x - 20, it.y - 90, '-' + drop, '#ff7a6a', 30);
+          pulse(it.el, 'hit', 220);
+          const m = nearestOf(it, 'mob'); if (m) pulse(m.el, 'atk', 700);
+        } else if (it.kind === 'mob') {
+          spawnFloat(it.x + 40, it.y, '-' + drop, '#ff7a6a', 30);
+          pulse(it.el, 'hit', 220);
+          const h = nearestOf(it, 'hero'); if (h) pulse(h.el, 'lunge', 280);
+        }
+      }
+      inferMem.hp[k] = it.hp;
+    });
+    const me = st.me;
+    if (me) {
+      const node = actorTween.nodes['h:' + me.n] || actorTween.nodes['h:' + String(me.n || '').toLowerCase()];
+      const hx = node ? node.x : 900, hy = node ? node.y : 970;
+      if (node && (node.hp == null) && me.hp != null && (loc === 'forest' || loc === 'boss')) {
+        const pk = 'me:' + me.n;
+        if (inferMem.hp[pk] != null && me.hp < inferMem.hp[pk] - 0.4) {
+          spawnFloat(hx - 20, hy - 90, '-' + Math.round(inferMem.hp[pk] - me.hp), '#ff7a6a', 30);
+          pulse(node.el, 'hit', 220);
+          const m = nearestOf(node, 'mob'); if (m) pulse(m.el, 'atk', 700);
+        }
+        inferMem.hp[pk] = me.hp;
+      }
+      if (inferMem.gold != null && me.gold > inferMem.gold) spawnFloat(hx, hy - 140, '+' + (me.gold - inferMem.gold) + ' 💰', '#ffd27a', 32);
+      inferMem.gold = me.gold;
     }
-    if (inferMem.gold != null && me.gold > inferMem.gold) spawnFloat(hx, hy - 140, '+' + (me.gold - inferMem.gold) + ' 💰', '#ffd27a', 32);
-    inferMem.hp = me.hp; inferMem.gold = me.gold;
   }
 
   function vpSize() {
@@ -928,9 +1015,14 @@
     root.classList.add(k);
   }
 
-  let camZ = 1, camPX = 0, camPY = 0, camFX = null, camFY = null, zMinCur = 1;
+  let camZ = 1, camPX = 0, camPY = 0, camFX = null, camFY = null, zMinCur = 1, followMe = true;
   const ZMAX = 3;
-  function resetCam() { camZ = 1; camPX = 0; camPY = 0; camFX = null; camFY = null; }
+  function resetCam() { camZ = 1; camPX = 0; camPY = 0; camFX = null; camFY = null; followMe = true; layout._base = null; }
+  function syncFollowBtn() {
+    const b = $('#bsZoom [data-z="me"]'); if (!b) return;
+    const phone = layoutKind() !== 'pc';
+    b.hidden = !phone;
+  }
   function zoomLabel(z) {
     if (Math.abs(z - 1) < 0.02) return '1×';
     const r = Math.round(z * 10) / 10;
@@ -946,13 +1038,14 @@
   }
   function snapIfDefault() {
     if (Math.abs(camZ - 1) < 0.03) {
-      camZ = 1; camPX = 0; camPY = 0; camFX = null; camFY = null;
+      camZ = 1;
       const lab = $('#bsZoom [data-z="reset"]');
       if (lab) lab.textContent = '1×';
     }
   }
   function canPan() {
-    return camZ > zMinCur + 0.02 && Math.abs(camZ - 1) > 0.02;
+    if (layoutKind() !== 'pc') return true;
+    return camZ > zMinCur + 0.02;
   }
   function meActor(st, l) {
     const list = locActors(st, l);
@@ -1049,7 +1142,9 @@
     zMinCur = Math.min(1, s > 1e-6 ? sContain / s : 1);
     if (camZ < zMinCur) camZ = zMinCur;
     if (camZ > ZMAX) camZ = ZMAX;
-    const s0 = s, ox0 = ox, oy0 = oy;
+    let s0 = s, ox0 = ox, oy0 = oy;
+    if (followMe) layout._base = { s: s0, ox: ox0, oy: oy0 };
+    else if (layout._base) { s0 = layout._base.s; ox0 = layout._base.ox; oy0 = layout._base.oy; }
     if (Math.abs(camZ - 1) > 0.001) {
       const fx = camFX != null ? camFX : vw / 2;
       const fy = camFY != null ? camFY : (kind === 'phone-p' ? Math.min(vh * 0.72, vh - 40) : vh / 2);
@@ -1059,12 +1154,18 @@
       ox = fx - sx * s + camPX;
       oy = fy - sy * s + camPY;
       [ox, oy] = clampCam(ox, oy, s, vw, vh);
+    } else if (camPX || camPY || !followMe) {
+      s = s0;
+      ox = ox0 + camPX;
+      oy = oy0 + camPY;
+      [ox, oy] = clampCam(ox, oy, s, vw, vh);
     }
     updateBossHint(s, ox, oy, vw, vh, st);
     scene.style.transform = 'translate3d(' + ox + 'px,' + oy + 'px,0) scale(' + s + ')';
     clipNames();
     const zlab = $('#bsZoom [data-z="reset"]');
     if (zlab && !zlab.matches(':active')) zlab.textContent = zoomLabel(camZ);
+    syncFollowBtn();
   }
 
   function bindZoom() {
@@ -1088,7 +1189,8 @@
       const cx = r.width / 2, cy = r.height / 2;
       if (b.dataset.z === 'in') { zoomAt(camZ * 1.25, cx, cy); snapIfDefault(); layout(); }
       else if (b.dataset.z === 'out') { zoomAt(camZ / 1.25, cx, cy); snapIfDefault(); layout(); }
-      else { resetCam(); layout(); }
+      else if (b.dataset.z === 'me') { resetCam(); layout(); }
+      else { camZ = 1; camFX = null; camFY = null; layout(); }
     });
     wrap.addEventListener('wheel', e => {
       if (!on) return;
@@ -1127,6 +1229,7 @@
           pan = null;
           return;
         }
+        if (followMe && Math.abs(mx - pinch.mx) + Math.abs(my - pinch.my) > 6) followMe = false;
         camPX = pinch.px + (mx - pinch.mx);
         camPY = pinch.py + (my - pinch.my);
         setCamZ(pinch.z * (d / pinch.d), mx, my);
@@ -1134,6 +1237,7 @@
       } else if (e.touches.length === 1 && pan && canPan()) {
         e.preventDefault();
         const a = pt(e.touches[0], r);
+        if (followMe && Math.abs(a.x - pan.x) + Math.abs(a.y - pan.y) > 8) followMe = false;
         camPX = pan.px + (a.x - pan.x);
         camPY = pan.py + (a.y - pan.y);
         layout();

@@ -58,10 +58,20 @@
         Object.assign({}, s.row, { label: 'Продать' + (s.extra ? ' (лишняя копия)' : '') + (s.lv ? ` +${s.lv}` : '') })
       ] }; });
     // v7panel31: «Сделать ход». ref.tb=0 — только подсказка (без запроса: баллы Twitch списывает только Twitch); tb=1 — ход с пульта, лимит ref.tl за стрим
-    const tl = ref.tl || 1, tu = me && me.tu || 0, rw0 = me && me.rw || {}, stock = `поход ${rw0.hike || 0} · готовка ${rw0.cook || 0} · квест ${rw0.quest || 0}`;
-    const turnInfo = () => { const url = ref.ch ? 'https://www.twitch.tv/' + ref.ch : ''; return [{ label: `Ход — это награда «${ref.trn || 'Сделать ход'}» за баллы канала`, sub: 'Пульт не может тратить баллы. Откройте чат Twitch → значок баллов под чатом → «' + (ref.trn || 'Сделать ход') + '».', note: 1 },
-      { label: 'Сейчас в запасе', sub: stock + ' — тратятся кнопками «В поход», «Готовить», «Квест»', note: 1 }].concat(url ? [{ label: '↗ Открыть чат канала', sub: 'twitch.tv/' + ref.ch, url }] : []); };
-    const turnBtn = ref.tb ? ['🎲', 'Сделать ход', 'ход', '', tu >= tl ? `с пульта ${tu}/${tl} — дальше в чате` : `с пульта: ${tl - tu} из ${tl}`, `Сделать ход с пульта? +1 поход, готовка и квест. Осталось за стрим: ${tl - tu} из ${tl}.`, tu >= tl ? 1 : 0]
+    const tl = ref.tl || 1, tu = me && me.tu || 0, rw0 = me && me.rw || {};
+    const cdLine = (sec, ready, busy) => { sec = +sec || 0; if (sec <= 0) return ready; const m = Math.ceil(sec / 60); return m >= 2 ? busy.replace('N', String(m)) : (sec >= 60 ? busy.replace('N', '1') : 'через ' + sec + ' сек'); };
+    const turnInfo = () => {
+      const url = ref.ch ? 'https://www.twitch.tv/' + ref.ch : '';
+      const rows = [{ label: `Ход — это награда «${ref.trn || 'Сделать ход'}» за баллы канала`, sub: 'Пульт не может тратить баллы. Откройте чат Twitch → значок баллов под чатом → «' + (ref.trn || 'Сделать ход') + '».', note: 1 }];
+      if (me && (me.cd != null || me.ccd != null || (me.rw && me.rw.quest != null))) {
+        rows.push({ label: 'Поход — ' + cdLine(me.cd, 'готов', 'через N мин'), note: 1 });
+        rows.push({ label: 'Готовка — ' + cdLine(me.ccd, 'готова', 'через N мин'), note: 1 });
+        const left = me.rw && me.rw.quest != null ? +me.rw.quest : null;
+        if (left != null) rows.push({ label: left > 0 ? 'Квесты — осталось ' + left + ' сегодня' : 'Квесты — на сегодня кончились', note: 1 });
+      }
+      return rows.concat(url ? [{ label: '↗ Открыть чат канала', sub: 'twitch.tv/' + ref.ch, url }] : []);
+    };
+    const turnBtn = ref.tb ? ['🎲', 'Сделать ход', 'ход', '', tu >= tl ? `с пульта ${tu}/${tl} — дальше в чате` : `с пульта: ${tl - tu} из ${tl}`, `Сделать ход с пульта? Осталось за стрим: ${tl - tu} из ${tl}.`, tu >= tl ? 1 : 0]
       : ['🎲', 'Сделать ход', 'ход', turnInfo, 'награда за баллы канала'];
     // v49.7 (brb498): цирюльник на готовых спрайтах — у каждого цвета превью своего героя img/h/<me.hk>_<цвет>.webp, только доступные цвета (me.ha). Старая игра (px < 498) — как раньше
     const brb = +(ref.px || 0) >= 498 && ref.hb === 1 && !!(me && me.hk);

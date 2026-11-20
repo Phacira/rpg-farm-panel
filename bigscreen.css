@@ -1,4 +1,4 @@
-/* Большой экран пульта (opt-in, v.bs520). Обычный пульт не меняется, пока body.bs-on нет. */
+/* Большой экран пульта (opt-in, v.bs521). Обычный пульт не меняется, пока body.bs-on нет. */
 html.bs-on,body.bs-on{width:100%;max-width:100%;height:100%;height:100dvh;min-height:100%;min-height:100dvh;min-height:-webkit-fill-available;margin:0;padding:0;overflow:hidden !important;overscroll-behavior:none;background:#000;touch-action:none}
 html:not(.bs-on),body:not(.bs-on){height:auto !important;min-height:0 !important;overflow:visible !important;overscroll-behavior:auto;touch-action:auto}
 body.bs-on #panel,body.bs-on .chatcmds,body.bs-on > footer{display:none !important;visibility:hidden !important;pointer-events:none !important;height:0 !important;overflow:hidden !important;margin:0 !important;padding:0 !important}
@@ -19,6 +19,10 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs .hero img{position:absolute;left:0;bottom:0;height:calc(192px * var(--hs,1));width:auto;transform:translateX(-50%);image-rendering:auto;image-rendering:-webkit-optimize-contrast;pointer-events:none;filter:drop-shadow(0 6px 3px rgba(0,0,0,.35))}
 #bs .hero.flip img{transform:translateX(-50%) scaleX(-1)}
 #bs .hero .name{position:absolute;left:0;bottom:calc(200px * var(--hs,1));transform:translateX(-50%);white-space:nowrap;text-align:center;font-size:calc(22px * var(--hs,1));line-height:1.15;color:#fff;text-shadow:0 1px 0 #000,0 0 6px #000,0 2px 8px #000;padding:2px 8px;pointer-events:none}
+#bs .hero.has-hp .name{bottom:calc(214px * var(--hs,1))}
+#bs .hero .hhp{position:absolute;left:0;bottom:calc(196px * var(--hs,1));transform:translateX(-50%);width:80px;height:9px;border-radius:4px;background:#000c;border:1px solid #fff2;overflow:hidden;pointer-events:none;z-index:2}
+#bs .hero .hhp i{display:block;height:100%;background:#5ad35a;border-radius:3px}
+#bs .hero .hhp.low i{background:#e05a3a}
 #bs .hero.me .name{color:#ffd27a;font-size:calc(24px * var(--hs,1));text-shadow:0 1px 0 #000,0 0 8px #000,0 0 12px rgba(255,210,122,.4)}
 #bs .hero .name small{display:block;font-size:.72em;color:#efe6d4;opacity:.9}
 #bs .hero.me .name small{color:#ffd27a}
@@ -309,8 +313,8 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs .hero[data-cls="warrior"].lunge img,#bs .hero[data-cls="assassin"].lunge img{--amp:32px}
 #bs .hero[data-cls="paladin"].lunge img{--amp:14px}
 #bs .hero[data-cls="archer"].lunge img{--amp:-12px}
-#bs .hero[data-cls="mage"].lunge img{--amp:0px}
-#bs .hero[data-cls="priest"].lunge img{--amp:0px}
+#bs .hero[data-cls="mage"].lunge img{--amp:10px}
+#bs .hero[data-cls="priest"].lunge img{--amp:10px}
 @keyframes bs-lunge{
   0%,100%{transform:translateX(-50%)}
   50%{transform:translateX(-50%) translateX(var(--amp,24px))}
@@ -379,6 +383,8 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs .zoom-ctl{position:absolute;right:max(10px, calc(8px + env(safe-area-inset-right,0px)));bottom:calc(var(--barsH, 140px) + 10px);z-index:8;display:flex;flex-direction:column;gap:4px;pointer-events:auto}
 #bs .zoom-ctl button{width:28px;height:28px;min-height:0 !important;min-width:0;padding:0;border:1px solid rgba(232,195,106,.5);border-radius:8px;background:rgba(18,10,24,.82);color:#ffd27a;font:700 16px/28px system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4);backdrop-filter:blur(8px)}
 #bs .zoom-ctl button[data-z="reset"]{font-size:10px}
+#bs .zoom-ctl button[data-z="me"]{font-size:14px;width:28px}
+#bs .zoom-ctl button[data-z="me"][hidden]{display:none !important}
 #bs.phone-p .zoom-ctl{right:calc(8px + env(safe-area-inset-right,0px));bottom:calc(var(--barsH, 110px) + 8px)}
 #bs.phone-l .zoom-ctl{right:calc(8px + env(safe-area-inset-right,0px));bottom:calc(var(--barsH, 64px) + 6px)}
 #bs.phone-p .zoom-ctl button,#bs.phone-l .zoom-ctl button{width:28px;height:28px;font-size:16px}
