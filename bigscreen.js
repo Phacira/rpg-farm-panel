@@ -1,4 +1,4 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs518. */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs519. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen';
   const LOCS = [['town', '🏘', 'Город'], ['garden', '🌱', 'Огород'], ['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс']];
@@ -929,17 +929,31 @@
     root.classList.add(k);
   }
 
-  let camZ = 1, camPX = 0, camPY = 0, camFX = null, camFY = null;
-  const ZMIN = 1, ZMAX = 3;
+  let camZ = 1, camPX = 0, camPY = 0, camFX = null, camFY = null, zMinCur = 1;
+  const ZMAX = 3;
   function resetCam() { camZ = 1; camPX = 0; camPY = 0; camFX = null; camFY = null; }
+  function zoomLabel(z) {
+    if (Math.abs(z - 1) < 0.02) return '1×';
+    const r = Math.round(z * 10) / 10;
+    return (Math.abs(r - Math.round(r)) < 0.05 ? String(Math.round(r)) : r.toFixed(1)) + '×';
+  }
   function setCamZ(z, fx, fy) {
-    z = Math.max(ZMIN, Math.min(ZMAX, z));
+    z = Math.max(zMinCur, Math.min(ZMAX, z));
     if (fx != null) camFX = fx;
     if (fy != null) camFY = fy;
     camZ = z;
-    if (camZ <= 1.001) { camZ = 1; camPX = 0; camPY = 0; camFX = null; camFY = null; }
     const lab = $('#bsZoom [data-z="reset"]');
-    if (lab) lab.textContent = (Math.round(camZ * 10) / 10 === 1 ? '1×' : (Math.round(camZ * 10) / 10) + '×');
+    if (lab) lab.textContent = zoomLabel(camZ);
+  }
+  function snapIfDefault() {
+    if (Math.abs(camZ - 1) < 0.03) {
+      camZ = 1; camPX = 0; camPY = 0; camFX = null; camFY = null;
+      const lab = $('#bsZoom [data-z="reset"]');
+      if (lab) lab.textContent = '1×';
+    }
+  }
+  function canPan() {
+    return camZ > zMinCur + 0.02 && Math.abs(camZ - 1) > 0.02;
   }
   function meActor(st, l) {
     const list = locActors(st, l);
@@ -1027,8 +1041,12 @@
       ox = (vw - W * s) / 2;
       oy = (vh - H * s) / 2;
     }
+    const sContain = Math.min(vw / W, vh / H) || 1;
+    zMinCur = Math.min(1, s > 1e-6 ? sContain / s : 1);
+    if (camZ < zMinCur) camZ = zMinCur;
+    if (camZ > ZMAX) camZ = ZMAX;
     const s0 = s, ox0 = ox, oy0 = oy;
-    if (camZ > 1.001) {
+    if (Math.abs(camZ - 1) > 0.001) {
       const fx = camFX != null ? camFX : vw / 2;
       const fy = camFY != null ? camFY : (kind === 'phone-p' ? Math.min(vh * 0.72, vh - 40) : vh / 2);
       const sx = (fx - ox0) / (s0 || 1);
@@ -1042,7 +1060,7 @@
     scene.style.transform = 'translate(' + ox + 'px,' + oy + 'px) scale(' + s + ')';
     clipNames();
     const zlab = $('#bsZoom [data-z="reset"]');
-    if (zlab && !zlab.matches(':active')) zlab.textContent = (Math.round(camZ * 10) / 10 === 1 ? '1×' : (Math.round(camZ * 10) / 10) + '×');
+    if (zlab && !zlab.matches(':active')) zlab.textContent = zoomLabel(camZ);
   }
 
   function bindZoom() {
@@ -1064,8 +1082,8 @@
       const b = e.target.closest('[data-z]'); if (!b) return;
       const r = wrap.getBoundingClientRect();
       const cx = r.width / 2, cy = r.height / 2;
-      if (b.dataset.z === 'in') zoomAt(camZ * 1.25, cx, cy);
-      else if (b.dataset.z === 'out') zoomAt(camZ / 1.25, cx, cy);
+      if (b.dataset.z === 'in') { zoomAt(camZ * 1.25, cx, cy); snapIfDefault(); layout(); }
+      else if (b.dataset.z === 'out') { zoomAt(camZ / 1.25, cx, cy); snapIfDefault(); layout(); }
       else { resetCam(); layout(); }
     });
     wrap.addEventListener('wheel', e => {
@@ -1075,43 +1093,64 @@
       const fx = e.clientX - r.left, fy = e.clientY - r.top;
       const k = e.deltaY < 0 ? 1.12 : 1 / 1.12;
       zoomAt(camZ * k, fx, fy);
+      snapIfDefault();
+      layout();
     }, { passive: false });
-    wrap.addEventListener('touchstart', e => {
+    function onTouchStart(e) {
       if (!on) return;
       const r = wrap.getBoundingClientRect();
-      if (e.touches.length === 2) {
+      if (e.touches.length >= 2) {
+        e.preventDefault();
         const a = pt(e.touches[0], r), b = pt(e.touches[1], r);
         pinch = { z: camZ, px: camPX, py: camPY, d: Math.hypot(a.x - b.x, a.y - b.y) || 1, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
         pan = null;
-      } else if (e.touches.length === 1 && camZ > 1.02) {
+      } else if (e.touches.length === 1 && canPan()) {
         const a = pt(e.touches[0], r);
         pan = { x: a.x, y: a.y, px: camPX, py: camPY };
         pinch = null;
       }
-    }, { passive: true });
-    wrap.addEventListener('touchmove', e => {
+    }
+    function onTouchMove(e) {
       if (!on) return;
       const r = wrap.getBoundingClientRect();
-      if (e.touches.length === 2 && pinch) {
+      if (e.touches.length >= 2) {
         e.preventDefault();
         const a = pt(e.touches[0], r), b = pt(e.touches[1], r);
         const d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
         const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        if (!pinch) {
+          pinch = { z: camZ, px: camPX, py: camPY, d: d, mx: mx, my: my };
+          pan = null;
+          return;
+        }
         camPX = pinch.px + (mx - pinch.mx);
         camPY = pinch.py + (my - pinch.my);
         setCamZ(pinch.z * (d / pinch.d), mx, my);
         layout();
-      } else if (e.touches.length === 1 && pan && camZ > 1.02) {
+      } else if (e.touches.length === 1 && pan && canPan()) {
         e.preventDefault();
         const a = pt(e.touches[0], r);
         camPX = pan.px + (a.x - pan.x);
         camPY = pan.py + (a.y - pan.y);
         layout();
       }
-    }, { passive: false });
-    wrap.addEventListener('touchend', e => {
-      if (e.touches.length < 2) pinch = null;
-      if (e.touches.length < 1) pan = null;
+    }
+    function onTouchEnd(e) {
+      if (e.touches.length < 2) {
+        if (pinch) { snapIfDefault(); layout(); }
+        pinch = null;
+      }
+      if (e.touches.length < 1) {
+        if (pan) { snapIfDefault(); layout(); }
+        pan = null;
+      }
+    }
+    wrap.addEventListener('touchstart', onTouchStart, { passive: false, capture: true });
+    wrap.addEventListener('touchmove', onTouchMove, { passive: false, capture: true });
+    wrap.addEventListener('touchend', onTouchEnd, { capture: true });
+    wrap.addEventListener('touchcancel', onTouchEnd, { capture: true });
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => {
+      wrap.addEventListener(ev, e => { if (on) e.preventDefault(); }, { passive: false });
     });
     wrap.addEventListener('click', e => {
       if (e.target !== wrap && e.target !== $('#bsScene') && e.target !== $('#bsBg') && !(e.target && e.target.classList && (e.target.classList.contains('bg') || e.target.id === 'bsActors' || e.target.id === 'bsFx' || e.target.id === 'bsGlow'))) {

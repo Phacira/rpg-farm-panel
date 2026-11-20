@@ -1,5 +1,5 @@
-/* Большой экран пульта (opt-in, v.bs518). Обычный пульт не меняется, пока body.bs-on нет. */
-html.bs-on,body.bs-on{width:100%;max-width:100%;height:100%;height:100dvh;min-height:100%;min-height:100dvh;min-height:-webkit-fill-available;margin:0;padding:0;overflow:hidden !important;overscroll-behavior:none;background:#000;touch-action:manipulation}
+/* Большой экран пульта (opt-in, v.bs519). Обычный пульт не меняется, пока body.bs-on нет. */
+html.bs-on,body.bs-on{width:100%;max-width:100%;height:100%;height:100dvh;min-height:100%;min-height:100dvh;min-height:-webkit-fill-available;margin:0;padding:0;overflow:hidden !important;overscroll-behavior:none;background:#000;touch-action:none}
 html:not(.bs-on),body:not(.bs-on){height:auto !important;min-height:0 !important;overflow:visible !important;overscroll-behavior:auto;touch-action:auto}
 body.bs-on #panel,body.bs-on .chatcmds,body.bs-on > footer{display:none !important;visibility:hidden !important;pointer-events:none !important;height:0 !important;overflow:hidden !important;margin:0 !important;padding:0 !important}
 body.bs-on #sheet{z-index:40}
@@ -375,6 +375,7 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs button.fold-tab{display:none;align-items:center;justify-content:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;font:700 11px/26px system-ui,sans-serif !important;min-height:0 !important}
 
 #bs .scene-wrap{touch-action:none}
+#bs .window,#bs .log-win,#bs .log-body,#bs .sheet-body,#bs.phone-l .actionbar,#bs.phone-l .bossbar:not([hidden]){touch-action:pan-y}
 #bs .zoom-ctl{position:absolute;right:max(10px, calc(8px + env(safe-area-inset-right,0px)));bottom:calc(var(--barsH, 140px) + 10px);z-index:8;display:flex;flex-direction:column;gap:4px;pointer-events:auto}
 #bs .zoom-ctl button{width:28px;height:28px;min-height:0 !important;min-width:0;padding:0;border:1px solid rgba(232,195,106,.5);border-radius:8px;background:rgba(18,10,24,.82);color:#ffd27a;font:700 16px/28px system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4);backdrop-filter:blur(8px)}
 #bs .zoom-ctl button[data-z="reset"]{font-size:10px}
