@@ -1,4 +1,4 @@
-/* Большой экран пульта (opt-in, v.bs521). Обычный пульт не меняется, пока body.bs-on нет. */
+/* Большой экран пульта (opt-in, v.bs522). Обычный пульт не меняется, пока body.bs-on нет. */
 html.bs-on,body.bs-on{width:100%;max-width:100%;height:100%;height:100dvh;min-height:100%;min-height:100dvh;min-height:-webkit-fill-available;margin:0;padding:0;overflow:hidden !important;overscroll-behavior:none;background:#000;touch-action:none}
 html:not(.bs-on),body:not(.bs-on){height:auto !important;min-height:0 !important;overflow:visible !important;overscroll-behavior:auto;touch-action:auto}
 body.bs-on #panel,body.bs-on .chatcmds,body.bs-on > footer{display:none !important;visibility:hidden !important;pointer-events:none !important;height:0 !important;overflow:hidden !important;margin:0 !important;padding:0 !important}
@@ -80,13 +80,30 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs .rumble,#bs .trline{margin-top:5px;font-size:11px;color:#ffd27a;text-align:left}
 #bs .trline button{margin-right:8px;border:1px solid #c9a25a;background:#3a2a10;color:#ffd27a;border-radius:8px;padding:3px 10px;font:inherit;cursor:pointer}
 
+#bs .bsp-col{position:absolute;top:14px;right:14px;width:300px;display:flex;flex-direction:column;align-items:stretch;gap:8px;z-index:7;pointer-events:none;max-height:calc(100% - var(--barsH,140px) - 130px);overflow:auto}
+#bs .bsp-col .bsp,#bs .bsp-col .bsp.goal,#bs .bsp-col .bsp.quests,#bs .bsp-col .bsp.party{position:relative !important;top:auto !important;right:auto !important;left:auto !important;bottom:auto !important;width:100% !important;box-sizing:border-box;pointer-events:auto;flex:none}
 #bs .bsp{position:absolute;width:280px;padding:8px 10px 10px;background:rgba(18,10,24,.82);border:1px solid rgba(232,195,106,.45);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.45);backdrop-filter:blur(8px)}
 #bs .bsp header{color:#ffd27a;font-size:12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:8px}
 #bs .bsp.goal{top:14px;right:14px;width:300px}
 #bs .goal-title{font-size:13px;margin-bottom:4px;line-height:1.3;white-space:normal}
 #bs .muted{color:#b7a9c6;font-size:11px;font-weight:700;margin-top:5px;white-space:normal;line-height:1.35}
 #bs .bsp.quests{top:168px;right:14px}
-#bs .bsp.feed{bottom:108px;left:14px;width:300px}
+#bs .bsp.feed{bottom:108px;left:14px;width:300px;z-index:6}
+#bs .bsp.party{width:300px}
+#bs .bsp.party .ph-sub{color:#b7a9c6;font-size:11px;font-weight:700;margin:-2px 0 6px;line-height:1.3}
+#bs .bsp.party .pcnt{color:#ffd27a;font-size:12px;white-space:nowrap}
+#bs .party ul{list-style:none;margin:0;padding:0;max-height:220px;overflow:auto}
+#bs .party li{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #fff1;font-size:12px;min-width:0}
+#bs .party li:last-child{border:0}
+#bs .party li .nick{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bs .party li small{flex:none;color:#b7a9c6;font-size:11px}
+#bs .party li.me .nick{color:#ffd27a}
+#bs .party .gmark{width:10px;height:12px;margin-right:0;flex:none}
+#bs .party-chip{display:none}
+#bs.fold-party .bsp.party{display:none !important}
+#bs.fold-party .fold-tab.party-tab{display:inline-flex;align-self:flex-end}
+#bs .fold-tab.party-tab{display:none;pointer-events:auto}
+#bs .fold-tab.party-tab[hidden]{display:none !important}
 #bs .quests ul,#bs .feed ul{list-style:none;margin:0;padding:0}
 #bs .quests li{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #fff1;font-size:12px}
 #bs .quests li:last-child{border:0}
@@ -164,7 +181,11 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs.phone-p .bar{height:10px;margin-top:2px}
 #bs.phone-p .bar span{font-size:8px;line-height:9px}
 #bs.phone-p .unit-res{font-size:9px;gap:6px;margin-top:2px}
-#bs.phone-p .bsp.goal,#bs.phone-p .bsp.quests,#bs.phone-p .bsp.feed,#bs.phone-p .ph-dock{display:none !important}
+#bs.phone-p .bsp-col,#bs.phone-p .bsp.goal,#bs.phone-p .bsp.quests,#bs.phone-p .bsp.feed,#bs.phone-p .bsp.party,#bs.phone-p .ph-dock,#bs.phone-p .party-tab{display:none !important}
+#bs.phone-p .party-chip{display:flex;align-items:center;gap:5px;position:absolute;top:calc(var(--unitH,64px) + var(--bossH,0px) + 12px + env(safe-area-inset-top,0px));left:calc(8px + env(safe-area-inset-left,0px));right:auto;max-width:min(200px,58vw);padding:4px 8px;background:rgba(18,10,24,.72);border:1px solid rgba(232,195,106,.45);border-radius:999px;font:700 10px/1.2 system-ui,sans-serif;color:#f3eadc;z-index:8;backdrop-filter:blur(8px);cursor:pointer;pointer-events:auto}
+#bs.phone-p .party-chip[hidden]{display:none !important}
+#bs.phone-p .party-chip b{color:#ffd27a;flex:none}
+#bs.phone-p .party-chip span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #bs.phone-p .goal-strip[hidden]{display:none !important}
 #bs.phone-p .goal-strip{display:flex;align-items:center;gap:4px;position:absolute;top:calc(44px + env(safe-area-inset-top,0px));right:calc(8px + env(safe-area-inset-right,0px));left:auto;bottom:auto;max-width:min(180px,48vw);padding:3px 7px;background:rgba(18,10,24,.62);border:1px solid rgba(232,195,106,.4);border-radius:999px;font-size:9px;color:#f3eadc;z-index:8;backdrop-filter:blur(8px)}
 #bs.phone-p .goal-strip span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -229,8 +250,12 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 
 /* ===== phone landscape: вся локация как на ПК, те же оверлеи компактнее ===== */
 #bs.phone-l .scene-wrap{inset:0;width:100%;height:100% !important}
-#bs.phone-l .bsp.quests,#bs.phone-l .ph-dock,#bs.phone-l .bsp.feed{display:none !important}
+#bs.phone-l .bsp-col,#bs.phone-l .bsp.quests,#bs.phone-l .ph-dock,#bs.phone-l .bsp.feed,#bs.phone-l .bsp.party,#bs.phone-l .party-tab{display:none !important}
 #bs.phone-l .bsp.goal{display:none !important}
+#bs.phone-l .party-chip{display:flex;align-items:center;gap:5px;position:absolute;top:calc(var(--unitH,64px) + 8px + env(safe-area-inset-top,0px));left:calc(6px + env(safe-area-inset-left,0px));max-width:min(200px,36vw);padding:3px 8px;background:rgba(18,10,24,.72);border:1px solid rgba(232,195,106,.45);border-radius:999px;font:700 10px/1.2 system-ui,sans-serif;color:#f3eadc;z-index:8;backdrop-filter:blur(8px);cursor:pointer}
+#bs.phone-l .party-chip[hidden]{display:none !important}
+#bs.phone-l .party-chip b{color:#ffd27a}
+#bs.phone-l .party-chip span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #bs.phone-l .goal-strip[hidden]{display:none !important}
 #bs.phone-l .goal-strip{display:flex;align-items:center;gap:4px;position:absolute;top:calc(6px + env(safe-area-inset-top,0px));right:calc(8px + env(safe-area-inset-right,0px));max-width:min(240px,36vw);padding:3px 8px;background:rgba(18,10,24,.62);border:1px solid rgba(232,195,106,.4);border-radius:999px;font-size:10px;z-index:8;backdrop-filter:blur(8px)}
 #bs.phone-l .goal-strip span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

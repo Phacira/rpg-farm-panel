@@ -1,4 +1,4 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs521. */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs522. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen';
   const LOCS = [['town', '🏘', 'Город'], ['garden', '🌱', 'Огород'], ['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс']];
@@ -10,18 +10,18 @@
   const MOB_PACK = [[-0.55, -0.34, 0.9], [0.55, -0.34, 0.9], [0, 0, 1]];
   const GUILD_RU = { fire: 'Огненный легион', moon: 'Лунные тени', gold: 'Золотой колос', silver: 'Серебряный лист' };
   const FOLD_KEY = 'rpgPanel.bsFold';
-  let fold = { loc: false, bar: false, feed: false };
+  let fold = { loc: false, bar: false, feed: false, party: false };
   try {
     const o = JSON.parse(localStorage.getItem(FOLD_KEY) || '{}');
-    if (o && typeof o === 'object') { fold.loc = !!o.loc; fold.bar = !!o.bar; fold.feed = !!o.feed; }
+    if (o && typeof o === 'object') { fold.loc = !!o.loc; fold.bar = !!o.bar; fold.feed = !!o.feed; fold.party = !!o.party; }
   } catch (e) {}
   (function applyFoldQuery() {
     const m = /[?&]fold=([^&]*)/.exec(location.search);
     if (!m) return;
     const v = decodeURIComponent(m[1] || '');
-    if (v === '0' || v === 'off') fold = { loc: false, bar: false, feed: false };
-    else if (v === '1' || v === 'on') fold = { loc: true, bar: true, feed: true };
-    else { const s = new Set(v.split(',').map(x => x.trim()).filter(Boolean)); fold.loc = s.has('loc'); fold.bar = s.has('bar'); fold.feed = s.has('feed'); }
+    if (v === '0' || v === 'off') fold = { loc: false, bar: false, feed: false, party: false };
+    else if (v === '1' || v === 'on') fold = { loc: true, bar: true, feed: true, party: true };
+    else { const s = new Set(v.split(',').map(x => x.trim()).filter(Boolean)); fold.loc = s.has('loc'); fold.bar = s.has('bar'); fold.feed = s.has('feed'); fold.party = s.has('party'); }
   })();
   const $ = (s, r) => (r || document).querySelector(s);
   const esc = s => window.__panel && __panel.esc ? __panel.esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -106,8 +106,13 @@
         <div class="loc-chip" id="bsChip"></div>
         <div class="unitframe" id="bsUnit"></div>
         <div class="bossbar" id="bsBoss" hidden></div>
-        <aside class="bsp goal" id="bsGoal" hidden></aside>
-        <aside class="bsp quests" id="bsQuests"></aside>
+        <div class="bsp-col" id="bsRight">
+          <aside class="bsp goal" id="bsGoal" hidden></aside>
+          <aside class="bsp quests" id="bsQuests"></aside>
+          <aside class="bsp party" id="bsParty" hidden></aside>
+          <button type="button" class="fold-tab party-tab" data-bsfold="party" title="Показать очередь">⚔ Очередь</button>
+        </div>
+        <button type="button" class="party-chip" id="bsPartyChip" hidden></button>
         <aside class="bsp feed" id="bsFeed">
           <header>📜 Журнал <span class="head-btns"><button type="button" class="exp" data-bslog="1">развернуть</button><button type="button" class="fold-chev" data-bsfold="feed" title="Свернуть журнал" aria-label="Свернуть журнал">▾</button></span></header>
           <ul id="bsFeedList"></ul>
@@ -176,6 +181,8 @@
     $('#bsLogX').onclick = () => setLog(false);
     $('#bsLogOv').addEventListener('click', e => { if (e.target.id === 'bsLogOv') setLog(false); });
     $('#bsSheetX').onclick = () => setSheet(false);
+    const pchip = $('#bsPartyChip');
+    if (pchip) pchip.onclick = () => setSheet('party');
     $('#bsSheet').addEventListener('click', e => { if (e.target.id === 'bsSheet') setSheet(false); });
     $('#bsLocbar').addEventListener('click', e => {
       const b = e.target.closest('button[data-loc]'); if (!b) return;
@@ -207,7 +214,7 @@
       const fb = e.target.closest('#bs [data-bsfold]');
       if (fb) {
         const k = fb.dataset.bsfold;
-        if (k === 'loc' || k === 'bar' || k === 'feed') {
+        if (k === 'loc' || k === 'bar' || k === 'feed' || k === 'party') {
           e.preventDefault();
           fold[k] = !fold[k];
           try { localStorage.setItem(FOLD_KEY, JSON.stringify(fold)); } catch (err) {}
@@ -253,7 +260,8 @@
     root.classList.toggle('fold-loc', !!fold.loc);
     root.classList.toggle('fold-bar', !!fold.bar);
     root.classList.toggle('fold-feed', !!fold.feed);
-    const lab = { loc: fold.loc ? 'Показать локации' : 'Свернуть локации', bar: fold.bar ? 'Показать кнопки' : 'Свернуть кнопки', feed: fold.feed ? 'Показать журнал' : 'Свернуть журнал' };
+    root.classList.toggle('fold-party', !!fold.party);
+    const lab = { loc: fold.loc ? 'Показать локации' : 'Свернуть локации', bar: fold.bar ? 'Показать кнопки' : 'Свернуть кнопки', feed: fold.feed ? 'Показать журнал' : 'Свернуть журнал', party: fold.party ? 'Показать очередь' : 'Свернуть очередь' };
     root.querySelectorAll('[data-bsfold]').forEach(b => {
       const k = b.dataset.bsfold, a = lab[k];
       if (a) { b.setAttribute('title', a); b.setAttribute('aria-label', a); }
@@ -432,6 +440,9 @@
       title.textContent = 'Задания';
       const rows = questLis(ctx());
       body.innerHTML = rows.length ? `<ul class="qlist">${rows.join('')}</ul>` : '<div class="muted">сейчас нет заданий</div>';
+    } else if (sheetKind === 'party') {
+      title.textContent = 'Очередь на пати-поход';
+      body.innerHTML = partyBoxHtml(ctx(), true) || '<div class="muted">пока никого</div>';
     } else {
       title.textContent = 'Ещё';
       const rows = lastMore.map(d => btnHtml(d, d._ui ? -1 : lastDefs.indexOf(d), true)).join('');
@@ -524,6 +535,94 @@
     const el = $('#bsQuests'), rows = questLis(c);
     el.innerHTML = `<header>📜 Задания</header>${rows.length ? `<ul>${rows.join('')}</ul>` : '<div class="muted">сейчас нет заданий</div>'}`;
     const dq = $('#bsDockQ'); if (dq) dq.innerHTML = rows.length ? `<ul>${rows.join('')}</ul>` : '<div class="muted">сейчас нет заданий</div>';
+  }
+
+  function findHeroTup(st, name) {
+    const key = String(name || '').toLowerCase();
+    const locs = (st && st.locs) || {};
+    for (const L of Object.keys(locs)) {
+      const list = locs[L] || [];
+      for (let i = 0; i < list.length; i++) if (String(list[i][0]).toLowerCase() === key) return list[i];
+    }
+    return null;
+  }
+  function ptyOf(c) { return c && c.ref ? c.ref.pty : undefined; }
+  function fmtPtyLeft(sec) {
+    sec = +sec || 0;
+    if (sec <= 0) return '';
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return m ? (m + ':' + String(s).padStart(2, '0')) : (s + ' с');
+  }
+  function ptyStatus(P, qn, sz) {
+    if (!P) return '';
+    if (P.lane) return 'ждёт свободную тропу';
+    if (qn >= sz) return 'отряд собран — уходит';
+    const left = fmtPtyLeft(P.left);
+    if (left) return 'старт через ' + left;
+    return qn ? 'набор идёт' : '';
+  }
+  function partyRows(c) {
+    const P = ptyOf(c), st = c && c.state, me = c && ((c.user && c.user.login) || (c.me && c.me.n) || '');
+    const meL = String(me || '').toLowerCase();
+    const q = (P && P.q) || [];
+    return q.map(n => {
+      const t = findHeroTup(st, n);
+      const mine = String(n).toLowerCase() === meL;
+      const cls = t ? t[3] : '';
+      const cn = CLSN[cls] || cls || '';
+      const k6 = t ? String(t[6] || '') : '';
+      const g = (k6.split('_')[0] || (mine && c.me && c.me.gid) || 'none');
+      const gtitle = GUILD_RU[g] || (mine && c.me && c.me.gd) || '';
+      return '<li class="g-' + esc(g) + (mine ? ' me' : '') + '">'
+        + '<i class="gmark" title="' + esc(gtitle ? ('Гильдия: ' + gtitle) : 'без гильдии') + '"></i>'
+        + '<span class="nick">' + (mine ? '★ ' : '') + esc(n) + '</span>'
+        + (cn ? '<small>' + esc(cn) + '</small>' : '')
+        + '</li>';
+    });
+  }
+  function partyBoxHtml(c, forSheet) {
+    const P = ptyOf(c);
+    if (P === undefined || !P) return '';
+    const q = P.q || [], qn = +P.qn || q.length, sz = +P.sz || 3;
+    const stt = ptyStatus(P, qn, sz);
+    const rows = partyRows(c);
+    let extra = '';
+    if (qn > q.length) extra += '<div class="muted">и ещё ' + esc(qn - q.length) + ' в очереди</div>';
+    if (!rows.length) return (forSheet ? '<div class="muted">пока никого — нажмите «Пати-поход» (нужно от ' + esc(P.mn || 2) + ' до ' + esc(sz) + ')</div>' : '<div class="muted">пока никого</div>');
+    return (stt ? '<div class="ph-sub">' + esc(stt) + '</div>' : '') + '<ul class="qlist">' + rows.join('') + '</ul>' + extra;
+  }
+  function fillParty(c) {
+    const el = $('#bsParty'), chip = $('#bsPartyChip');
+    const P = ptyOf(c);
+    const inCamp = bsLoc === 'camp';
+    const q = (P && P.q) || [], qn = +((P && P.qn) || q.length), sz = +((P && P.sz) || 3);
+    const show = !!(P && (qn > 0 || inCamp));
+    if (el) {
+      if (!show) { el.hidden = true; el.innerHTML = ''; }
+      else {
+        el.hidden = false;
+        const stt = ptyStatus(P, qn, sz);
+        const extra = qn > sz ? ' +' + (qn - sz) : '';
+        const cnt = Math.min(qn, sz) + '/' + sz + extra + (stt && P.left > 0 && !P.lane ? ' · ' + fmtPtyLeft(P.left) : '');
+        el.innerHTML = '<header>⚔ Очередь на пати-поход'
+          + '<span class="pcnt">' + esc(cnt) + '</span>'
+          + '<button type="button" class="fold-chev" data-bsfold="party" title="Свернуть очередь" aria-label="Свернуть очередь">▾</button>'
+          + '</header>' + (partyBoxHtml(c, false) || '<div class="muted">пока никого</div>');
+      }
+    }
+    const tab = document.querySelector('#bs .party-tab');
+    if (tab) tab.hidden = !show;
+    if (chip) {
+      const phoneShow = !!(P && qn > 0);
+      chip.hidden = !phoneShow;
+      if (phoneShow) {
+        const extra = qn > sz ? ' +' + (qn - sz) : '';
+        const left = (!P.lane && P.left > 0) ? ' · ' + fmtPtyLeft(P.left) : (P.lane ? ' · тропа' : '');
+        chip.innerHTML = '<span>⚔ Пати</span><b>' + esc(Math.min(qn, sz) + '/' + sz + extra + left) + '</b>';
+        chip.title = 'Очередь на пати-поход';
+      }
+    }
+    if (sheetKind === 'party') fillSheet();
   }
 
   function logRows(c, mine, limit) {
@@ -1128,6 +1227,9 @@
       [ox, oy] = clampCam(ox, oy, s, vw, vh);
       updateBossHint(s, ox, oy, vw, vh, st);
     } else if (kind === 'phone-l') {
+      const unit = $('.unitframe', root);
+      const unitH = (unit && unit.offsetHeight) || 64;
+      root.style.setProperty('--unitH', unitH + 'px');
       // на весь экран без боковых полей: cover, чуть обрезая край сцены
       s = Math.max(vw / W, vh / H);
       ox = (vw - W * s) / 2;
@@ -1292,7 +1394,7 @@
   function clipNames() {
     const wrap = $('#bsWrap'); if (!wrap) return;
     const r = wrap.getBoundingClientRect();
-    const blockers = ['.unitframe', '.bossbar:not([hidden])', '.bars-wrap', '#bsGoal:not([hidden])', '#bsGoalStrip:not([hidden])', '#bsQuests', '#bsFeed', '.bs-off', '.bs-hint:not([hidden])', '.bs-tips:not([hidden])']
+    const blockers = ['.unitframe', '.bossbar:not([hidden])', '.bars-wrap', '#bsGoal:not([hidden])', '#bsGoalStrip:not([hidden])', '#bsQuests', '#bsParty:not([hidden])', '#bsPartyChip:not([hidden])', '#bsFeed', '.bs-off', '.bs-hint:not([hidden])', '.bs-tips:not([hidden])']
       .flatMap(s => [...document.querySelectorAll('#bs ' + s)])
       .map(el => el.getBoundingClientRect())
       .filter(b => b.width > 2 && b.height > 2);
@@ -1338,7 +1440,7 @@
     if (window.__panel && __panel.tab && __panel.tab !== 'me') bsLoc = __panel.tab;
     c.tab = bsLoc;
     const tips = collectTips(c);
-    fillUnit(c); fillGoal(c); fillQuests(c); fillFeed(c); fillBoss(c); fillBar(c, tips); fillActors(c); fillTips(tips); applyFold();
+    fillUnit(c); fillGoal(c); fillQuests(c); fillParty(c); fillFeed(c); fillBoss(c); fillBar(c, tips); fillActors(c); fillTips(tips); applyFold();
     if (!$('#bsOverlay').hidden) setInv(true);
     if (!$('#bsLogOv').hidden) fillLog();
     requestAnimationFrame(() => { layout(); const imgs = [...document.querySelectorAll('#bs img')].filter(i => !i.complete); if (!imgs.length) { layout(); window.__bsReady = true; return; }
