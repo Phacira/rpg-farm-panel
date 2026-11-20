@@ -1,4 +1,4 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs522. */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs523. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen';
   const LOCS = [['town', '🏘', 'Город'], ['garden', '🌱', 'Огород'], ['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс']];
@@ -437,9 +437,9 @@
   function fillSheet() {
     const title = $('#bsSheetTitle'), body = $('#bsSheetBody'); if (!title || !body) return;
     if (sheetKind === 'quests') {
-      title.textContent = 'Задания';
-      const rows = questLis(ctx());
-      body.innerHTML = rows.length ? `<ul class="qlist">${rows.join('')}</ul>` : '<div class="muted">сейчас нет заданий</div>';
+      const q = questBody(ctx());
+      title.textContent = q.d ? ('Задания · выполнено ' + q.d) : 'Задания';
+      body.innerHTML = q.html;
     } else if (sheetKind === 'party') {
       title.textContent = 'Очередь на пати-поход';
       body.innerHTML = partyBoxHtml(ctx(), true) || '<div class="muted">пока никого</div>';
@@ -523,18 +523,35 @@
     if (strip) strip.innerHTML = `<span>🎯 Цель стрима: ${esc(t)}</span><b>${dn ? '✔' : `${pr}/${nd}`}</b><span class="sgb"><i style="width:${dn ? 100 : pc}%"></i></span>`;
   }
 
-  function questLis(c) {
+  function questBody(c) {
     const me = c.me, qn = (c.ref && c.ref.quests) || {}, of = (me && me.of) || [], qs = me && me.qs;
-    const rows = [];
-    if (qs && Array.isArray(qs.c) && qs.c[0]) rows.push(`<li><i class="qdot on"></i>${esc(qs.c[0])} <b>${esc(qs.c[1] || 0)}/${esc(qs.c[2] || 1)}</b></li>`);
-    if (qs && Array.isArray(qs.l)) qs.l.forEach(x => rows.push(`<li><i class="qdot"></i>${esc(x[0] || '')}</li>`));
-    if (!rows.length) of.forEach(id => rows.push(`<li><i class="qdot"></i>${esc(qn[id] || id)}</li>`));
-    return rows;
+    if (!qs || typeof qs !== 'object') {
+      if (of && of.length) return { d: 0, html: '<ul>' + of.map(id => '<li><i class="qdot"></i>' + esc(qn[id] || id) + '</li>').join('') + '</ul>' };
+      return { d: 0, html: '<div class="muted">сейчас нет заданий</div>' };
+    }
+    const cur = Array.isArray(qs.c) && qs.c[0] ? qs.c : null;
+    const done = Array.isArray(qs.l) ? qs.l : [];
+    const d = +qs.d || done.length || 0;
+    let html = '';
+    if (cur) {
+      const a = +cur[1] || 0, b = +cur[2] || 1, pc = Math.max(0, Math.min(100, Math.round(100 * a / b)));
+      html += '<div class="qcur"><div class="qt">📜 ' + esc(cur[0]) + '</div>'
+        + '<div class="bar qp"><i style="width:' + pc + '%"></i><span>' + esc(a) + '/' + esc(b) + '</span></div>'
+        + (cur[3] ? '<div class="qrw">награда: ' + esc(cur[3]) + '</div>' : '') + '</div>';
+    } else {
+      html += '<div class="muted qhint">Текущего задания нет — возьмите в Городе (кнопка «Задание»)</div>';
+    }
+    if (done.length) {
+      html += '<ul class="qdone">' + done.map(r => '<li class="qd"><i class="qok">✔</i><span class="qn">' + esc(r[0] || '')
+        + '<span class="qr">выполнено' + (r[1] ? ' · ' + esc(r[1]) : '') + '</span></span></li>').join('') + '</ul>';
+    }
+    return { d: d, html: html };
   }
   function fillQuests(c) {
-    const el = $('#bsQuests'), rows = questLis(c);
-    el.innerHTML = `<header>📜 Задания</header>${rows.length ? `<ul>${rows.join('')}</ul>` : '<div class="muted">сейчас нет заданий</div>'}`;
-    const dq = $('#bsDockQ'); if (dq) dq.innerHTML = rows.length ? `<ul>${rows.join('')}</ul>` : '<div class="muted">сейчас нет заданий</div>';
+    const el = $('#bsQuests'), q = questBody(c);
+    const head = '📜 Задания' + (q.d ? '<small>выполнено ' + esc(q.d) + '</small>' : '');
+    if (el) el.innerHTML = '<header>' + head + '</header>' + q.html;
+    const dq = $('#bsDockQ'); if (dq) dq.innerHTML = q.html;
   }
 
   function findHeroTup(st, name) {
@@ -705,8 +722,24 @@
     });
     return out;
   }
+  function partyMb(st) {
+    const P = st && st.ref && st.ref.pty;
+    return (P && Array.isArray(P.mb)) ? P.mb : [];
+  }
+  function mbTup(m, loc) {
+    return [m[0], +m[7] || 900, +m[8] || 970, m[1] || '', m[10], loc, m[9] || '', '', '', 0, 120, m[11] || 'm', '', 0, 0, +m[3] || 0, +m[4] || 0, +m[5] || 0, +m[6] || 0];
+  }
   function locActors(st, l) {
     let list = ((st && st.locs && st.locs[l]) || []).filter(t => !isSleeping(t)).map(t => t.slice()).sort((a, b) => a[2] - b[2] || a[1] - b[1]);
+    if (l === 'forest' || l === 'boss') {
+      const have = new Set(list.map(t => String(t[0]).toLowerCase()));
+      partyMb(st).forEach(m => {
+        const n = m && m[0]; if (!n || have.has(String(n).toLowerCase())) return;
+        list.push(mbTup(m, l));
+        have.add(String(n).toLowerCase());
+      });
+      list.sort((a, b) => a[2] - b[2] || a[1] - b[1]);
+    }
     const fight = l === 'boss' && st && st.boss && st.boss.ph === 'fight';
     if (fight) return layoutBossHeroes(list, lairSpotOf(st));
     return spreadVisible(list, l);
@@ -829,19 +862,37 @@
       const src = sprUrl(t), fb = sprFb(t);
       const cn = CLSN[cls] || cls || '';
       const hs = t._hs || 1;
-      const hpN = t.length > 16 ? +t[15] : (mine && st && st.me ? +st.me.hp : NaN);
-      const hpM = t.length > 16 ? +t[16] : (mine && st && st.me ? +st.me.mhp : NaN);
+      const mb = partyMb(st).find(m => String(m[0]).toLowerCase() === String(n).toLowerCase());
+      const me = st && st.me;
+      let hpN = t.length > 16 ? +t[15] : NaN, hpM = t.length > 16 ? +t[16] : NaN;
+      let shN = t.length > 18 ? +t[17] : NaN, shM = t.length > 18 ? +t[18] : NaN;
+      if (mb) {
+        if (!isFinite(hpN)) hpN = +mb[3]; if (!isFinite(hpM)) hpM = +mb[4];
+        if (!isFinite(shN)) shN = +mb[5]; if (!isFinite(shM)) shM = +mb[6];
+        if (!cls && mb[1]) t[3] = mb[1];
+        if (!k6 && mb[9]) t[6] = mb[9];
+        if ((lv == null || lv === '') && mb[10] != null) t[4] = mb[10];
+      }
+      if (mine && me) {
+        if (!isFinite(hpN) && me.hp != null) hpN = +me.hp;
+        if (!isFinite(hpM) && me.mhp != null) hpM = +me.mhp;
+        if (!isFinite(shN) && (me.sh != null || me.shield != null)) shN = +(me.sh != null ? me.sh : me.shield);
+        if (!isFinite(shM) && (me.shm != null || me.shieldMax != null)) shM = +(me.shm != null ? me.shm : me.shieldMax);
+      }
       const showHp = hpM > 0 && (l === 'forest' || l === 'boss' || (isFinite(hpN) && hpN < hpM - 0.5));
+      const showSh = (l === 'forest' || l === 'boss') && shM > 0 && shN > 0;
       const hpPct = showHp ? Math.max(0, Math.min(100, hpN / hpM * 100)) : 0;
+      const shPct = showSh ? Math.max(0, Math.min(100, shN / shM * 100)) : 0;
       let it = actorTween.nodes[key];
-      const gtitle = GUILD_RU[g] || '';
+      const gtitle = GUILD_RU[g] || GUILD_RU[mb && mb[2]] || (mine && me && me.gd) || '';
       const nameHtml = '<i class="gmark" title="' + esc(gtitle ? ('Гильдия: ' + gtitle) : 'без гильдии') + '"></i>'
         + (mine ? '★ ' : '') + '<span class="nick">' + esc(n) + '</span>'
         + '<small>' + esc(cn) + (lv != null && lv !== '' ? ' · ' + esc(lv) : '') + (gtitle ? ' · ' + esc(gtitle) : '') + '</small>';
-      const hpHtml = showHp ? ('<div class="hhp bar hp' + (hpPct <= 35 ? ' low' : '') + '"><i style="width:' + hpPct + '%"></i></div>') : '';
+      const hpHtml = (showHp ? ('<div class="hhp bar hp' + (hpPct <= 35 ? ' low' : '') + '"><i style="width:' + hpPct + '%"></i></div>') : '')
+        + (showSh ? ('<div class="hsh bar sh"><i style="width:' + shPct + '%"></i></div>') : '');
       if (!it) {
         const el = document.createElement('div');
-        el.className = 'hero g-' + g + (mine ? ' me' : '') + (flip ? ' flip' : '') + (showHp ? ' has-hp' : '');
+        el.className = 'hero g-' + g + (mine ? ' me' : '') + (flip ? ' flip' : '') + (showHp ? ' has-hp' : '') + (showSh ? ' has-sh' : '');
         el.dataset.n = n;
         el.dataset.cls = cls || '';
         el.style.setProperty('--hs', hs);
@@ -854,10 +905,10 @@
           img.onerror = (fb && fb !== src) ? function () { img.onerror = null; img.src = fb; } : function () { img.remove(); };
         }
         box.appendChild(el);
-        it = actorTween.nodes[key] = { el, kind: 'hero', x: +t[1], y: +t[2], from: null };
+        it = actorTween.nodes[key] = { el, kind: 'hero', x: +t[1], y: +t[2], from: null, hp: isFinite(hpN) ? hpN : null, mhp: isFinite(hpM) ? hpM : null, sh: isFinite(shN) ? shN : null };
         applyActorPos(it);
       } else {
-        it.el.className = 'hero g-' + g + (mine ? ' me' : '') + (flip ? ' flip' : '') + (showHp ? ' has-hp' : '') + (it.el.classList.contains('walk') ? ' walk' : '') + (it.el.classList.contains('lunge') ? ' lunge' : '') + (it.el.classList.contains('hit') ? ' hit' : '');
+        it.el.className = 'hero g-' + g + (mine ? ' me' : '') + (flip ? ' flip' : '') + (showHp ? ' has-hp' : '') + (showSh ? ' has-sh' : '') + (it.el.classList.contains('walk') ? ' walk' : '') + (it.el.classList.contains('lunge') ? ' lunge' : '') + (it.el.classList.contains('hit') ? ' hit' : '');
         it.el.dataset.cls = cls || '';
         it.el.style.setProperty('--hs', hs);
         const img = it.el.querySelector('img');
@@ -870,7 +921,13 @@
           bar.className = 'hhp bar hp' + (hpPct <= 35 ? ' low' : '');
           bar.innerHTML = '<i style="width:' + hpPct + '%"></i>';
         } else if (bar) bar.remove();
-        it.hp = isFinite(hpN) ? hpN : null; it.mhp = isFinite(hpM) ? hpM : null;
+        let shb = it.el.querySelector('.hsh');
+        if (showSh) {
+          if (!shb) { shb = document.createElement('div'); it.el.appendChild(shb); }
+          shb.className = 'hsh bar sh';
+          shb.innerHTML = '<i style="width:' + shPct + '%"></i>';
+        } else if (shb) shb.remove();
+        it.hp = isFinite(hpN) ? hpN : null; it.mhp = isFinite(hpM) ? hpM : null; it.sh = isFinite(shN) ? shN : null;
         moveActor(it, +t[1], +t[2], snapAll, dur);
       }
     }
@@ -1400,14 +1457,22 @@
       .filter(b => b.width > 2 && b.height > 2);
     const names = [...document.querySelectorAll('#bs .hero:not([hidden]) .name')]
       .sort((a, b) => (b.closest('.me') ? 1 : 0) - (a.closest('.me') ? 1 : 0));
+    names.forEach(n => { n.style.setProperty('--ny', '0px'); n.style.visibility = ''; });
     const kept = [];
     names.forEach(n => {
       const b = n.getBoundingClientRect();
       const hit = q => b.left < q.right && b.right > q.left && b.top < q.bottom && b.bottom > q.top;
       const cut = b.left < r.left + 2 || b.right > r.right - 2 || b.top < r.top + 2 || b.bottom > r.bottom - 2
-        || blockers.some(hit) || kept.some(hit);
+        || blockers.some(hit);
       n.style.visibility = cut ? 'hidden' : '';
-      if (!cut) kept.push(b);
+      if (cut) return;
+      let lift = 0;
+      while (lift < 48 && kept.some(q => {
+        const bb = { left: b.left, right: b.right, top: b.top - lift, bottom: b.bottom - lift };
+        return bb.left < q.right && bb.right > q.left && bb.top < q.bottom && bb.bottom > q.top;
+      })) lift += 16;
+      if (lift) n.style.setProperty('--ny', '-' + lift + 'px');
+      kept.push(n.getBoundingClientRect());
     });
   }
 
