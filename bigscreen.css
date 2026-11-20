@@ -1,4 +1,4 @@
-/* Большой экран пульта (opt-in, v.bs523). Обычный пульт не меняется, пока body.bs-on нет. */
+/* Большой экран пульта (opt-in, v.bs524). Обычный пульт не меняется, пока body.bs-on нет. */
 html.bs-on,body.bs-on{width:100%;max-width:100%;height:100%;height:100dvh;min-height:100%;min-height:100dvh;min-height:-webkit-fill-available;margin:0;padding:0;overflow:hidden !important;overscroll-behavior:none;background:#000;touch-action:none}
 html:not(.bs-on),body:not(.bs-on){height:auto !important;min-height:0 !important;overflow:visible !important;overscroll-behavior:auto;touch-action:auto}
 body.bs-on #panel,body.bs-on .chatcmds,body.bs-on > footer{display:none !important;visibility:hidden !important;pointer-events:none !important;height:0 !important;overflow:hidden !important;margin:0 !important;padding:0 !important}
@@ -174,9 +174,16 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs .logf button{border:1px solid #5a4470;background:#221430;color:#b7a9c6;border-radius:8px;padding:4px 10px;font:700 12px system-ui;cursor:pointer;margin-right:4px}
 #bs .logf button.on{border-color:#ffd27a;color:#ffd27a;background:#3a2a10}
 
-/* кнопка включения на обычном пульте */
-#bsEnter{display:inline-block;margin:0 0 0 10px;border:1px solid #c9a25a;background:#2a1c14;color:#ffd27a;border-radius:8px;padding:2px 8px;font:700 12px/1.2 system-ui,sans-serif;cursor:pointer;vertical-align:middle;min-height:0;height:auto;width:auto;box-shadow:none;font-weight:700}
+/* кнопка включения на обычном пульте — меняется только #bsEnter */
+#bsEnter{position:relative;display:inline-block;margin:0 0 0 10px;border:1px solid #c9a25a;background:#2a1c14;color:#ffd27a;border-radius:8px;padding:3px 10px;font:700 12px/1.2 system-ui,sans-serif;cursor:pointer;vertical-align:middle;min-height:0;height:auto;width:auto;white-space:nowrap;box-shadow:none;font-weight:700}
 #bsEnter:hover{background:#3a2a10}
+#bsEnter:not(.seen){border-color:#e8c36a;background:linear-gradient(180deg,#7a5628 0%,#5a3a1c 48%,#3a2410 100%);color:#fff3c8;box-shadow:0 0 0 1px rgba(255,210,122,.7),0 0 12px rgba(255,210,122,.55);animation:bsEnterPulse 1.8s ease-in-out infinite}
+#bsEnter:not(.seen):hover{background:linear-gradient(180deg,#8a6630 0%,#6a4a22 48%,#4a2c18 100%);color:#fff8dc}
+#bsEnter .bs-new{display:none}
+#bsEnter:not(.seen) .bs-new{display:block;position:absolute;top:-8px;right:-10px;padding:1px 5px;border-radius:6px;background:linear-gradient(180deg,#e25a3a,#b43028);color:#fff;font:800 9px/1.2 system-ui,sans-serif;letter-spacing:.3px;box-shadow:0 1px 3px rgba(0,0,0,.45);pointer-events:none}
+@keyframes bsEnterPulse{0%,100%{box-shadow:0 0 0 1px rgba(255,210,122,.65),0 0 8px rgba(255,210,122,.4)}50%{box-shadow:0 0 0 2px rgba(255,210,122,.95),0 0 16px rgba(255,210,122,.8)}}
+@media (prefers-reduced-motion:reduce){#bsEnter:not(.seen){animation:none}}
+@media (max-width:719px){#bsEnter{font-size:13px;padding:5px 11px}}
 
 /* большой экран: полоски босса — те же классы, что на обычном пульте */
 #bs .bossbar{width:min(720px,54vw);text-align:left;padding:10px 14px 12px}

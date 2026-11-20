@@ -1,6 +1,6 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs523. */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs524. */
 (function () {
-  const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen';
+  const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen', SEE_KEY = 'rpgPanel.bsSeen';
   const LOCS = [['town', '🏘', 'Город'], ['garden', '🌱', 'Огород'], ['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс']];
   const LOCN = { camp: 'Лагерь', forest: 'Лес', boss: 'Босс', garden: 'Огород', town: 'Город' };
   const CLSN = { warrior: 'Воин', archer: 'Лучник', mage: 'Маг', priest: 'Жрец', paladin: 'Паладин', assassin: 'Ассасин' };
@@ -270,11 +270,37 @@
     if (on) layout();
   }
 
+  function hasSeen() {
+    try {
+      if (localStorage.getItem(SEE_KEY) === '1') return true;
+      const v = localStorage.getItem(KEY);
+      return v === '0' || v === '1';
+    } catch (e) { return false; }
+  }
+  function markSeen() {
+    try { localStorage.setItem(SEE_KEY, '1'); } catch (e) {}
+    const b = $('#bsEnter');
+    if (!b) return;
+    b.classList.add('seen');
+    b.setAttribute('aria-label', 'Большой экран');
+    const badge = b.querySelector('.bs-new');
+    if (badge) badge.remove();
+  }
   function enterBtn() {
     const h = document.querySelector('#panel h1');
     if (!h || $('#bsEnter')) return;
     const b = document.createElement('button');
-    b.type = 'button'; b.id = 'bsEnter'; b.textContent = '🖥 Большой экран';
+    b.type = 'button'; b.id = 'bsEnter';
+    b.appendChild(document.createTextNode('🖥 Большой экран'));
+    if (hasSeen()) {
+      b.classList.add('seen');
+      b.setAttribute('aria-label', 'Большой экран');
+    } else {
+      const s = document.createElement('span');
+      s.className = 'bs-new'; s.textContent = 'НОВОЕ';
+      b.appendChild(s);
+      b.setAttribute('aria-label', 'Большой экран, новый режим');
+    }
     b.onclick = () => setOn(true);
     h.appendChild(b);
   }
@@ -299,6 +325,7 @@
   function setOn(v) {
     on = !!v;
     try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
+    if (on) markSeen();
     if (!on) { undockClassicBars(); setSheet(false); clearBsStyles(); }
     document.body.classList.toggle('bs-on', on);
     document.documentElement.classList.toggle('bs-on', on);
