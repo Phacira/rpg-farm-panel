@@ -448,3 +448,29 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs.phone-l .zoom-ctl{right:calc(8px + env(safe-area-inset-right,0px));bottom:calc(var(--barsH, 64px) + 6px)}
 #bs.phone-p .zoom-ctl button,#bs.phone-l .zoom-ctl button{width:28px;height:28px;font-size:16px}
 #bs.pc.short .zoom-ctl{bottom:calc(var(--barsH, 120px) + 8px)}
+
+/* bs526: ответы команд как в обычном пульте; купол заслона; без моргания аватарки */
+#bs .bs-toasts{position:absolute;left:50%;bottom:calc(var(--barsH, 140px) + 8px);transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:12;max-width:min(560px,78vw);pointer-events:none}
+#bs .bs-toasts[hidden]{display:none}
+#bs .bs-toast{background:rgba(18,10,24,.94);border:1px solid rgba(232,195,106,.55);color:#ffe9c0;border-radius:10px;padding:7px 13px;font:700 13px/1.35 system-ui,sans-serif;box-shadow:0 8px 22px #0009;text-align:center;max-width:100%}
+#bs .bs-toast b{font-weight:800}
+#bs .bs-toast.ok{border-color:#7dcb6a;color:#e8ffd8;background:rgba(18,36,16,.94)}
+#bs .bs-toast.bad{border-color:#ff7a6a;color:#ffd4ce;background:rgba(48,14,16,.94)}
+#bs .bs-toast.wait{border-color:#ffd27a;color:#ffe9c0}
+#bs.phone-p .bs-toasts{left:calc(6px + env(safe-area-inset-left,0px));right:calc(6px + env(safe-area-inset-right,0px));transform:none;width:auto;max-width:none;bottom:calc(var(--barsH, 110px) + 6px)}
+#bs.phone-p .bs-toast{font-size:12px;padding:6px 10px}
+#bs.phone-l .bs-toasts{bottom:calc(var(--barsH, 96px) + 4px);max-width:min(460px,74vw)}
+#bs.phone-l .bs-toast{font-size:12px;padding:5px 10px}
+#bs .wall-dome{position:absolute;left:0;top:0;transform:translate(-50%,-70%);pointer-events:none;z-index:3;border-radius:50% 50% 46% 46%;
+  background:radial-gradient(ellipse at 50% 68%, rgba(80,200,255,.10) 0%, rgba(80,180,255,.26) 48%, rgba(140,220,255,.42) 74%, rgba(180,230,255,.08) 100%);
+  box-shadow:0 0 28px rgba(80,200,255,.5), inset 0 0 18px rgba(180,230,255,.32);
+  border:2px solid rgba(170,230,255,.55);
+  animation:bsWallPulse 1.6s ease-in-out infinite}
+#bs .wall-dome .wt{position:absolute;left:50%;top:10%;transform:translateX(-50%);color:#d8f6ff;font:800 22px/1 system-ui,sans-serif;text-shadow:0 1px 4px #000,0 0 10px #7fd0ff}
+#bs .hero.wall-flash{filter:drop-shadow(0 0 18px #7fd0ff) drop-shadow(0 0 6px #fff)}
+@keyframes bsWallPulse{0%,100%{opacity:.82;filter:brightness(1)}50%{opacity:1;filter:brightness(1.12)}}
+@media (prefers-reduced-motion:reduce){#bs .wall-dome{animation:none}}
+
+#bs.has-toasts .bs-tips{bottom:calc(var(--barsH, 140px) + 58px)}
+#bs.phone-p.has-toasts .bs-tips{bottom:calc(var(--barsH, 110px) + 52px)}
+#bs.phone-l.has-toasts .bs-tips{bottom:calc(var(--barsH, 96px) + 48px)}

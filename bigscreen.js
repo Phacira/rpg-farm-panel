@@ -1,4 +1,4 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs525. */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs526. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen', SEE_KEY = 'rpgPanel.bsSeen';
   const LOCS = [['town', '🏘', 'Город'], ['garden', '🌱', 'Огород'], ['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс']];
@@ -98,6 +98,7 @@
           <img class="bg" id="bsBg" alt="">
           <div class="glow" id="bsGlow"></div>
           <div id="bsActors"></div>
+          <div id="bsWalls" aria-hidden="true"></div>
           <div class="fx-layer" id="bsFx"></div>
         </div>
       </div>
@@ -161,6 +162,7 @@
         <button type="button" data-z="reset" title="Сбросить масштаб" aria-label="Сбросить масштаб">1×</button>
         <button type="button" data-z="me" title="Мой герой" aria-label="Мой герой" hidden>🎯</button>
       </div>
+      <div class="bs-toasts" id="bsToasts" hidden aria-live="polite"></div>
       <div class="bs-tips" id="bsTips" hidden></div>
       <div class="bs-hint" id="bsHint" hidden></div>
       <div class="log-overlay" id="bsLogOv" hidden>
@@ -326,7 +328,7 @@
     on = !!v;
     try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
     if (on) markSeen();
-    if (!on) { undockClassicBars(); setSheet(false); clearBsStyles(); }
+    if (!on) { undockClassicBars(); setSheet(false); clearBsStyles(); paintToasts([]); }
     document.body.classList.toggle('bs-on', on);
     document.documentElement.classList.toggle('bs-on', on);
     setViewport(on);
@@ -482,19 +484,32 @@
     if (!me) return '';
     return sprUrl([me.n, 0, 0, me.cls, me.lv, me.mode || me.st, me.k6, me.hair, me.dy || '']);
   }
-  const HEAD_OK = new WeakMap();
+  const HEAD_CACHE = Object.create(null);
+  let unitBuilt = '';
   function paintHead(cv, src) {
     if (!cv || !src) return;
-    if (HEAD_OK.get(cv) === src && cv.width) return;
     const box = cv.parentElement, css = Math.max(40, (box && box.clientWidth) || 76);
     const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
     const S = Math.round(css * dpr);
+    const mark = src + '@' + S;
+    if (cv.dataset.mark === mark && cv.width === S) return; // v49.12 / bs526: не трогать canvas, если ключ тот же
+    const blit = function (from) {
+      if (!cv.isConnected) return;
+      if (cv.dataset.mark === mark && cv.width === S) return;
+      if (cv.width !== S || cv.height !== S) { cv.width = S; cv.height = S; }
+      cv.style.width = css + 'px'; cv.style.height = css + 'px';
+      const ctx2 = cv.getContext('2d');
+      ctx2.imageSmoothingEnabled = true; ctx2.imageSmoothingQuality = 'high';
+      ctx2.clearRect(0, 0, S, S);
+      ctx2.drawImage(from, 0, 0, S, S);
+      cv.dataset.mark = mark;
+    };
+    if (HEAD_CACHE[mark]) { blit(HEAD_CACHE[mark]); return; }
     const img = new Image();
     img.onload = function () {
       const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
       const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = h;
       const tctx = tmp.getContext('2d'); tctx.drawImage(img, 0, 0);
-      // только верхние ~30% (голова); иначе широкий щит/плащ уводит кадр на грудь
       let top = 0;
       const full = tctx.getImageData(0, 0, w, h).data;
       for (let y = 0; y < h; y++) { let hit = 0; for (let x = 0; x < w; x++) if (full[(y * w + x) * 4 + 3] > 18) { hit = 1; break; } if (hit) { top = y; break; } }
@@ -511,30 +526,95 @@
       let sy = Math.max(0, miny - Math.round(side * 0.06));
       if (sx < 0) sx = 0; if (sx + side > w) sx = Math.max(0, w - side);
       if (sy + side > h) sy = Math.max(0, h - side);
-      cv.width = S; cv.height = S;
-      cv.style.width = css + 'px'; cv.style.height = css + 'px';
-      const ctx2 = cv.getContext('2d');
-      ctx2.imageSmoothingEnabled = true; ctx2.imageSmoothingQuality = 'high';
-      ctx2.clearRect(0, 0, S, S);
-      ctx2.drawImage(img, sx, sy, side, side, 0, 0, S, S);
-      HEAD_OK.set(cv, src);
+      const out = document.createElement('canvas'); out.width = S; out.height = S;
+      const octx = out.getContext('2d'); octx.imageSmoothingEnabled = true; octx.imageSmoothingQuality = 'high';
+      octx.drawImage(img, sx, sy, side, side, 0, 0, S, S);
+      HEAD_CACHE[mark] = out;
+      blit(out);
     };
-    img.onerror = function () { HEAD_OK.delete(cv); };
     img.src = src;
   }
   function fillUnit(c) {
     const me = c.me, el = $('#bsUnit');
-    if (!me) { el.innerHTML = '<div class="unit-main"><div class="unit-top"><b>Нет героя</b></div><div class="unit-sub">Сначала вступите в игру</div></div>'; return; }
+    if (!el) return;
+    if (!me) {
+      if (unitBuilt !== 'none') { el.innerHTML = '<div class="unit-main"><div class="unit-top"><b>Нет героя</b></div><div class="unit-sub">Сначала вступите в игру</div></div>'; unitBuilt = 'none'; }
+      return;
+    }
     const hp = +me.hp || 0, mhp = +me.mhp || 1, xp = +me.xp || 0, xpN = +me.xpN || 1;
     const gtitle = me.gd || GUILD_RU[me.gid] || '';
-    el.innerHTML = `<div class="port"><canvas class="hpic big head" width="0" height="0" aria-hidden="true"></canvas></div><div class="unit-main">
-      <div class="unit-top"><b>★ ${esc(me.n)}</b><span class="lvl">${esc(me.lv)} ур.</span></div>
-      <div class="unit-sub">${esc(me.cn || CLSN[me.cls] || me.cls || '')}${gtitle ? ' · ' + esc(gtitle) : ''}</div>
-      <div class="bar hp"><i style="width:${Math.max(0, Math.min(100, hp / mhp * 100))}%"></i><span>HP ${hp}/${mhp}</span></div>
-      <div class="bar xp"><i style="width:${Math.max(0, Math.min(100, xp / xpN * 100))}%"></i><span>Опыт ${xp}/${xpN}</span></div>
-      <div class="unit-res"><span>🪙 ${esc(me.gold || 0)}</span><span>🧪 ${esc(me.pot || 0)}</span><span>🍲 ${esc(me.food || 0)}</span></div>
-    </div>`;
+    const sub = (me.cn || CLSN[me.cls] || me.cls || '') + (gtitle ? ' · ' + gtitle : '');
+    if (unitBuilt !== 'me' || !el.querySelector('canvas.hpic')) {
+      el.innerHTML = '<div class="port"><canvas class="hpic big head" width="0" height="0" aria-hidden="true"></canvas></div><div class="unit-main">'
+        + '<div class="unit-top"><b></b><span class="lvl"></span></div>'
+        + '<div class="unit-sub"></div>'
+        + '<div class="bar hp"><i></i><span></span></div>'
+        + '<div class="bar xp"><i></i><span></span></div>'
+        + '<div class="unit-res"><span class="ur-g"></span><span class="ur-p"></span><span class="ur-f"></span></div>'
+        + '</div>';
+      unitBuilt = 'me';
+    }
+    const set = (sel, t) => { const n = el.querySelector(sel); if (n && n.textContent !== t) n.textContent = t; };
+    const setW = (sel, pct) => { const n = el.querySelector(sel); if (n) n.style.width = Math.max(0, Math.min(100, pct)) + '%'; };
+    set('.unit-top b', '★ ' + me.n);
+    set('.unit-top .lvl', me.lv + ' ур.');
+    set('.unit-sub', sub);
+    setW('.bar.hp i', hp / mhp * 100); set('.bar.hp span', 'HP ' + hp + '/' + mhp);
+    setW('.bar.xp i', xp / xpN * 100); set('.bar.xp span', 'Опыт ' + xp + '/' + xpN);
+    set('.ur-g', '🪙 ' + (me.gold || 0)); set('.ur-p', '🧪 ' + (me.pot || 0)); set('.ur-f', '🍲 ' + (me.food || 0));
     paintHead(el.querySelector('canvas'), sprFromMe(me));
+  }
+
+  function fillWalls(c) {
+    const box = $('#bsWalls'); if (!box) return;
+    const st = c && c.state;
+    const loc = bsLoc;
+    const list = (loc === 'boss' && st && ((st.ref && st.ref.wl) || (st.boss && st.boss.wl))) || [];
+    const arr = Array.isArray(list) ? list : [];
+    const keys = arr.map((w, i) => (w && (w.n && w.n.join(',') || i) + ':' + (w.l || 0) + ':' + (w.x || 0) + ':' + (w.y || 0) + ':' + (w.w || 0) + ':' + (w.h || 0)) || '').join('|');
+    if (box.dataset.sig === keys) {
+      arr.forEach((w, i) => { const n = box.children[i]; if (n) { const t = n.querySelector('.wt'); if (t) t.textContent = String(w.l || ''); } });
+      return;
+    }
+    box.dataset.sig = keys;
+    box.innerHTML = arr.map(w => {
+      const x = Math.round(w.x || 0), y = Math.round(w.y || 0), ww = Math.round(w.w || 280), hh = Math.round(w.h || 240);
+      return '<div class="wall-dome" style="left:' + x + 'px;top:' + y + 'px;width:' + ww + 'px;height:' + hh + 'px"><span class="wt">' + esc(String(w.l || '')) + '</span></div>';
+    }).join('');
+  }
+
+  const toastAt = Object.create(null), toastHide = Object.create(null);
+  function paintToasts(list) {
+    const el = $('#bsToasts'); if (!el) return;
+    if (!on) { el.hidden = true; el.innerHTML = ''; const root = $('#bs'); if (root) root.classList.remove('has-toasts'); return; }
+    const now = Date.now();
+    const show = (list || []).filter(r => {
+      if (r.ok == null) { toastAt[r.id] = now; return true; }
+      if (!toastAt[r.id]) toastAt[r.id] = now;
+      return now - toastAt[r.id] < 5200;
+    }).slice(0, 3);
+    el.hidden = !show.length;
+    const root = $('#bs'); if (root) root.classList.toggle('has-toasts', !!show.length);
+    el.innerHTML = show.map(r => {
+      const k = r.ok === true ? 'ok' : r.ok === false ? 'bad' : 'wait';
+      const mark = r.ok === true ? '✔' : r.ok === false ? '✖' : '…';
+      const lab = r.label ? r.label + ': ' : '';
+      return '<div class="bs-toast ' + k + '">' + mark + ' <b>' + esc(lab) + '</b>' + esc(r.msg || '') + '</div>';
+    }).join('');
+    show.forEach(r => {
+      if (r.ok == null || toastHide[r.id]) return;
+      const left = 5200 - (now - (toastAt[r.id] || now));
+      toastHide[r.id] = setTimeout(() => {
+        delete toastHide[r.id];
+        if (window.PanelActions && PanelActions.results) paintToasts(PanelActions.results());
+      }, Math.max(40, left));
+    });
+  }
+  function hookToasts() {
+    if (hookToasts.ok || !window.PanelActions || !PanelActions.onResult) return;
+    hookToasts.ok = true;
+    PanelActions.onResult(paintToasts);
+    paintToasts(PanelActions.results ? PanelActions.results() : []);
   }
 
   function fillGoal(c) {
@@ -1071,6 +1151,7 @@
     else if (kind === 'h' || kind === 'mh') pulse(it.el, 'hit', 220);
     else if (kind === 'ma') pulse(it.el, 'atk', 700);
     else if (kind === 'd' || kind === 'md') it.el.classList.add('dying');
+    else if (kind === 'wf') pulse(it.el, 'wall-flash', 700);
   }
   function spawnFloat(x, y, text, color, size) {
     const layer = $('#bsFx'); if (!layer || text == null || text === '') return;
@@ -1115,7 +1196,7 @@
           seenFx.add('a:' + id); keep();
         }
         if (aloc && aloc !== loc && aloc !== 'all') return;
-        const want = (kind === 'mh' || kind === 'ma' || kind === 'md') ? 'mob' : (kind === 'l' || kind === 'h' || kind === 'd') ? 'hero' : '';
+        const want = (kind === 'mh' || kind === 'ma' || kind === 'md') ? 'mob' : (kind === 'l' || kind === 'h' || kind === 'd' || kind === 'wf') ? 'hero' : '';
         pending.push({ t: (id != null && a[1]) ? +a[1] : now, go: function () { findActors(who).filter(it => !want || it.kind === want).forEach(it => pulseKind(it, kind)); } });
       });
     }
@@ -1540,7 +1621,7 @@
     if (window.__panel && __panel.tab && __panel.tab !== 'me') bsLoc = __panel.tab;
     c.tab = bsLoc;
     const tips = collectTips(c);
-    fillUnit(c); fillGoal(c); fillQuests(c); fillParty(c); fillFeed(c); fillBoss(c); fillBar(c, tips); fillActors(c); fillTips(tips); applyFold();
+    hookToasts(); fillUnit(c); fillGoal(c); fillQuests(c); fillParty(c); fillFeed(c); fillBoss(c); fillBar(c, tips); fillActors(c); fillWalls(c); fillTips(tips); applyFold();
     if (!$('#bsOverlay').hidden) setInv(true);
     if (!$('#bsLogOv').hidden) fillLog();
     requestAnimationFrame(() => { layout(); const imgs = [...document.querySelectorAll('#bs img')].filter(i => !i.complete); if (!imgs.length) { layout(); window.__bsReady = true; return; }
@@ -1552,6 +1633,7 @@
 
   function boot() {
     enterBtn();
+    hookToasts();
     setViewport(false);
     if (wantOn()) setOn(true);
     if (/[?&]bslog=1/.test(location.search)) setLog(true);
