@@ -1,4 +1,4 @@
-/* Большой экран пульта (opt-in, v.bs515). Обычный пульт не меняется, пока body.bs-on нет. */
+/* Большой экран пульта (opt-in, v.bs518). Обычный пульт не меняется, пока body.bs-on нет. */
 html.bs-on,body.bs-on{width:100%;max-width:100%;height:100%;height:100dvh;min-height:100%;min-height:100dvh;min-height:-webkit-fill-available;margin:0;padding:0;overflow:hidden !important;overscroll-behavior:none;background:#000;touch-action:manipulation}
 html:not(.bs-on),body:not(.bs-on){height:auto !important;min-height:0 !important;overflow:visible !important;overscroll-behavior:auto;touch-action:auto}
 body.bs-on #panel,body.bs-on .chatcmds,body.bs-on > footer{display:none !important;visibility:hidden !important;pointer-events:none !important;height:0 !important;overflow:hidden !important;margin:0 !important;padding:0 !important}
@@ -94,12 +94,15 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs button.exp{border:1px solid rgba(232,195,106,.45);background:#2a1c30;color:#ffd27a;border-radius:8px;padding:3px 8px;font:700 11px system-ui,sans-serif;cursor:pointer}
 
 #bs .bars-wrap{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:6}
-#bs .locbar{display:flex;gap:4px;padding:5px 7px;background:rgba(18,10,24,.78);border:1px solid rgba(232,195,106,.45);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
-#bs .locbar button{height:36px;padding:0 10px;border:1px solid #5a4470;border-radius:8px;background:#221430;color:#b7a9c6;font:700 12px system-ui,sans-serif;display:flex;align-items:center;gap:5px;cursor:pointer}
-#bs .locbar button.on{border-color:#ffd27a;color:#ffd27a;background:#3a2a10}
+#bs .locbar{display:flex;gap:6px;padding:8px 10px;background:linear-gradient(#2a1c34ee,#160e1ef2);border:1px solid rgba(232,195,106,.45);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+#bs .locbar button{position:relative;min-width:72px;min-height:0;height:78px;padding:4px 6px;border:1px solid #5a4470;border-radius:12px;background:linear-gradient(#3a2a48,#221430);color:#f3eadc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:700 12px/1.15 system-ui,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#bs .locbar button .ic{font-size:20px;line-height:1;color:#ffd27a}
+#bs .locbar button .lbl{font-size:12px;line-height:1.15;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bs .locbar button.on{border-color:#ffd27a;background:linear-gradient(#5a3a18,#3a2410);color:#ffd27a}
+#bs .locbar button.on .ic,#bs .locbar button.on .lbl{color:#ffd27a}
 #bs .actionbar{display:flex;gap:6px;padding:8px 10px;background:linear-gradient(#2a1c34ee,#160e1ef2);border:1px solid rgba(232,195,106,.45);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
 #bs .actionbar button{position:relative;min-width:72px;height:78px;padding:4px 6px;border:1px solid #5a4470;border-radius:12px;background:linear-gradient(#3a2a48,#221430);color:#f3eadc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:700 12px/1.15 system-ui,sans-serif;cursor:pointer}
-#bs .actionbar button:hover,#bs .actionbar button.on{border-color:#ffd27a;background:linear-gradient(#5a3a18,#3a2410);color:#ffd27a}
+#bs .actionbar button.on{border-color:#ffd27a;background:linear-gradient(#5a3a18,#3a2410);color:#ffd27a}
 #bs .actionbar button.hot{border-color:#ffd27a;background:linear-gradient(#5a3a18,#3a2410);color:#ffd27a}
 #bs .actionbar button:disabled,#bs .actionbar button.dis{opacity:.42;cursor:default;filter:grayscale(.3)}
 #bs .actionbar .ic{font-size:20px;line-height:1;color:#ffd27a}
@@ -168,9 +171,11 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 
 #bs.phone-p .bars-wrap{left:calc(6px + env(safe-area-inset-left,0px));right:calc(6px + env(safe-area-inset-right,0px));bottom:calc(6px + env(safe-area-inset-bottom,0px));transform:none;width:auto;gap:5px;background:transparent;pointer-events:none}
 #bs.phone-p .bars-wrap > *{pointer-events:auto}
-#bs.phone-p .locbar{width:auto;align-self:center;justify-content:center;gap:3px;padding:3px 5px;background:rgba(18,10,24,.55);border:1px solid rgba(232,195,106,.35);border-radius:999px;backdrop-filter:blur(8px)}
-#bs.phone-p .locbar button{flex:none;height:34px;width:34px;padding:0;font-size:15px;justify-content:center;border-radius:50%;background:rgba(34,20,48,.55)}
-#bs.phone-p .locbar button span{display:none}
+#bs.phone-p .bar-group[data-grp="loc"]{width:100%;align-self:stretch}
+#bs.phone-p .locbar{width:100%;box-sizing:border-box;justify-content:stretch;gap:5px;padding:5px;background:rgba(18,10,24,.5);border:1px solid rgba(232,195,106,.35);border-radius:16px;backdrop-filter:blur(8px);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#bs.phone-p .locbar button{flex:1 1 0;min-width:0;width:auto;height:52px;padding:2px 2px 3px;border-radius:12px;background:rgba(58,42,72,.55);border-color:#5a447088}
+#bs.phone-p .locbar button .ic{font-size:18px}
+#bs.phone-p .locbar button .lbl{font-size:9px;line-height:1.1;max-width:100%}
 #bs.phone-p .actionbar{width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:5px;max-height:none;overflow:visible;background:rgba(18,10,24,.5);border:1px solid rgba(232,195,106,.35);border-radius:16px;backdrop-filter:blur(8px);box-shadow:0 8px 24px rgba(0,0,0,.35)}
 #bs.phone-p .actionbar button{min-width:0;width:auto;height:52px;padding:2px 2px 3px;border-radius:12px;background:rgba(58,42,72,.55);border-color:#5a447088}
 #bs.phone-p .actionbar .ic{font-size:18px}
@@ -230,9 +235,10 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs.phone-l .goal-strip .sgb i{display:block;height:100%;background:linear-gradient(#7dcb6a,#3d8a3a)}
 #bs.phone-l[data-view="boss"] .goal-strip{display:none !important}
 #bs.phone-l .bars-wrap{left:50%;bottom:calc(5px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);flex-direction:row;gap:6px;width:auto;max-width:calc(100% - 12px);align-items:flex-end}
-#bs.phone-l .locbar{padding:3px 5px;flex:none;background:rgba(18,10,24,.55);backdrop-filter:blur(8px)}
-#bs.phone-l .locbar button{height:40px;width:40px;padding:0;font-size:16px;justify-content:center;border-radius:50%}
-#bs.phone-l .locbar button span{display:none}
+#bs.phone-l .locbar{padding:4px 5px;flex:none;gap:4px;background:rgba(18,10,24,.5);backdrop-filter:blur(8px);border-radius:16px}
+#bs.phone-l .locbar button{min-width:48px;width:52px;height:48px;padding:2px;border-radius:12px}
+#bs.phone-l .locbar button .ic{font-size:16px}
+#bs.phone-l .locbar button .lbl{font-size:8px;max-width:50px}
 #bs.phone-l .actionbar{gap:4px;padding:4px 5px;max-width:70vw;overflow:auto;background:rgba(18,10,24,.5);backdrop-filter:blur(8px)}
 #bs.phone-l .actionbar button{min-width:48px;width:48px;height:48px;padding:2px}
 #bs.phone-l .actionbar .ic{font-size:16px}
@@ -336,10 +342,11 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs .unitframe .port canvas.hpic{width:100%;height:100%;object-fit:cover;border-radius:8px}
 
 #bs .bar-group{position:relative;display:flex;flex-direction:column;align-items:center}
-#bs .fold-chev{position:absolute;top:-9px;right:6px;z-index:3;width:22px;height:16px;padding:0;border:1px solid rgba(232,195,106,.5);background:rgba(18,10,24,.9);color:#ffd27a;border-radius:6px;font:700 11px/16px system-ui,sans-serif;cursor:pointer}
-#bs .bsp.feed .fold-chev{position:static;width:22px;height:20px;margin-left:4px;line-height:18px}
+#bs button.fold-chev,#bs button.fold-tab{min-height:0 !important;min-width:0 !important;padding:0;border:1px solid rgba(232,195,106,.55);background:rgba(18,10,24,.92);color:#ffd27a;box-shadow:0 2px 6px rgba(0,0,0,.35);font:700 11px/18px system-ui,sans-serif !important;cursor:pointer;-webkit-tap-highlight-color:transparent;appearance:none}
+#bs .fold-chev{position:absolute;top:-8px;right:6px;z-index:3;width:18px;height:18px}
+#bs .bsp.feed .fold-chev{position:static;width:18px;height:18px;margin-left:4px;line-height:16px}
 #bs .head-btns{display:flex;align-items:center;gap:4px}
-#bs .fold-tab{display:none;align-items:center;gap:6px;height:28px;padding:0 10px;border:1px solid rgba(232,195,106,.5);background:rgba(18,10,24,.88);color:#ffd27a;border-radius:10px;font:700 12px system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.4);z-index:6}
+#bs .fold-tab{display:none;align-items:center;justify-content:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;font:700 11px/26px system-ui,sans-serif !important;min-height:0 !important;z-index:6}
 #bs.fold-loc .bar-group[data-grp="loc"]{display:none}
 #bs.fold-bar .bar-group[data-grp="bar"]{display:none}
 #bs.fold-feed .bsp.feed{display:none}
@@ -347,7 +354,31 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs.fold-feed .fold-tab.feed-tab{display:inline-flex;position:absolute;left:14px;bottom:108px}
 #bs.pc.short.fold-feed .fold-tab.feed-tab{bottom:88px}
 #bs.phone-p .fold-tab.feed-tab,#bs.phone-l .fold-tab.feed-tab{display:none !important}
-#bs.phone-p .fold-chev,#bs.phone-l .fold-chev{top:-8px;right:4px;width:20px;height:16px}
-#bs.phone-p .fold-tab,#bs.phone-l .fold-tab{height:30px;padding:0 10px;font-size:12px;backdrop-filter:blur(8px)}
+#bs.phone-p .fold-chev,#bs.phone-l .fold-chev{top:-7px;right:4px;width:18px;height:18px}
+#bs.phone-p .fold-tab,#bs.phone-l .fold-tab{height:26px;padding:0 10px;font-size:11px;backdrop-filter:blur(8px);min-height:0 !important}
 #bs.phone-p.fold-loc .fold-tab.loc-tab,#bs.phone-l.fold-loc .fold-tab.loc-tab,
 #bs.phone-p.fold-bar .fold-tab.bar-tab,#bs.phone-l.fold-bar .fold-tab.bar-tab{display:inline-flex}
+
+
+/* ===== bs518: маленькие стрелки, стиль локаций, зум, без залипания hover на телефоне ===== */
+#bs,#bs button{-webkit-tap-highlight-color:transparent}
+#bs .locbar button:focus,#bs .actionbar button:focus,#bs .fold-chev:focus,#bs .fold-tab:focus,#bs .zoom-ctl button:focus{outline:none}
+#bs .locbar button:focus-visible,#bs .actionbar button:focus-visible,#bs .fold-chev:focus-visible,#bs .fold-tab:focus-visible,#bs .zoom-ctl button:focus-visible{outline:2px solid #ffd27a;outline-offset:2px}
+
+@media (hover:hover) and (pointer:fine){
+  #bs .actionbar button:hover,#bs .locbar button:hover{
+    border-color:#ffd27a;background:linear-gradient(#5a3a18,#3a2410);color:#ffd27a
+  }
+  #bs .fold-chev:hover,#bs .fold-tab:hover,#bs .zoom-ctl button:hover{border-color:#ffd27a;color:#ffe6a8}
+}
+
+#bs button.fold-tab{display:none;align-items:center;justify-content:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;font:700 11px/26px system-ui,sans-serif !important;min-height:0 !important}
+
+#bs .scene-wrap{touch-action:none}
+#bs .zoom-ctl{position:absolute;right:max(10px, calc(8px + env(safe-area-inset-right,0px)));bottom:calc(var(--barsH, 140px) + 10px);z-index:8;display:flex;flex-direction:column;gap:4px;pointer-events:auto}
+#bs .zoom-ctl button{width:28px;height:28px;min-height:0 !important;min-width:0;padding:0;border:1px solid rgba(232,195,106,.5);border-radius:8px;background:rgba(18,10,24,.82);color:#ffd27a;font:700 16px/28px system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4);backdrop-filter:blur(8px)}
+#bs .zoom-ctl button[data-z="reset"]{font-size:10px}
+#bs.phone-p .zoom-ctl{right:calc(8px + env(safe-area-inset-right,0px));bottom:calc(var(--barsH, 110px) + 8px)}
+#bs.phone-l .zoom-ctl{right:calc(8px + env(safe-area-inset-right,0px));bottom:calc(var(--barsH, 64px) + 6px)}
+#bs.phone-p .zoom-ctl button,#bs.phone-l .zoom-ctl button{width:28px;height:28px;font-size:16px}
+#bs.pc.short .zoom-ctl{bottom:calc(var(--barsH, 120px) + 8px)}

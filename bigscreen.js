@@ -1,4 +1,4 @@
-/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs517. */
+/* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs518. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen';
   const LOCS = [['town', '🏘', 'Город'], ['garden', '🌱', 'Огород'], ['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс']];
@@ -150,6 +150,11 @@
           <div class="sheet-body" id="bsSheetBody"></div>
         </div>
       </div>
+      <div class="zoom-ctl" id="bsZoom" aria-label="Масштаб сцены">
+        <button type="button" data-z="in" title="Приблизить" aria-label="Приблизить">+</button>
+        <button type="button" data-z="out" title="Отдалить" aria-label="Отдалить">−</button>
+        <button type="button" data-z="reset" title="Сбросить масштаб" aria-label="Сбросить масштаб">1×</button>
+      </div>
       <div class="bs-tips" id="bsTips" hidden></div>
       <div class="bs-hint" id="bsHint" hidden></div>
       <div class="log-overlay" id="bsLogOv" hidden>
@@ -173,7 +178,7 @@
     $('#bsSheet').addEventListener('click', e => { if (e.target.id === 'bsSheet') setSheet(false); });
     $('#bsLocbar').addEventListener('click', e => {
       const b = e.target.closest('button[data-loc]'); if (!b) return;
-      bsLoc = b.dataset.loc; setInv(false); setLog(false); setSheet(false);
+      bsLoc = b.dataset.loc; setInv(false); setLog(false); setSheet(false); resetCam();
       if (window.__panel && __panel.setTab) __panel.setTab(bsLoc); else sync();
     });
     $('#bsUnit').addEventListener('click', () => { if (on && ctx().me) setInv(true, 'Мой герой'); });
@@ -230,6 +235,8 @@
       const ro = new ResizeObserver(() => { if (on) layout(); });
       ['bsBoss', 'bsBar', 'bsDock'].forEach(id => { const n = document.getElementById(id); if (n) ro.observe(n); });
     }
+    bindZoom();
+    tagKind();
   }
 
   function applyDock() {
@@ -265,7 +272,7 @@
   }
 
   const VP_CLASSIC = 'width=device-width,initial-scale=1';
-  const VP_BS = 'width=device-width,initial-scale=1,viewport-fit=cover';
+  const VP_BS = 'width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover';
   function setViewport(bs) {
     let m = document.querySelector('meta[name="viewport"]');
     if (!m) { m = document.createElement('meta'); m.name = 'viewport'; document.head.appendChild(m); }
@@ -313,8 +320,8 @@
   }
 
   function bgOf(l, st) {
-    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs517';
-    return 'img/' + (l || 'camp') + '.jpg?v=bs517';
+    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs518';
+    return 'img/' + (l || 'camp') + '.jpg?v=bs518';
   }
 
   let lastDefs = [], lastMore = [], sheetKind = '', tipCmds = new Set();
@@ -343,10 +350,9 @@
     const cmd = ui ? '' : (d[2] || '');
     const left = cmd && window.__bossLeft ? __bossLeft(cmd) : 0;
     const tab = (window.__panel && __panel.tab) || bsLoc;
-    const hot = !left && (tab === 'camp' && /поход|пати/.test(cmd) && !dis || (tab === 'boss' && !dis && !other && cmd && cmd !== 'босс'));
     const off = dis || left;
     const tip = !off && tipCmds.has(cmd);
-    const cls = (more ? 'more-btn' : '') + (off ? ' dis' + (left ? ' bcd' : '') : hot ? ' hot' : '') + (tip ? ' tip-hot' : '');
+    const cls = (more ? 'more-btn' : '') + (off ? ' dis' + (left ? ' bcd' : '') : '') + (tip ? ' tip-hot' : '');
     const bc = cmd ? ` data-bc="${esc(cmd)}" data-sub="${esc(sub)}" data-en="${dis ? 0 : 1}"` : '';
     const uiA = ui ? ` data-ui="${esc(ui)}"` : '';
     const subTxt = left ? ('⏳ откат ' + left + ' с') : sub;
@@ -384,7 +390,7 @@
     const phone = kind === 'phone-p' || kind === 'phone-l';
     const split = phone ? splitPhoneBar(defs, kind) : { main: defs, more: [] };
     lastMore = split.more;
-    $('#bsLocbar').innerHTML = LOCS.map(l => `<button type="button" data-loc="${l[0]}"${l[0] === bsLoc ? ' class="on"' : ''}>${l[1]} <span>${l[2]}</span></button>`).join('');
+    $('#bsLocbar').innerHTML = LOCS.map(l => `<button type="button" data-loc="${l[0]}"${l[0] === bsLoc ? ' class="on"' : ''}><span class="ic">${l[1]}</span><span class="lbl">${l[2]}</span></button>`).join('');
     $('#bsBar').innerHTML = split.main.map(d => btnHtml(d, d._ui ? -1 : defs.indexOf(d), false)).join('');
     if (sheetKind) fillSheet();
   }
@@ -899,11 +905,41 @@
     if (vv && vv.width && vv.height) return { w: vv.width, h: vv.height, x: vv.offsetLeft || 0, y: vv.offsetTop || 0 };
     return { w: innerWidth, h: innerHeight, x: 0, y: 0 };
   }
+  function isPhoneDev() {
+    const v = vpSize(), minS = Math.min(v.w, v.h), maxS = Math.max(v.w, v.h);
+    let coarse = false, noHover = false;
+    try { coarse = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches); } catch (e) {}
+    try { noHover = !!(window.matchMedia && matchMedia('(hover: none)').matches); } catch (e) {}
+    if ((coarse || noHover) && minS <= 720) return true;
+    if (minS <= 520) return true;
+    if (maxS <= 980 && minS <= 600) return true;
+    return false;
+  }
   function layoutKind() {
     const v = vpSize(), w = v.w, h = v.h;
+    if (isPhoneDev()) return h > w ? 'phone-p' : 'phone-l';
     if (w <= 520 && h > w) return 'phone-p';
     if (h <= 500 && w > h) return 'phone-l';
     return 'pc';
+  }
+  function tagKind() {
+    const root = $('#bs'); if (!root) return;
+    const k = layoutKind();
+    root.classList.remove('phone-p', 'phone-l', 'pc');
+    root.classList.add(k);
+  }
+
+  let camZ = 1, camPX = 0, camPY = 0, camFX = null, camFY = null;
+  const ZMIN = 1, ZMAX = 3;
+  function resetCam() { camZ = 1; camPX = 0; camPY = 0; camFX = null; camFY = null; }
+  function setCamZ(z, fx, fy) {
+    z = Math.max(ZMIN, Math.min(ZMAX, z));
+    if (fx != null) camFX = fx;
+    if (fy != null) camFY = fy;
+    camZ = z;
+    if (camZ <= 1.001) { camZ = 1; camPX = 0; camPY = 0; camFX = null; camFY = null; }
+    const lab = $('#bsZoom [data-z="reset"]');
+    if (lab) lab.textContent = (Math.round(camZ * 10) / 10 === 1 ? '1×' : (Math.round(camZ * 10) / 10) + '×');
   }
   function meActor(st, l) {
     const list = locActors(st, l);
@@ -981,19 +1017,129 @@
       [ox, oy] = clampCam(ox, oy, s, vw, vh);
       updateBossHint(s, ox, oy, vw, vh, st);
     } else if (kind === 'phone-l') {
-      // вся локация, как на ПК (вписать целиком)
-      s = Math.min(vw / W, vh / H);
+      // на весь экран без боковых полей: cover, чуть обрезая край сцены
+      s = Math.max(vw / W, vh / H);
       ox = (vw - W * s) / 2;
       oy = (vh - H * s) / 2;
-      updateBossHint(s, ox, oy, vw, vh, st);
+      [ox, oy] = clampCam(ox, oy, s, vw, vh);
     } else {
       s = Math.min(vw / W, vh / H);
       ox = (vw - W * s) / 2;
       oy = (vh - H * s) / 2;
-      updateBossHint(s, ox, oy, vw, vh, st);
     }
+    const s0 = s, ox0 = ox, oy0 = oy;
+    if (camZ > 1.001) {
+      const fx = camFX != null ? camFX : vw / 2;
+      const fy = camFY != null ? camFY : (kind === 'phone-p' ? Math.min(vh * 0.72, vh - 40) : vh / 2);
+      const sx = (fx - ox0) / (s0 || 1);
+      const sy = (fy - oy0) / (s0 || 1);
+      s = s0 * camZ;
+      ox = fx - sx * s + camPX;
+      oy = fy - sy * s + camPY;
+      [ox, oy] = clampCam(ox, oy, s, vw, vh);
+    }
+    updateBossHint(s, ox, oy, vw, vh, st);
     scene.style.transform = 'translate(' + ox + 'px,' + oy + 'px) scale(' + s + ')';
     clipNames();
+    const zlab = $('#bsZoom [data-z="reset"]');
+    if (zlab && !zlab.matches(':active')) zlab.textContent = (Math.round(camZ * 10) / 10 === 1 ? '1×' : (Math.round(camZ * 10) / 10) + '×');
+  }
+
+  function bindZoom() {
+    const wrap = $('#bsWrap'), ctl = $('#bsZoom');
+    if (!wrap || wrap._zoomBound) return;
+    wrap._zoomBound = true;
+    let pinch = null, pan = null, lastTap = 0, lastTapX = 0, lastTapY = 0;
+    const pt = (t, r) => ({ x: t.clientX - r.left, y: t.clientY - r.top });
+    function zoomAt(next, fx, fy) {
+      const r = wrap.getBoundingClientRect();
+      const vw = r.width, vh = r.height;
+      const scene = $('#bsScene'); if (!scene) return;
+      const cur = scene.style.transform;
+      // use last layout base via cam, then set
+      setCamZ(next, fx, fy);
+      layout();
+    }
+    if (ctl) ctl.addEventListener('click', e => {
+      const b = e.target.closest('[data-z]'); if (!b) return;
+      const r = wrap.getBoundingClientRect();
+      const cx = r.width / 2, cy = r.height / 2;
+      if (b.dataset.z === 'in') zoomAt(camZ * 1.25, cx, cy);
+      else if (b.dataset.z === 'out') zoomAt(camZ / 1.25, cx, cy);
+      else { resetCam(); layout(); }
+    });
+    wrap.addEventListener('wheel', e => {
+      if (!on) return;
+      e.preventDefault();
+      const r = wrap.getBoundingClientRect();
+      const fx = e.clientX - r.left, fy = e.clientY - r.top;
+      const k = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+      zoomAt(camZ * k, fx, fy);
+    }, { passive: false });
+    wrap.addEventListener('touchstart', e => {
+      if (!on) return;
+      const r = wrap.getBoundingClientRect();
+      if (e.touches.length === 2) {
+        const a = pt(e.touches[0], r), b = pt(e.touches[1], r);
+        pinch = { z: camZ, px: camPX, py: camPY, d: Math.hypot(a.x - b.x, a.y - b.y) || 1, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+        pan = null;
+      } else if (e.touches.length === 1 && camZ > 1.02) {
+        const a = pt(e.touches[0], r);
+        pan = { x: a.x, y: a.y, px: camPX, py: camPY };
+        pinch = null;
+      }
+    }, { passive: true });
+    wrap.addEventListener('touchmove', e => {
+      if (!on) return;
+      const r = wrap.getBoundingClientRect();
+      if (e.touches.length === 2 && pinch) {
+        e.preventDefault();
+        const a = pt(e.touches[0], r), b = pt(e.touches[1], r);
+        const d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        camPX = pinch.px + (mx - pinch.mx);
+        camPY = pinch.py + (my - pinch.my);
+        setCamZ(pinch.z * (d / pinch.d), mx, my);
+        layout();
+      } else if (e.touches.length === 1 && pan && camZ > 1.02) {
+        e.preventDefault();
+        const a = pt(e.touches[0], r);
+        camPX = pan.px + (a.x - pan.x);
+        camPY = pan.py + (a.y - pan.y);
+        layout();
+      }
+    }, { passive: false });
+    wrap.addEventListener('touchend', e => {
+      if (e.touches.length < 2) pinch = null;
+      if (e.touches.length < 1) pan = null;
+    });
+    wrap.addEventListener('click', e => {
+      if (e.target !== wrap && e.target !== $('#bsScene') && e.target !== $('#bsBg') && !(e.target && e.target.classList && (e.target.classList.contains('bg') || e.target.id === 'bsActors' || e.target.id === 'bsFx' || e.target.id === 'bsGlow'))) {
+        /* allow double-tap only on the scene, not on HUD; HUD is outside wrap */
+      }
+    });
+    wrap.addEventListener('pointerdown', e => {
+      if (!on || e.pointerType === 'mouse' && e.detail > 1) return;
+      if (e.target.closest && e.target.closest('#bsHud, #bsZoom, .overlay, .log-overlay, .window')) return;
+    });
+    wrap.addEventListener('dblclick', e => {
+      if (!on) return;
+      if (e.target.closest && e.target.closest('#bsHud, #bsZoom, .overlay, .log-overlay')) return;
+      e.preventDefault();
+      resetCam(); layout();
+    });
+    // double-tap for touch (dblclick is unreliable)
+    wrap.addEventListener('touchend', e => {
+      if (!on || e.touches.length || pinch) return;
+      if (e.changedTouches.length !== 1) return;
+      const t = e.changedTouches[0], now = Date.now();
+      const r = wrap.getBoundingClientRect();
+      const x = t.clientX - r.left, y = t.clientY - r.top;
+      if (now - lastTap < 300 && Math.hypot(x - lastTapX, y - lastTapY) < 36) {
+        lastTap = 0;
+        resetCam(); layout();
+      } else { lastTap = now; lastTapX = x; lastTapY = y; }
+    });
   }
 
   function clipNames() {
