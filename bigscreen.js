@@ -792,7 +792,7 @@
     const hp = b.mhp ? `<div class="fight boss"><span class="fmob"><span class="fhp"><i style="width:${pct}%"></i></span><small>${esc(fmt(b.hp))} / ${esc(fmt(b.mhp))} HP${swarm}</small></span></div>` : '';
     el.innerHTML = `<div class="bossbar-top"><div class="bossbar-name">${esc(b.name || 'Босс')} · ${esc(ph)}${b.n ? ' ' + b.n : ''}</div></div>`
       + (timer ? `<div class="bt496" id="bt496c">${esc(timer)}</div>` : '')
-      + hp + `<div class="bs-docks" id="bsDocks"></div>`;
+      + hp + (b.pl ? `<div class="bossbar-ph">${esc(b.pl)}</div>` : '') /* v8: фаза — Печать / Метки / Ярость */ + `<div class="bs-docks" id="bsDocks"></div>`;
     dockClassicBars($('#bsDocks'));
   }
 

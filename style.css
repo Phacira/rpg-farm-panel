@@ -382,3 +382,6 @@ details.hq .hq-body{padding:8px 10px 10px}
 .act.bcd{opacity:.55}
 .act.bcd small{color:#ffcf7a}
 .castbox .cb[data-cdt]::after{content:' ' attr(data-cdt);font-size:13px;font-weight:600;color:#ffcf7a}
+
+/* v8: фаза босса под картой */
+.bph{color:#e0c8ff}

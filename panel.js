@@ -618,6 +618,7 @@
     if (on && state.boss) { const tm = bossTimerText(), b = state.boss;
       if (tm) info += ' · <span id="bt496i">' + esc(tm) + '</span>';
       else if (l === 'boss') info += ' · ' + (b.ph === 'wait' ? `босс ${esc(b.name || '')} через ${Math.ceil(b.in / 60000)} мин` : b.ph === 'signup' ? `запись на босса: ${b.n}` : b.ph === 'fight' ? 'идёт бой с боссом!' : 'босс повержен'); }
+    if (on && l === 'boss' && state.boss && state.boss.pl) info += '<br><b class="bph">' + esc(state.boss.pl) + '</b>'; // v8: фаза босса
     if (on) info += bldBuildingTxt(l).map(t => ' · ' + esc(t)).join(''); // fix: на экране локации — какие постройки сейчас строятся
     $('linfo').innerHTML = info;
     const ol = $('logl'), stick = !ol || ol.scrollTop + ol.clientHeight >= ol.scrollHeight - 8, oldTop = ol ? ol.scrollTop : 0;

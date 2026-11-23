@@ -482,3 +482,6 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs.phone-l .bs-tips,#bs.phone-l.has-toasts .bs-tips{left:8px;top:auto;bottom:calc(var(--barsH, 96px) + 4px);max-width:46vw}
 #bs.phone-p.has-toasts .bs-tips{bottom:calc(var(--barsH, 110px) + 52px)}
 #bs.phone-l.has-toasts .bs-tips{bottom:calc(var(--barsH, 96px) + 48px)}
+
+/* v8: строка фазы босса */
+#bs .bossbar-ph{margin-top:4px;color:#e0c8ff;font:700 12px/1.3 system-ui,sans-serif;text-align:center}
