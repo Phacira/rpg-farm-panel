@@ -15,12 +15,18 @@
     const eqWorn = id => !!(me && me.eqOn && Object.values(me.eqOn).includes(id)); // v49.8: надето в любом слоте
     // v7panel18: вклад — выбор «Золото» или «Материалы» (материал → количество из сумки или докупить золотом по ref.matP)
     const MN = {}; (ref.mats || []).forEach(([id, n, ic]) => MN[id] = [n, ic]); const mtn = id => (MN[id] || [id])[0], mti = id => id === 'iron' ? '' : (MN[id] || [, ''])[1] || ''; // v7panel20 п.7: у железа вместо цепей — слиток (картинкой на карточке), в текстовых списках без значка
-    const bldPick = loc => (ref.bld || []).filter(b => !loc || b[5] === loc).map(([id, name, lv, max, need, , eff, nextEff, ml, eff1, nextEff1]) => { ml = ml || {};
+    const bldPick = loc => (ref.bld || []).filter(b => !loc || b[5] === loc).map(([id, name, lv, max, need, , eff, nextEff, ml, eff1, nextEff1, v2]) => { ml = ml || {};
       const now = eff1 || eff || '', nxt = nextEff1 || nextEff || '', fxOn = +(ref.px || 0) >= 497;
       // v49.8 (макет, ждёт «да»): плитка — только название, уровень и остаток; подробности (что даёт сейчас / что даст / сколько осталось / что есть у вас) — в следующем окне
       const info = (top) => ({ note: 1, label: '', lines: [[`Сейчас (ур. ${lv} из ${max})`, now || '—'], ...(top ? [['Дальше', 'это максимальный уровень', 'mx']] : [[`Ур. ${lv + 1} даст`, nxt || '—', 'nx']]), ...(top ? [] : [['Осталось оплатить', leftTxt()], ['У вас', haveTxt()]])] });
       const mlist0 = Object.entries(ml), leftTxt = () => [need ? need + ' з' : ''].concat(mlist0.map(([m, n]) => `${mtn(m)} ${n}`)).filter(Boolean).join(', ') || 'всё собрано',
         haveTxt = () => [`${gold} з`].concat(mlist0.map(([m]) => `${mtn(m)} ${me && me.mt ? +me.mt[m] || 0 : 0}`)).join(', ');
+      // fix: постройка на стройке — плитка открывается (видно текущие бонусы), но кнопки вклада неактивны
+      const bd = v2 && v2.build ? v2.build : null;
+      if (bd) { const k = +bd.left || 0, sw = k % 10 === 1 && k % 100 !== 11 ? 'стрим' : k % 10 >= 2 && k % 10 <= 4 && (k % 100 < 10 || k % 100 >= 20) ? 'стрима' : 'стримов', why = `идёт стройка до ур. ${bd.lv} — вкладывать пока нельзя`;
+        return { label: `${name} · 🔨 строится`, sub: `ур. ${lv} → ${bd.lv}: ещё ${k} ${sw}`,
+          next: [{ note: 1, label: '', lines: [[`Сейчас (ур. ${lv} из ${max})`, now || '—'], ['🔨 Стройка', `до ур. ${bd.lv}: ещё ${k} ${sw}. Вклад откроется, когда стройка закончится`, 'mx'], [`Ур. ${bd.lv} даст`, nxt || '—', 'nx']] },
+            { label: '💰 Золото', sub: why, dis: true }, { label: '🪵 Материалы', sub: why, dis: true }] }; }
       if (need == null) return fxOn ? { label: `${name} · ур. ${lv}/${max}`, sub: 'максимальный уровень', next: [info(true)] } : { label: `${name} (ур. ${lv}, максимум)`, sub: '', dis: true }; // v49.6: при px≥497 показываем, что даёт уровень; старая игра — как раньше
       const mlist = Object.entries(ml), left = [need ? need + ' з' : ''].concat(mlist.map(([m, n]) => `${mti(m)}${mtn(m)} ${n}`)).filter(Boolean).join(', ') || 'готово';
       const fx = fxOn ? `Ур. ${lv}/${max} · сейчас: ${now || '—'} · Улучшение: ${nxt || '—'} · ` : '';

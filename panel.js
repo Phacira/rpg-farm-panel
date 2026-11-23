@@ -134,7 +134,7 @@
     }
     for (const n in POS) if (!seen[n]) delete POS[n];
     // мобы на карте спрайтами
-    const mobs = state.mobs || [], mobImgs = window.__mobImgs || (window.__mobImgs = {});
+    const mobs = l === 'forest' ? (state.mobs || []) : [], mobImgs = window.__mobImgs || (window.__mobImgs = {});
     for (const [id, mx, my, hp] of mobs) {
       const px = Math.round(mx * k), py = Math.round(my * k);
       if (!mobImgs[id]) { const im = new Image(); im.src = `img/mob/${id}.${id === 'mimic' ? 'png' : 'webp'}`; mobImgs[id] = im; }
@@ -592,6 +592,12 @@
       ${INV_OBS ? invObsHtml(me) : invHtml(me)}</div>`;
   }
 
+  // fix: «🔨 Кузница строится до ур.6: ещё 1 стрим» для постройки на локации l (ref.bld[11].build — из bvInfo игры)
+  function bldBuildingTxt(l) {
+    const ref = (state && state.ref) || {}, pl = k => k % 10 === 1 && k % 100 !== 11 ? 'стрим' : k % 10 >= 2 && k % 10 <= 4 && (k % 100 < 10 || k % 100 >= 20) ? 'стрима' : 'стримов';
+    return (ref.bld || []).filter(b => b && b[5] === l && b[11] && b[11].build).map(b => { const bd = b[11].build, k = +bd.left || 0; return `🔨 ${b[1]} строится до ур.${bd.lv}: ещё ${k} ${pl(k)}`; });
+  }
+  window.__bldBuildingTxt = bldBuildingTxt;
   function render() {
     $('auth').innerHTML = user ? `<span class="who">Вы: <b>${esc(user.login)}</b> <small>(ID ${esc(user.id)})</small></span><button id="bout" class="small">Выйти</button>`
       : `<button id="blogin" class="twitch">Войти через Twitch</button><span class="note">Вход нужен, чтобы найти вашего героя и чтобы кнопки действовали только от вашего имени. В чат пульт ничего не пишет.</span>`;
@@ -612,6 +618,7 @@
     if (on && state.boss) { const tm = bossTimerText(), b = state.boss;
       if (tm) info += ' · <span id="bt496i">' + esc(tm) + '</span>';
       else if (l === 'boss') info += ' · ' + (b.ph === 'wait' ? `босс ${esc(b.name || '')} через ${Math.ceil(b.in / 60000)} мин` : b.ph === 'signup' ? `запись на босса: ${b.n}` : b.ph === 'fight' ? 'идёт бой с боссом!' : 'босс повержен'); }
+    if (on) info += bldBuildingTxt(l).map(t => ' · ' + esc(t)).join(''); // fix: на экране локации — какие постройки сейчас строятся
     $('linfo').innerHTML = info;
     const ol = $('logl'), stick = !ol || ol.scrollTop + ol.clientHeight >= ol.scrollHeight - 8, oldTop = ol ? ol.scrollTop : 0;
     if (on && bcBusy()) bcHold = true; else $('hero').innerHTML = on ? card(state.me) + fightsHtml(l) + (tab === 'forest' || tab === 'camp' || tab === 'me' ? partyHtml() : '') + (tab === 'town' ? upHtml() : tab === 'garden' ? bedHtml(state.me) + foodHtml(state.me) : '') + (tab === 'forest' || tab === 'boss' || tab === 'me' ? logHtml(state.me) : '') : '';
@@ -715,6 +722,7 @@
         ['board', 'Доска заданий', 2, 10, 150, 'town', 'На доске на 1 задание больше, за задания на 10% больше золота', 'На доске на 1 задание больше, за задания на 10% больше золота', {}, 'заданий на доске +1, золото за задания +10%', 'заданий на доске +2, золото за задания +20%']
       ];
     } }
+    { if (/[?&]bldbuild=1/.test(location.search) && state.ref && state.ref.bld) { const r = state.ref.bld.find(b => b[0] === 'blacksmith'); if (r) r[11] = { ch: 1, build: { lv: r[2] + 1, left: 1 } }; } } // fix: макет стройки (?mock=1&bld=1&bldbuild=1&tab=town)
     { const m = /[?&]bt=(\w+)/.exec(location.search); if (m) { // v49.6: макет таймера босса (?mock=1&tab=boss&bt=wait|signup|signopen|fight|done|win)
       const now = Date.now(), k = m[1];
       if (!(/[?&]px=\d+/.test(location.search))) state.ref = Object.assign({}, state.ref, { px: 496 });

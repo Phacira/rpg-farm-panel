@@ -436,10 +436,12 @@
   function collectTips(c) {
     const me = c && c.me, ref = (c && c.ref) || {}, tips = [];
     if (!me) return tips;
-    if (!ref.tb) {
+    const rw = me.rw || {}, stock = (+rw.hike || 0) + (+rw.cook || 0) + (+rw.quest || 0);
+    if (!ref.tb && !stock) { // подсказка только когда ходов в запасе нет: после награды запас > 0 — плашка уходит
       const nm = ref.trn || 'Сделать ход';
-      tips.push({ id: 'turn', cmd: 'ход', kind: 'warn', icon: '🎲', text: 'Прожмите награду «' + nm + '» в чате Twitch' });
+      tips.push({ id: 'turn', cmd: 'ход', kind: 'warn', icon: '🎲', text: 'Прожмите награду «' + nm + '» за баллы канала' });
     }
+    if (window.__bldBuildingTxt) __bldBuildingTxt(bsLoc).forEach((t, i) => tips.push({ id: 'bld' + i, cmd: '', kind: 'info', icon: '', text: t })); // fix: стройка на этой локации
     const b = me.bed;
     if (b) {
       if (b.eaten) tips.push({ id: 'bed', cmd: 'грядка', kind: 'warn', icon: '💀', text: b.txt || 'грядку съели' });

@@ -474,3 +474,11 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs.has-toasts .bs-tips{bottom:calc(var(--barsH, 140px) + 58px)}
 #bs.phone-p.has-toasts .bs-tips{bottom:calc(var(--barsH, 110px) + 52px)}
 #bs.phone-l.has-toasts .bs-tips{bottom:calc(var(--barsH, 96px) + 48px)}
+
+/* fix: подсказки (ход, грядка) — сбоку, не в центре сцены. ПК: слева под кнопкой «Обычный пульт»; телефон: слева над кнопками */
+#bs .bs-tips,#bs.has-toasts .bs-tips{left:14px;right:auto;top:168px;bottom:auto;transform:none;align-items:flex-start;max-width:300px}
+#bs .bs-tips .tip{text-align:left;font-size:11px;padding:5px 10px;background:rgba(18,10,24,.8)}
+#bs.phone-p .bs-tips,#bs.phone-p.has-toasts .bs-tips{left:8px;top:auto;bottom:calc(var(--barsH, 110px) + 6px);max-width:62vw}
+#bs.phone-l .bs-tips,#bs.phone-l.has-toasts .bs-tips{left:8px;top:auto;bottom:calc(var(--barsH, 96px) + 4px);max-width:46vw}
+#bs.phone-p.has-toasts .bs-tips{bottom:calc(var(--barsH, 110px) + 52px)}
+#bs.phone-l.has-toasts .bs-tips{bottom:calc(var(--barsH, 96px) + 48px)}
