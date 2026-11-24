@@ -363,7 +363,7 @@
 
   function bgOf(l, st) {
     if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs518';
-    return 'img/' + (l || 'camp') + '.jpg?v=' + (l === 'camp' || !l ? 'live1' : l === 'garden' ? 'live2' : 'bs518');
+    return 'img/' + (l || 'camp') + '.jpg?v=' + (l === 'camp' || !l ? 'live1' : l === 'garden' ? 'live2' : l === 'town' ? 'live3' : 'bs518');
   }
 
   let lastDefs = [], lastMore = [], sheetKind = '', tipCmds = new Set();
