@@ -364,8 +364,8 @@
   }
 
   function bgOf(l, st) {
-    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs518';
-    return 'img/' + (l || 'camp') + '.jpg?v=' + (l === 'camp' || !l ? 'live1' : l === 'garden' ? 'live2' : l === 'town' ? 'live3' : l === 'forest' ? 'live4' : 'bs518');
+    if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=live6';
+    return 'img/' + (l || 'camp') + '.jpg?v=' + (l === 'camp' || !l ? 'live1' : l === 'garden' ? 'live2' : l === 'town' ? 'live3' : l === 'forest' ? 'live4' : l === 'boss' ? 'live6' : 'bs518');
   }
 
   let lastDefs = [], lastMore = [], sheetKind = '', tipCmds = new Set();
@@ -1695,7 +1695,8 @@
   function liveTick() {
     liveRaf = 0;
     const cv = $('#bsLive'), img = $('#bsBg'), root = $('#bs');
-    const vl = (root && root.dataset.view) || bsLoc, ok = on && cv && img && window.LIVE6 && LIVE6.has(vl) && new RegExp('/' + vl + '\\.jpg').test(img.getAttribute('src') || '') && !document.hidden; // v8.6: только для показанной локации
+    const vw = (root && root.dataset.view) || bsLoc, bm = /\/(boss(?:_[a-z0-9_]+)?)\.jpg/.exec(img ? img.getAttribute('src') || '' : ''), vl = vw === 'boss' && bm ? bm[1] : vw; // v8.7: у логова — свой живой фон
+    const ok = on && cv && img && window.LIVE6 && LIVE6.has(vl) && new RegExp('/' + vl + '\\.jpg').test(img.getAttribute('src') || '') && !document.hidden; // v8.6: только для показанной локации
     const cvT = $('#bsLiveTop');
     if (!ok) { if (cv) cv.hidden = true; if (cvT) cvT.hidden = true; if (root) root.classList.remove('live-on'); return; }
     if (!img.complete || !img.naturalWidth) { cv.hidden = true; if (cvT) cvT.hidden = true; root.classList.remove('live-on'); setTimeout(liveKick, 120); return; } // v8.7: пока грузится новая локация — не держим на экране старый живой фон
