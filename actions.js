@@ -93,20 +93,32 @@
     const fmtD = t => new Date(t).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
     const guildMenu = () => {
       if (!myG) return guilds();
-      const others = (myG.members || []).filter(([u]) => !isMeU(u)), L = [];
-      L.push({ note: 1, label: `${me.gd}: ${myG.gm ? '👑 гильд-мастер — ' + myG.gm : 'гильд-мастер не выбран'}`, sub: `казна ${myG.bank} з${myG.buff ? ` · 🚩 ${myG.buff[1]} (${myG.buff[2]}) до ${fmtD(myG.buff[3])}` : ''}${mg9.medal ? ` · 🏅 у тебя медаль до ${fmtD(mg9.medal)}` : ''}` });
-      if (G9.gm) L.push({ label: 'Выбрать гильд-мастера', pic: 'img/g9/guild_vote.png', sub: mg9.vote ? `твой голос: ${((myG.members || []).find(([u]) => u === mg9.vote) || [0, mg9.vote])[1]}` : `ГМ становится тот, у кого больше голосов (от ${G9.minVotes})`,
-        next: [{ note: 1, label: 'ГМ раз в неделю награждает игрока и выбирает бафф гильдии' }].concat(others.map(([u, dn]) => ({ label: dn, sub: u === myG.gmu ? `сейчас ГМ · ${myG.gv} гол.` : u === mg9.vote ? 'твой голос' : '', cmd: 'голос', arg: u, dis: u === mg9.vote })), mg9.vote ? [{ label: 'Отозвать голос', cmd: 'голос', arg: 'снять' }] : []) });
-      if (G9.gm && isMeU(myG.gmu)) L.push({ label: 'Наградить игрока', pic: 'img/g9/gm_medal.png', sub: myG.rew ? 'на этой неделе уже наградил' : `+${G9.rewardGold} з и медаль (+5% золота и опыта)`, dis: !!myG.rew,
-        next: others.map(([u, dn]) => ({ label: dn, cmd: 'наградить', arg: u, confirm: `Наградить ${dn}? Это награда гильд-мастера на всю неделю.` })) });
+      const others = (myG.members || []).filter(([u]) => !isMeU(u)), L = [], amGm = isMeU(myG.gmu);
+      const elect = G9.elect ? `итоги первых выборов в ${new Date(G9.elect).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : 'итоги — в понедельник, в начале стрима';
+      L.push({ note: 1, label: `${me.gd}: ${myG.gm ? '👑 гильд-мастер — ' + myG.gm : 'гильд-мастера пока нет'}`, sub: `казна ${myG.bank} з${myG.buff ? ` · 🚩 ${myG.buff[1]} (${myG.buff[2]}) до ${fmtD(myG.buff[3])}` : ''}${mg9.medal ? ` · 🏅 у тебя медаль до ${fmtD(mg9.medal)}` : ''}` });
+      if (G9.gm) L.push({ label: 'Выборы гильд-мастера', pic: 'img/g9/guild_vote.png', sub: `${mg9.vote ? 'твой голос: ' + (((myG.members || []).find(([u]) => u === mg9.vote) || [0, mg9.vote])[1]) : 'ты ещё не голосовал'} · ${elect}`,
+        next: [{ note: 1, label: 'Как это работает', lines: [['срок', 'неделя стримов, пн–пт'], ['итоги', elect], ['победа', `больше всех голосов, от ${G9.minVotes}`], ['не набралось', 'остаётся прошлый мастер'], ['голос', 'можно менять до итогов'], ['за себя', 'нельзя']] },
+          { note: 1, label: 'Сейчас лидируют', lines: (myG.lead || []).length ? myG.lead.map(([dn, n]) => [dn, n + ' гол.']) : [['голосов пока нет', '']] }]
+          .concat(others.map(([u, dn]) => ({ label: dn, sub: u === mg9.vote ? 'твой голос' : u === myG.gmu ? 'сейчас гильд-мастер' : '', cmd: 'голос', arg: u, dis: u === mg9.vote })), mg9.vote ? [{ label: 'Отозвать голос', cmd: 'голос', arg: 'снять' }] : []) });
+      if (G9.gm && amGm) L.push({ label: 'Наградить игрока', pic: 'img/g9/gm_medal.png', sub: myG.rew ? 'награда гильдии на этой неделе уже выдана' : `+${G9.rewardGold} з и медаль (+5% золота и опыта на ${G9.medalDays} дн.)`, dis: !!myG.rew,
+        next: [{ note: 1, label: 'Правила', lines: [['сколько', 'одна награда на гильдию в неделю'], ['кому', 'любому из гильдии, кроме себя'], ['медаль одному', `не чаще раза в ${G9.medalEvery} дн.`], ['смена мастера', 'второй награды не даёт']] }]
+          .concat(others.map(([u, dn, had]) => ({ label: dn, sub: had ? 'медаль уже была недавно' : '', dis: !!had, cmd: 'наградить', arg: u, confirm: `Наградить ${dn}? Это единственная награда гильдии на этой неделе.` }))) });
+      if (G9.gm && amGm) L.push({ label: 'Уйти с поста гильд-мастера', sub: 'место займёт следующий по голосам', cmd: 'гм', arg: 'уйти', confirm: 'Уйти с поста гильд-мастера?\nМесто займёт следующий по голосам этих выборов (если у него 2+ голоса), иначе до понедельника гильдия без мастера. На этой неделе ты снова мастером не станешь. Награда и бафф этой недели не обновляются.' });
       if (G9.bank) L.push({ label: 'Внести в казну', pic: 'img/g9/guild_bank.png', sub: `в казне ${myG.bank} з · ты внёс ${mg9.dep || 0} из ${G9.maxDep} за неделю`,
-        next: [50, 100, 200, 500].map(v => ({ label: `${v} золота`, cmd: 'казна', arg: String(v), dis: (me.gold || 0) < v || (mg9.dep || 0) >= G9.maxDep })) });
-      if (G9.bank) L.push({ label: 'Бафф гильдии', pic: 'img/g9/buff_gold.png', sub: myG.buff ? `${myG.buff[1]} до ${fmtD(myG.buff[3])}` : 'на 7 дней для всей гильдии, из казны',
-        next: [{ note: 1, label: myG.gm ? 'Покупает гильд-мастер' : 'ГМ нет — купить может тот, кто внёс в казну 200+ з на этой неделе' }].concat((G9.buffs || []).map((b, i) => ({ label: `${b[1]} — ${myG.prices[i]} з`, pic: `img/g9/${b[3]}.png`, sub: b[2], cmd: 'бафф', arg: String(i + 1), dis: !!myG.buff || myG.bank < myG.prices[i], confirm: `Поднять «${b[1]}» (${b[2]}) на 7 дней за ${myG.prices[i]} з из казны?` }))) });
-      if (G9.hike) L.push({ label: '⚔ Гильд-поход', sub: !myG.hl ? 'сегодня уже был' : mg9.inQ ? `ты в отряде · ${myG.hq}/${G9.hmax}` : `${G9.waves} волн и мини-босс · отряд ${myG.hq}/${G9.hmax}`, dis: !myG.hl || !!mg9.inQ, cmd: 'гильдпоход', confirm: `Идти в гильд-поход? Отряд ${G9.hmin}–${G9.hmax} игроков твоей гильдии, ${G9.waves} волн и мини-босс.` });
+        next: [{ note: 1, label: 'Правила', lines: [['лимит', `${G9.maxDep} з в неделю на игрока`], ['возврат', 'нет — золото остаётся гильдии, даже если уйдёшь'], ['на что', 'бафф гильдии на неделю']] }]
+          .concat([50, 100, 200, 500].map(v => ({ label: `${v} золота`, cmd: 'казна', arg: String(v), dis: (me.gold || 0) < v || (mg9.dep || 0) >= G9.maxDep, confirm: `Внести ${v} з в казну «${me.gd}»? Золото не возвращается.` }))) });
+      if (G9.bank) L.push({ label: 'Бафф гильдии', pic: 'img/g9/buff_gold.png', sub: myG.buff ? `${myG.buff[1]} до ${fmtD(myG.buff[3])}` : myG.bwk ? 'на этой неделе уже был' : 'на 7 дней для всей гильдии, из казны',
+        next: [{ note: 1, label: 'Правила', lines: [['кто покупает', myG.gm ? 'гильд-мастер' : `ГМ нет — тот, кто внёс ${G9.noGmMin}+ з на этой неделе`], ['сколько', 'один бафф на гильдию в неделю'], ['срок', '7 дней'], ['цена', 'больше гильдия — дороже']] }]
+          .concat((G9.buffs || []).map((b, i) => ({ label: `${b[1]} — ${myG.prices[i]} з`, pic: `img/g9/${b[3]}.png`, sub: b[2], cmd: 'бафф', arg: String(i + 1), dis: !!myG.buff || !!myG.bwk || myG.bank < myG.prices[i], confirm: `Поднять «${b[1]}» (${b[2]}) на 7 дней за ${myG.prices[i]} з из казны? Это бафф гильдии на всю неделю.` }))) });
+      if (G9.hike) L.push({ label: '⚔ Гильд-поход', sub: mg9.went ? 'ты уже ходил на этом стриме' : mg9.inQ ? `ты в отряде · ${myG.hq}/${G9.hmax} · старт через ${myG.hleft} мин` : myG.hq ? `идёт сбор: ${myG.hq}/${G9.hmax}, ещё ${myG.hleft} мин` : `${G9.waves} волн и мини-босс`, dis: !!mg9.went || !!mg9.inQ,
+        next: [{ note: 1, label: 'Перед записью', lines: [['отряд', `${G9.hmin}–${G9.hmax} игроков твоей гильдии`], ['сбор', `${G9.hwait} мин или пока не наберётся ${G9.hmax}`], ['сколько раз', '1 раз за стрим'], ['бой', `${G9.waves} волн, в конце мини-босс`], ['кнопка «Цель»', 'бей волков / тотем / кожу — урон ×1.5'], ['если погиб', 'часть добычи, как в пати'], ['не собрались', 'попытка не тратится'], ['награда', 'золото и опыт ×2, очки гильдии ×3, сундук']] },
+          { label: 'Понятно, иду в гильд-поход', cmd: 'гильдпоход' }] });
       L.push({ label: '🏰 Сменить гильдию', next: guilds() });
       return L;
-    };    const quests = () => me && me.q ? [{ label: 'У вас уже есть задание', dis: true }] : (me && me.of || []).map((id, i) => ({ label: `${i + 1}. ${(ref.quests || {})[id] || id}`, arg: String(i + 1) })).concat([{ label: 'Показать список (без хода)', arg: '' }]);
+    };
+    const g9Fight = me && me.g9 && me.g9.fight; // [имя цели, % HP, бьёшь сейчас, КД]
+    const g9FocusBtn = g9Fight ? [['🎯', 'Цель: ' + g9Fight[0], 'цель', '', g9Fight[2] ? 'бьёшь её ×1.5' : g9Fight[3] ? `снова через ${g9Fight[3]} с` : `${g9Fight[1]}% · урон ×1.5`]] : [];
+    const quests = () => me && me.q ? [{ label: 'У вас уже есть задание', dis: true }] : (me && me.of || []).map((id, i) => ({ label: `${i + 1}. ${(ref.quests || {})[id] || id}`, arg: String(i + 1) })).concat([{ label: 'Показать список (без хода)', arg: '' }]);
     // v49.8: «Надеть» — только то, что лежит в сумке и не надето (кольцо может быть в слоте ring1 или ring2); дубли id не показываем
     const wear = () => { const L = [...new Set(me && me.eqOwn || [])].filter(id => !eqWorn(id)).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, , slot, , , stt]) => ({ ic: ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : '', label: n, sub: (SLOT_RU[slot] || slot) + (stt ? ' · ' + stt : ''), arg: id, confirm: `Надеть «${n}»?` }));
       return L.length ? L : [{ label: 'В сумке нет вещей, которые можно надеть', sub: 'всё купленное уже надето', note: 1 }]; };
@@ -192,7 +204,7 @@
         ['🍲', 'Готовить', 'готовить', recipes, me && me.ccd > 0 ? `КД ${Math.floor(me.ccd / 60)}:${String(me.ccd % 60).padStart(2, '0')}` : 'можно'], ['💰', 'Продать', 'продать', () => crops, 'овощи'], ['🏗', 'Вклад', 'вклад', () => bldPick('garden'), 'в сарай']],
       camp: [['🏰', 'Гильдия', 'гильдия', guildMenu, me && me.gd ? me.gd : 'выбрать'],
         ['✔', 'Да', 'да', '', 'подтвердить гильдию'], ['✖', 'Нет', 'нет', '', 'отменить выбор'], ['🏗', 'Вклад', 'вклад', () => bldPick('camp'), 'костёр, палатка']],
-      forest: [['⚔', 'В поход', 'поход', '', hike], ...(me ? [turnBtn] : []), ['🛡', 'Пати-поход', 'пати', '', me && me.pty ? 'вы в очереди' : 'вместе с другими']],
+      forest: [...g9FocusBtn, ['⚔', 'В поход', 'поход', '', hike], ...(me ? [turnBtn] : []), ['🛡', 'Пати-поход', 'пати', '', me && me.pty ? 'вы в очереди' : 'вместе с другими']],
       boss: bossOrder(me, [['☠', 'Записаться', 'босс', '', 'в отряд на босса'], ['👊', 'Удар', 'удар', '', 'раз в 60 с'], ['💚', 'Лечить', 'лечить', '', 'раз в 30 с'],
         ['💫', 'Оглушить', 'оглушить', '', 'красный каст'], ['🕸', 'Связать', 'связать', '', 'жёлтый каст'], ['🔮', 'Очистить', 'очистить', '', 'фиолетовый каст'],
         ['🐌', 'Замедлить', 'замедлить', '', 'замедлить каст'], ['🛡', 'Заслон', 'заслон', '', 'щит отряду'], ['🎯', 'Прикрыть', 'прикрыть', '', 'принять удар Метки'], ['✝', 'Воскресить', 'воскресить', '', 'поднять союзника']]),

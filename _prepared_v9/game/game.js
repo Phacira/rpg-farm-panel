@@ -1813,65 +1813,96 @@
 
   // ===================== v9: МЕХАНИКИ ГИЛЬДИЙ — гильд-мастер, казна и баффы, гильд-походы =====================
   // Всё включается флагом CONFIG.guildsV9.enabled (по умолчанию ВЫКЛ). Состояние — S.g9.
-  // Гильд-мастер: !голос <ник> (за участника своей гильдии), ГМ = больше всех голосов (минимум gm.minVotes). Раз в неделю ГМ: !наградить <ник> → золото + медаль (+% золота/опыта на N дней).
-  // Казна: !казна <сумма> (лимит на игрока в неделю), !казна — состояние. Бафф на неделю: !бафф <номер> (ГМ; без ГМ — тот, кто внёс в казну на этой неделе bank.noGmMin+).
-  // Гильд-поход: !гильдпоход — сбор отряда своей гильдии (min…max), hike.waves волн и мини-босс, раз в день на гильдию.
+  // ГМ: выборы раз в неделю (стримы пн–пт). Голоса за неделю → итоги в начале первого стрима новой недели (понедельник).
+  //   Первые выборы — первые gm.firstMin минут стрима после включения. Нет 2 голосов за одного — остаётся прошлый ГМ.
+  //   !гм уйти — уйти с поста: место у следующего по голосам этих выборов (2+), иначе до понедельника без ГМ; ушедший в эту неделю ГМ не становится.
+  //   Награда и бафф — один раз в неделю на ГИЛЬДИЮ (смена ГМ не даёт второго раза). Медаль одному игроку — не чаще раза в gm.medalEveryDays.
+  // Гильд-поход: сбор hike.waitSec (10 мин), 2–5 игроков своей гильдии, 1 раз за стрим на игрока; 5 волн + мини-босс со своей механикой;
+  //   !цель — 10 с бить «цель» мини-босса (волков / тотем / каменную кожу) с уроном ×1.5; без кнопок герои бьют цель сами, но медленнее.
   const G9DEF = { enabled: false,
-    gm: { enabled: true, minVotes: 2, rewardGold: 150, medalPct: 0.05, medalDays: 3 },
+    gm: { enabled: true, minVotes: 2, firstMin: 30, rewardGold: 150, medalPct: 0.05, medalDays: 3, medalEveryDays: 14 },
     bank: { enabled: true, minDeposit: 10, maxPerWeek: 1000, days: 7, sizeNorm: 6, noGmMin: 200,
       buffs: [ { id: 'gold', name: 'Знамя богатства', icon: 'buff_gold', price: 1500, gold: 0.15, txt: '+15% золота в походах' },
                { id: 'xp', name: 'Знамя мудрости', icon: 'buff_xp', price: 1500, xp: 0.15, txt: '+15% опыта' },
                { id: 'hp', name: 'Знамя стойкости', icon: 'buff_hp', price: 1200, hp: 0.10, txt: '+10% здоровья' },
                { id: 'dmg', name: 'Знамя ярости', icon: 'buff_dmg', price: 2000, atk: 0.08, txt: '+8% урона' } ] },
-    hike: { enabled: true, waves: 5, min: 2, max: 5, waitSec: 120, perDay: 1, mobHpPer: 1.3, mobAtk: 1.9, waveUp: 0.1, reward: 2.0, guildPts: 3, chest: 'silver',
-      boss: { hp: 2.4, atk: 1.15 },
-      bosses: [ { id: 'guild_wolf_alpha', name: 'Вожак стаи', hp: 80, atk: 15, def: 3, xp: 120, gold: 60, h: 330 },
-                { id: 'guild_goblin_chief', name: 'Гоблин-вождь', hp: 70, atk: 17, def: 2, xp: 120, gold: 60, h: 320 },
-                { id: 'guild_moss_golem', name: 'Мшистый голем', hp: 100, atk: 13, def: 5, xp: 120, gold: 60, h: 350 } ] },
+    hike: { enabled: true, waves: 5, min: 2, max: 5, waitSec: 600, mobHpPer: 0.9, mobAtk: 1.15, waveUp: 0.05, waveHeal: 0.25, reward: 2.0, guildPts: 3, chest: 'silver',
+      boss: { hp: 1.8, atk: 1.05 }, autoShare: 0.35, autoDelay: 8, focusSec: 10, focusCd: 20, focusMul: 1.5,
+      bosses: [ { id: 'guild_wolf_alpha', name: 'Вожак стаи', hp: 72, atk: 14, def: 3, xp: 120, gold: 60, h: 330, mech: 'pack' },
+                { id: 'guild_goblin_chief', name: 'Гоблин-вождь', hp: 70, atk: 17, def: 2, xp: 120, gold: 60, h: 320, mech: 'totem' },
+                { id: 'guild_moss_golem', name: 'Мшистый голем', hp: 100, atk: 13, def: 5, xp: 120, gold: 60, h: 350, mech: 'skin' } ] },
     inactiveKickDays: 30 };
   const G9 = () => { const c = C.guildsV9 || {}; return Object.assign({}, G9DEF, c, { gm: Object.assign({}, G9DEF.gm, c.gm || {}), bank: Object.assign({}, G9DEF.bank, c.bank || {}), hike: Object.assign({}, G9DEF.hike, c.hike || {}, { boss: Object.assign({}, G9DEF.hike.boss, (c.hike || {}).boss || {}) }) }); };
   const G9ON = () => !!(C.guildsV9 && C.guildsV9.enabled === true);
-  function g9S() { const s = S.g9 = S.g9 || {}; ['votes', 'bank', 'buff', 'gmRew', 'dep', 'hikeDay'].forEach(k => { s[k] = s[k] || {}; }); return s; }
-  const g9Today = () => { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+  function g9S() { const s = S.g9 = S.g9 || {}; ['votes', 'gm', 'last', 'resigned', 'bank', 'buff', 'buffWk', 'gmRew', 'dep'].forEach(k => { s[k] = s[k] || {}; }); return s; }
   const g9Name = gid => (guildById(gid) || {}).name || gid;
+  const g9Col = gid => (guildById(gid) || {}).color || '#ffd27a';
   const g9Off = () => ({ ok: false, msg: 'механики гильдий пока выключены' });
+  const g9Ok = (u, gid) => { const h = S.heroes[u]; return !!(h && h.rpg_guild === gid && heroActive(h)); };
   function g9Me(nick) { const h = getHero(nick, false); if (!h) return { e: { ok: false, msg: 'нет героя' } }; if (!h.rpg_guild) return { e: res(h, false, 'сначала вступи в гильдию: !гильдия') }; return { h, gid: h.rpg_guild }; }
-  // ---- гильд-мастер ----
-  function g9Gm(gid) {
-    const V = g9S().votes[gid] || {}, cnt = {};
-    for (const [voter, cand] of Object.entries(V)) { const hv = S.heroes[voter], hc = S.heroes[cand]; if (!hv || !hc || hv.rpg_guild !== gid || hc.rpg_guild !== gid || !heroActive(hv) || !heroActive(hc)) continue; cnt[cand] = (cnt[cand] || 0) + 1; }
-    const wk = h => (h && h.rpg_wk === S.weekKey ? +h.rpg_wkPts || 0 : 0);
-    const L = Object.entries(cnt).sort((a, b) => b[1] - a[1] || wk(S.heroes[b[0]]) - wk(S.heroes[a[0]]) || (a[0] < b[0] ? -1 : 1));
-    const ok = L.length && L[0][1] >= G9().gm.minVotes;
-    return { user: ok ? L[0][0] : null, votes: ok ? L[0][1] : 0, top: L.slice(0, 3) };
+  // ---- гильд-мастер: выборы раз в неделю ----
+  function g9Count(gid) { // голоса текущих выборов: [[кандидат, голосов], …] по убыванию
+    const V = g9S().votes[gid] || {}, cnt = {}, wk = h => (h && h.rpg_wk === S.weekKey ? +h.rpg_wkPts || 0 : 0);
+    for (const [voter, cand] of Object.entries(V)) if (g9Ok(voter, gid) && g9Ok(cand, gid)) cnt[cand] = (cnt[cand] || 0) + 1;
+    return Object.entries(cnt).sort((a, b) => b[1] - a[1] || wk(S.heroes[b[0]]) - wk(S.heroes[a[0]]) || (a[0] < b[0] ? -1 : 1));
   }
+  function g9Gm(gid) { const g = g9S().gm[gid]; return g && g9Ok(g.user, gid) ? g : null; }
+  function g9Tally(why) { // итоги выборов во всех гильдиях
+    const s = g9S(), P = G9().gm;
+    C.guilds.forEach(g => { const L = g9Count(g.id), prev = g9Gm(g.id), win = L.find(([u, n]) => n >= P.minVotes);
+      let nx = null;
+      if (win) nx = { user: win[0], votes: win[1], from: 'vote' };
+      else if (prev) nx = { user: prev.user, votes: 0, from: 'stay' };
+      else if (L.length) nx = { user: L[0][0], votes: L[0][1], from: 'vote' }; // прошлого ГМ нет — у кого больше голосов, даже 1
+      s.last[g.id] = L; s.votes[g.id] = {};
+      if (nx) { nx.wk = weekKey(); nx.at = Date.now(); s.gm[g.id] = nx; if (!prev || prev.user !== nx.user || nx.from === 'vote') { log(`👑 Гильд-мастер «${g.name}» на неделю — ${DN(S.heroes[nx.user])}${nx.from === 'stay' ? ' (остаётся: за другого не набралось 2 голоса)' : ` (${nx.votes} гол.)`}`, g.color); if (nx.from === 'vote') fame('gm', `${DN(S.heroes[nx.user])} — гильд-мастер «${g.name}»`); } }
+      else delete s.gm[g.id];
+    });
+    s.resigned = {}; s.elect = { wk: weekKey(), at: Date.now(), why: why || '' }; save(); publishSnapSoon();
+  }
+  function g9ElectTick() { // неделя сменилась → итоги; первые выборы — firstMin минут после включения
+    const s = g9S(), P = G9().gm; if (!P.enabled) return;
+    if (!s.elect) { s.elect = { wk: weekKey(), first: Date.now() + P.firstMin * 60000 }; log(`👑 Открыты первые выборы гильд-мастеров — ${P.firstMin} мин: !голос <ник>`, '#ffd27a'); save(); return; }
+    if (s.elect.first && Date.now() >= s.elect.first) return g9Tally('первые выборы');
+    if (!s.elect.first && s.elect.wk !== weekKey()) g9Tally('новая неделя');
+  }
+  const g9ElectInfo = () => { const e = g9S().elect || {}; return e.first ? `итоги в ${new Date(e.first).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : 'итоги в понедельник'; };
   function g9VoteCmd(nick, a) {
     if (!G9ON() || !G9().gm.enabled) return g9Off(); const { h, gid, e } = g9Me(nick); if (e) return e;
-    const s = g9S(), q = String(a || '').trim().replace(/^@/, '');
-    if (!q) { const gm = g9Gm(gid), my = (s.votes[gid] || {})[h.user];
-      return res(h, true, `гильд-мастер «${g9Name(gid)}»: ${gm.user ? `${DN(S.heroes[gm.user])} (${gm.votes} гол.)` : 'не выбран'}${gm.top.length ? ' · голоса: ' + gm.top.map(([u, n]) => `${DN(S.heroes[u])} ${n}`).join(', ') : ''} · твой голос: ${my && S.heroes[my] ? DN(S.heroes[my]) : 'нет'} — !голос <ник>`); }
-    if (/^(снять|отозвать|нет|отмена)$/i.test(q)) { if (s.votes[gid]) delete s.votes[gid][h.user]; save(); return res(h, true, 'голос отозван'); }
+    const s = g9S(), P = G9().gm, q = String(a || '').trim().replace(/^@/, '');
+    if (!q) { const gm = g9Gm(gid), L = g9Count(gid), my = (s.votes[gid] || {})[h.user];
+      return res(h, true, `гильд-мастер «${g9Name(gid)}»: ${gm ? DN(S.heroes[gm.user]) : 'нет'} · выборы на следующую неделю (${g9ElectInfo()}): ${L.length ? L.slice(0, 3).map(([u, n]) => `${DN(S.heroes[u])} ${n}`).join(', ') : 'голосов пока нет'} · твой голос: ${my && S.heroes[my] ? DN(S.heroes[my]) : 'нет'} — !голос <ник>${gm && gm.user === h.user ? ' · уйти с поста: !гм уйти' : ''}`); }
+    if (/^(снять|отозвать|нет|отмена)$/i.test(q)) { if (s.votes[gid]) delete s.votes[gid][h.user]; save(); publishSnapSoon(); return res(h, true, 'голос отозван'); }
     const t = findNick(q), ht = t && S.heroes[t]; if (!ht) return res(h, false, `нет героя «${q}»`);
     if (ht.rpg_guild !== gid) return res(h, false, `${DN(ht)} не в твоей гильдии`);
     if (ht.user === h.user) return res(h, false, 'за себя голосовать нельзя');
-    const before = g9Gm(gid).user; (s.votes[gid] = s.votes[gid] || {})[h.user] = ht.user; save();
-    const after = g9Gm(gid);
-    if (after.user && after.user !== before) { log(`👑 Гильд-мастер «${g9Name(gid)}» — ${DN(S.heroes[after.user])} (${after.votes} гол.)`, (guildById(gid) || {}).color || '#ffd27a'); fame('gm', `${DN(S.heroes[after.user])} — гильд-мастер «${g9Name(gid)}»`); }
-    refreshUI(); publishSnapSoon();
-    return res(h, true, `голос за ${DN(ht)} принят · ${after.user ? `гильд-мастер: ${DN(S.heroes[after.user])}` : `чтобы выбрать ГМ, нужно ${G9().gm.minVotes} голоса за одного`}`);
+    (s.votes[gid] = s.votes[gid] || {})[h.user] = ht.user; save(); publishSnapSoon();
+    const L = g9Count(gid), mine = (L.find(([u]) => u === ht.user) || [0, 0])[1];
+    return res(h, true, `голос за ${DN(ht)} принят (у него ${mine} гол.) — ${g9ElectInfo()}; до итогов голос можно поменять`);
+  }
+  function g9ResignCmd(nick) {
+    if (!G9ON() || !G9().gm.enabled) return g9Off(); const { h, gid, e } = g9Me(nick); if (e) return e;
+    const s = g9S(), gm = g9Gm(gid), P = G9().gm; if (!gm || gm.user !== h.user) return res(h, false, 'ты не гильд-мастер');
+    const rs = s.resigned[gid] = s.resigned[gid] || []; rs.push(h.user);
+    const nx = (s.last[gid] || []).find(([u, n]) => n >= P.minVotes && !rs.includes(u) && g9Ok(u, gid));
+    if (nx) s.gm[gid] = { user: nx[0], votes: nx[1], from: 'next', wk: weekKey(), at: Date.now() }; else delete s.gm[gid];
+    log(`👑 ${DN(h)} уходит с поста гильд-мастера «${g9Name(gid)}»${nx ? ` — теперь ГМ ${DN(S.heroes[nx[0]])}` : ' — до понедельника без ГМ'}`, g9Col(gid));
+    save(); refreshUI(); publishSnapSoon();
+    return res(h, true, `ты больше не гильд-мастер${nx ? `; ГМ — ${DN(S.heroes[nx[0]])}` : ''}. Награда и бафф этой недели остаются как есть`);
   }
   const g9Medal = h => (G9ON() && h && +h.rpg_medalUntil > Date.now() ? G9().gm.medalPct : 0);
   function g9RewardCmd(nick, a) {
     if (!G9ON() || !G9().gm.enabled) return g9Off(); const { h, gid, e } = g9Me(nick); if (e) return e;
-    const P = G9().gm, s = g9S(), wk = weekKey();
-    if (g9Gm(gid).user !== h.user) return res(h, false, 'наградить может только гильд-мастер (!голос — кто им станет)');
+    const P = G9().gm, s = g9S(), wk = weekKey(), gm = g9Gm(gid);
+    if (!gm || gm.user !== h.user) return res(h, false, 'наградить может только гильд-мастер');
     if (s.gmRew[gid] === wk) return res(h, false, 'награда гильдии на этой неделе уже выдана — следующая с понедельника');
-    const q = String(a || '').trim().replace(/^@/, ''); if (!q) return res(h, false, `кого наградить? !наградить <ник> — +${P.rewardGold} золота и медаль (+${Math.round(P.medalPct * 100)}% золота и опыта на ${P.medalDays} ${plural(P.medalDays, 'день', 'дня', 'дней')})`);
+    const q = String(a || '').trim().replace(/^@/, ''); if (!q) return res(h, false, `кого наградить? !наградить <ник> — +${P.rewardGold} золота и медаль (+${Math.round(P.medalPct * 100)}% золота и опыта на ${P.medalDays} дн.)`);
     const t = findNick(q), ht = t && S.heroes[t]; if (!ht) return res(h, false, `нет героя «${q}»`);
     if (ht.rpg_guild !== gid) return res(h, false, `${DN(ht)} не в твоей гильдии`);
     if (ht.user === h.user) return res(h, false, 'себя наградить нельзя');
-    ht.rpg_gold += P.rewardGold; ht.rpg_medalUntil = Date.now() + P.medalDays * 864e5; s.gmRew[gid] = wk;
-    log(`🏅 Гильд-мастер ${DN(h)} награждает ${DN(ht)}: +${P.rewardGold} золота и медаль гильдии`, (guildById(gid) || {}).color || '#ffd27a'); fame('medal', `${DN(ht)} — медаль гильдии «${g9Name(gid)}» от ${DN(h)}`);
+    if (+ht.rpg_medalAt && Date.now() - ht.rpg_medalAt < P.medalEveryDays * 864e5) return res(h, false, `${DN(ht)} уже получал медаль — снова можно с ${new Date(ht.rpg_medalAt + P.medalEveryDays * 864e5).toLocaleDateString('ru-RU')}`);
+    ht.rpg_gold += P.rewardGold; ht.rpg_medalAt = Date.now(); ht.rpg_medalUntil = Date.now() + P.medalDays * 864e5; s.gmRew[gid] = wk;
+    log(`🏅 Гильд-мастер ${DN(h)} награждает ${DN(ht)}: +${P.rewardGold} золота и медаль гильдии`, g9Col(gid)); fame('medal', `${DN(ht)} — медаль гильдии «${g9Name(gid)}» от ${DN(h)}`);
     const rt = ensureRT(ht); fxText(rt.x, rt.y - heroH(rt) - 60, '🏅 Медаль!', '#ffd27a', 30, 2.2, rt.loc);
     save(); refreshUI(); publishSnapSoon();
     return res(h, true, `${DN(ht)} получает +${P.rewardGold} золота и медаль гильдии`);
@@ -1879,56 +1910,60 @@
   // ---- казна и баффы ----
   function g9Buff(gid) { const b = g9S().buff[gid]; if (!b || b.until <= Date.now()) return null; const d = G9().bank.buffs.find(x => x.id === b.id); return d ? Object.assign({ until: b.until }, d) : null; }
   const g9Eff = (h, k) => { if (!G9ON() || !h || !h.rpg_guild) return 0; const b = g9Buff(h.rpg_guild); return b && b[k] ? +b[k] : 0; };
-  function g9Price(gid, b) { const P = G9().bank, n = Math.max(1, guildCounts()[gid] || 0); return Math.max(100, Math.round(b.price * Math.max(0.5, n / (P.sizeNorm || 6)) / 50) * 50); } // цена растёт с числом активных — большой гильдии бафф дороже
+  function g9Price(gid, b) { const P = G9().bank, n = Math.max(1, guildCounts()[gid] || 0); return Math.max(100, Math.round(b.price * Math.max(0.5, n / (P.sizeNorm || 6)) / 50) * 50); }
   const g9Dep = (s, u) => { const wk = weekKey(), d = s.dep[u]; return d && d.wk === wk ? d : { wk, amt: 0 }; };
   function g9BankCmd(nick, a) {
     if (!G9ON() || !G9().bank.enabled) return g9Off(); const { h, gid, e } = g9Me(nick); if (e) return e;
     const P = G9().bank, s = g9S(), bal = +s.bank[gid] || 0, q = String(a || '').trim();
     if (!q) { const cur = g9Buff(gid);
-      return res(h, true, `казна «${g9Name(gid)}»: ${bal} з${cur ? ` · действует ${cur.name} (${cur.txt}) до ${new Date(cur.until).toLocaleDateString('ru-RU')}` : ''} · баффы на ${P.days} дн.: ${P.buffs.map((b, i) => `${i + 1}) ${b.name} ${b.txt} — ${g9Price(gid, b)} з`).join('; ')} · внести: !казна <сумма>, купить (ГМ): !бафф <номер>`); }
+      return res(h, true, `казна «${g9Name(gid)}»: ${bal} з${cur ? ` · действует ${cur.name} (${cur.txt}) до ${new Date(cur.until).toLocaleDateString('ru-RU')}` : ''} · баффы на ${P.days} дн. (один в неделю): ${P.buffs.map((b, i) => `${i + 1}) ${b.name} ${b.txt} — ${g9Price(gid, b)} з`).join('; ')} · внести: !казна <сумма> (до ${P.maxPerWeek} з в неделю, золото остаётся гильдии)`); }
     const n = Math.floor(+q.replace(/[^\d]/g, '') || 0); if (!(n >= P.minDeposit)) return res(h, false, `в казну — от ${P.minDeposit} золота: !казна <сумма>`);
     const d = g9Dep(s, h.user), left = P.maxPerWeek - d.amt; if (left <= 0) return res(h, false, `лимит — ${P.maxPerWeek} золота в казну за неделю`);
     const put = Math.min(n, left, Math.floor(h.rpg_gold)); if (put < P.minDeposit) return res(h, false, `не хватает золота: у тебя ${Math.floor(h.rpg_gold)} з`);
     h.rpg_gold -= put; d.amt += put; d.gid = gid; s.dep[h.user] = d; s.bank[gid] = bal + put;
-    log(`💰 ${DN(h)} вносит в казну «${g9Name(gid)}» ${put} з (в казне ${s.bank[gid]} з)`, (guildById(gid) || {}).color || '#ffd27a');
+    log(`💰 ${DN(h)} вносит в казну «${g9Name(gid)}» ${put} з (в казне ${s.bank[gid]} з)`, g9Col(gid));
     save(); refreshUI(); publishSnapSoon();
     return res(h, true, `+${put} з в казну «${g9Name(gid)}» — в казне ${s.bank[gid]} з${put < n ? ` (лимит ${P.maxPerWeek} з в неделю)` : ''}`);
   }
-  function g9CanBuy(h, gid) { const gm = g9Gm(gid).user; if (gm) return gm === h.user; return g9Dep(g9S(), h.user).amt >= G9().bank.noGmMin; }
+  function g9CanBuy(h, gid) { const gm = g9Gm(gid); if (gm) return gm.user === h.user; return g9Dep(g9S(), h.user).amt >= G9().bank.noGmMin; }
   function g9BuffCmd(nick, a) {
     if (!G9ON() || !G9().bank.enabled) return g9Off(); const { h, gid, e } = g9Me(nick); if (e) return e;
     const P = G9().bank, s = g9S(), q = String(a || '').trim(); if (!q) return g9BankCmd(nick, '');
-    const i = Math.floor(+q) - 1, b = P.buffs[i] || P.buffs.find(x => lc(x.name).includes(lc(q)) || x.id === lc(q)); if (!b) return res(h, false, `нет такого баффа — список: !казна`);
-    if (!g9CanBuy(h, gid)) return res(h, false, g9Gm(gid).user ? 'бафф выбирает гильд-мастер' : `ГМ не выбран — бафф может купить тот, кто внёс в казну на этой неделе ${P.noGmMin}+ з`);
-    const cur = g9Buff(gid); if (cur) return res(h, false, `уже действует ${cur.name} — до ${new Date(cur.until).toLocaleDateString('ru-RU')}`);
+    const i = Math.floor(+q) - 1, b = P.buffs[i] || P.buffs.find(x => lc(x.name).includes(lc(q)) || x.id === lc(q)); if (!b) return res(h, false, 'нет такого баффа — список: !казна');
+    if (!g9CanBuy(h, gid)) return res(h, false, g9Gm(gid) ? 'бафф выбирает гильд-мастер' : `ГМ нет — бафф может купить тот, кто внёс в казну на этой неделе ${P.noGmMin}+ з`);
+    if (s.buffWk[gid] === weekKey()) return res(h, false, 'бафф гильдии на этой неделе уже куплен — следующий с понедельника');
+    const cur = g9Buff(gid); if (cur) return res(h, false, `ещё действует ${cur.name} — до ${new Date(cur.until).toLocaleDateString('ru-RU')}`);
     const price = g9Price(gid, b), bal = +s.bank[gid] || 0; if (bal < price) return res(h, false, `в казне ${bal} з, нужно ${price} з — !казна <сумма>`);
-    s.bank[gid] = bal - price; s.buff[gid] = { id: b.id, until: Date.now() + P.days * 864e5, by: h.user };
-    log(`🚩 «${g9Name(gid)}» поднимает ${b.name}: ${b.txt} на ${P.days} дн. (−${price} з из казны)`, (guildById(gid) || {}).color || '#ffd27a'); fame('buff', `«${g9Name(gid)}»: ${b.name} (${b.txt})`);
+    s.bank[gid] = bal - price; s.buff[gid] = { id: b.id, until: Date.now() + P.days * 864e5, by: h.user }; s.buffWk[gid] = weekKey();
+    log(`🚩 «${g9Name(gid)}» поднимает ${b.name}: ${b.txt} на ${P.days} дн. (−${price} з из казны)`, g9Col(gid)); fame('buff', `«${g9Name(gid)}»: ${b.name} (${b.txt})`);
     save(); refreshUI(); publishSnapSoon();
     return res(h, true, `${b.name} поднято: ${b.txt} всей гильдии на ${P.days} дн.`);
   }
   // ---- гильд-поход ----
   const G9Q = {};
-  function g9HikeLeft(gid) { const P = G9().hike, d = g9S().hikeDay[gid]; return Math.max(0, P.perDay - (d && d.d === g9Today() ? d.n : 0)); }
+  const g9Went = h => !!(h && h.rpg_g9Hike && h.rpg_g9Hike === streamCur().id); // уже ходил в гильд-поход на этом стриме
   function g9HikeCmd(nick) {
     if (!G9ON() || !G9().hike.enabled) return g9Off(); const { h, gid, e } = g9Me(nick); if (e) return e;
-    const P = G9().hike; if (!g9HikeLeft(gid)) return res(h, false, 'гильд-поход сегодня уже был — завтра снова');
+    const P = G9().hike; if (g9Went(h)) return res(h, false, 'в гильд-поход можно один раз за стрим — ты уже ходил');
     const why = hikeBusy(h); if (why && why !== 'cooldown') return res(h, false, why === 'dead' ? 'ещё возвращается в лагерь' : why === 'queued' ? 'ты в очереди похода' : 'ты уже в походе');
     if (PARTYQ.users.includes(h.user)) return res(h, false, 'ты в очереди пати');
     const bl = blocked(h, 'expedition'); if (bl) return res(h, false, bl);
     const q = G9Q[gid] = G9Q[gid] || { users: [], t0: 0 }; if (q.users.includes(h.user)) return res(h, false, `ты уже в отряде гильд-похода (${q.users.length}/${P.max})`);
-    if (!q.users.length) q.t0 = Date.now(); q.users.push(h.user); say(h, `Гильд-поход ${q.users.length}/${P.max}`);
-    log(`⚔ ${DN(h)} в отряде гильд-похода «${g9Name(gid)}»: ${q.users.length}/${P.max}`, (guildById(gid) || {}).color || '#bfe0ff');
+    if (!q.users.length) { q.t0 = Date.now(); emitBot({ event: 'g9Hike', user: h.user, text: `⚔ «${g9Name(gid)}» собирает гильд-поход: ${P.waves} волн и мини-босс! Сбор ${Math.round(P.waitSec / 60)} мин — !гильдпоход` }); }
+    q.users.push(h.user); say(h, `Гильд-поход ${q.users.length}/${P.max}`);
+    const left = Math.max(0, Math.ceil((q.t0 + P.waitSec * 1000 - Date.now()) / 60000));
+    log(`⚔ ${DN(h)} в отряде гильд-похода «${g9Name(gid)}»: ${q.users.length}/${P.max}, сбор ещё ${left} мин`, g9Col(gid));
     if (q.users.length >= P.max) g9HikeGo(gid);
-    return res(h, true, `ты в гильд-походе «${g9Name(gid)}» (${q.users.length}/${P.max}) — старт при ${P.max} или через ${Math.round(P.waitSec / 60)} мин, если соберётся ${P.min}+`);
+    publishSnapSoon();
+    return res(h, true, `ты в гильд-походе «${g9Name(gid)}» (${q.users.length}/${P.max}) — старт при ${P.max} или через ${left} мин, если соберётся ${P.min}+`);
   }
   function g9HikeTick() {
-    if (!G9ON()) return; const P = G9().hike;
+    const P = G9().hike;
     for (const gid of Object.keys(G9Q)) { const q = G9Q[gid]; q.users = q.users.filter(u => S.heroes[u] && S.heroes[u].rpg_guild === gid);
       if (!q.users.length) { delete G9Q[gid]; continue; }
       const waited = Date.now() - q.t0 >= P.waitSec * 1000;
       if (q.users.length >= P.max || (waited && q.users.length >= P.min)) g9HikeGo(gid);
-      else if (waited && Date.now() - q.t0 >= P.waitSec * 3000) { log(`⚔ Гильд-поход «${g9Name(gid)}» не собрался (${q.users.length}/${P.min})`, '#bfe0ff'); delete G9Q[gid]; } }
+      else if (waited) { log(`⚔ Гильд-поход «${g9Name(gid)}» не собрался (${q.users.length}/${P.min}) — попытка не потрачена`, '#bfe0ff'); delete G9Q[gid]; publishSnapSoon(); } }
   }
   function g9HikeGo(gid) {
     const P = G9().hike, q = G9Q[gid]; if (!q) return; const lane = freeLane(); if (lane === undefined) return; // ждём свободную тропу
@@ -1939,34 +1974,71 @@
     const party = { id: Date.now(), users: us.slice(), mobHp: 1, mobAtk: P.mobAtk, reward: P.reward, g9: gid };
     party.G = { id: party.id, lane, users: us.slice(), bs: [], turn: 0, phase: 'walk', mon: null, wave: 0, timer: 0, waves: P.waves, g9: gid,
       P: Object.assign({}, PTY(), { mobHpPer: P.mobHpPer, mobAtk: P.mobAtk, mobAtk2: P.mobAtk }), monX: Math.max(PMON_X(lane), minX + gap * (n - 1) + (lane % 2 ? Math.round(gap / 2) : 0) + 170) };
-    let slot = 0; const went = us.filter(u => { const r = sendToExpedition(u, party, slot++); return r && r.ok; });
-    const s = g9S(), d = s.hikeDay[gid], td = g9Today(); s.hikeDay[gid] = { d: td, n: (d && d.d === td ? d.n : 0) + 1 };
-    log(`⚔ Гильд-поход «${g9Name(gid)}»: ${went.map(u => DN(S.heroes[u])).join(', ')} — ${P.waves} волн и мини-босс!`, (guildById(gid) || {}).color || '#bfe0ff');
+    let slot = 0; const sid = streamCur().id; const went = us.filter(u => { const r = sendToExpedition(u, party, slot++); if (r && r.ok) { S.heroes[u].rpg_g9Hike = sid; return true; } return false; });
+    log(`⚔ Гильд-поход «${g9Name(gid)}»: ${went.map(u => DN(S.heroes[u])).join(', ')} — ${P.waves} волн и мини-босс!`, g9Col(gid));
     save(); refreshUI(); publishSnapSoon();
   }
-  function g9BossDef() { const L = G9().hike.bosses; return Object.assign({ weight: 1, minLevel: 1, g9boss: true }, L[Math.floor(Math.random() * L.length)]); }
-  function g9Finish(b, h) { // доп. награда за пройденный гильд-поход (все волны и мини-босс)
-    const P = G9().hike, gid = b.party && b.party.g9; if (!gid || h.rpg_guild !== gid) return;
+  function g9BossDef() { const P = G9().hike, L = P.only ? P.bosses.filter(b => b.id === P.only) : P.bosses; return Object.assign({ weight: 1, minLevel: 1, g9boss: true }, L[Math.floor(Math.random() * L.length)]); }
+  function g9Finish(b, h) { const P = G9().hike, gid = b.party && b.party.g9; if (!gid || h.rpg_guild !== gid) return;
     addGuildPoints(gid, (C.guildPointsPerExpedition || 1) * Math.max(0, P.guildPts - 1), h);
-    if (P.chest && C.chests[P.chest]) { const rt = ensureRT(h); giveChest(h, P.chest, 'Гильд-поход', { x: rt.x, y: rt.y, loc: 'forest' }); }
+    if (P.chest && C.chests[P.chest]) { const rt = ensureRT(h); giveChest(h, P.chest, 'Гильд-поход', { x: rt.x, y: rt.y, loc: 'forest' }); } }
+  // ---- механики мини-боссов (вызывается после каждого хода боя гильд-похода) ----
+  // «Цель» (волки / тотем / каменная кожа): часть урона героев уходит в неё сама (autoShare), герой с !цель бьёт только её ×focusMul.
+  function g9Focus(h) { return +h._g9focus > Date.now(); }
+  function g9FocusCmd(nick) {
+    const h = getHero(nick, false); if (!h) return { ok: false, msg: 'нет героя' };
+    const b = BATTLES.find(x => x.user === h.user && x.G && x.G.g9), M = b && b.G.mech;
+    if (!M || !M.sub) return res(h, false, 'сейчас нет цели — кнопка работает против мини-босса гильд-похода');
+    const P = G9().hike; if (+h._g9fcd > Date.now()) return res(h, false, `«Цель» снова через ${Math.ceil((h._g9fcd - Date.now()) / 1000)} с`);
+    h._g9focus = Date.now() + P.focusSec * 1000; h._g9fcd = Date.now() + P.focusCd * 1000;
+    const rt = ensureRT(h); fxText(rt.x, rt.y - heroH(rt) - 40, `🎯 ${M.sub.name}!`, '#ffd27a', 26, 1.6, 'forest');
+    return res(h, true, `${P.focusSec} с бьёшь «${M.sub.name}» (урон ×${P.focusMul})`);
   }
-  // ---- неактивные: через inactiveKickDays дней без активности — из гильдии ----
+  function g9Mech(G, m, ms, ev, bs) {
+    if (!G.g9 || !m.d || !m.d.g9boss) return; const P = G9().hike, M = G.mech = G.mech || { t: 0, mech: m.d.mech }; M.t += 0.8;
+    const say9 = (t, c) => { fxText(m.x, m.y - (m.d.h || 300) * persp(m.y) - 70, t, c || '#ffd27a', 32, 1.8, 'forest'); clog(`${m.d.name}: ${t}`, c || '#ffb08a'); };
+    const H = u => S.heroes[u], alive = () => ms.filter(x => x.hp > 0);
+    const hurt = (x, d, why) => { d = Math.max(1, Math.round(d)); x.hp -= d; ev.push({ t: 'hurt', to: x.id, dmg: d, sh: 0, why }); if (x.hp <= 0) { x.hp = 0; ev.push({ t: 'dead', to: x.id }); } };
+    // 1) урон героев → часть в «цель»
+    if (M.sub && M.sub.hp > 0) { let back = 0;
+      for (const e of ev) { if (e.t !== 'hit') continue; const hh = H(e.from), f = hh && g9Focus(hh), share = f ? 1 : (M.mech === 'skin' ? 0.7 : (M.t - (M.sub.t0 || 0) >= P.autoDelay ? P.autoShare : 0)), part = Math.round(e.dmg * share); if (!part) continue;
+        back += part; M.sub.hp -= Math.round(part * (f ? P.focusMul : 1)); if (M.sub.hp <= 0) break; }
+      if (back) { const was = m.hp; m.hp = Math.min(m.maxhp, m.hp + back); if (was <= 0 && m.hp > 0) for (let i = ev.length - 1; i >= 0; i--) if (ev[i].t === 'kill') ev.splice(i, 1); }
+      if (M.sub.hp <= 0) { M.sub.hp = 0; say9(M.mech === 'pack' ? 'Волки повержены!' : M.mech === 'totem' ? 'Тотем разбит!' : 'Кожа треснула!', '#c8f0a8'); M.sub = null; M.cd = M.t; }
+    }
+    if (m.hp <= 0) return;
+    // 2) механика босса
+    if (M.mech === 'pack') { // Зов стаи: волки бьют самого слабого; при 50% — бешенство
+      if (!M.sub && M.t - (M.cd ?? -99) >= 15) { M.sub = { name: 'Волки', hp: Math.round(m.maxhp * 0.1), max: Math.round(m.maxhp * 0.1), t0: M.t }; say9('Зов стаи!', '#ffb08a'); }
+      if (M.sub && G.turn % 4 === 0) { const w = alive().sort((a, b) => a.hp / a.maxhp - b.hp / b.maxhp)[0]; if (w) hurt(w, m.atk * 0.3, 'волки'); }
+      if (!M.rage && m.hp < m.maxhp * 0.5) { M.rage = 1; m.atk = Math.round(m.atk * 1.15); say9('Бешенство!', '#ff7a5a'); }
+    } else if (M.mech === 'totem') { // Огненный тотем: жжёт всех; простоял 10 с — вождь лечится
+      if (!M.sub && M.t - (M.cd ?? -99) >= 18) { M.sub = { name: 'Тотем', hp: Math.round(m.maxhp * 0.1), max: Math.round(m.maxhp * 0.1), t0: M.t }; say9('Огненный тотем!', '#ffb08a'); }
+      if (M.sub && Math.round(M.t / 0.8) % 4 === 0) { alive().forEach(x => hurt(x, x.maxhp * 0.04, 'тотем')); if (M.t - M.sub.t0 >= 10) { const n = Math.round(m.maxhp * 0.02); m.hp = Math.min(m.maxhp, m.hp + n); fxText(m.x, m.y - 120, `+${n}`, '#7dff9a', 26, 1.2, 'forest'); } }
+    } else if (M.mech === 'skin') { // Каменная кожа (70% урона гасит, пока не треснет), Удар по земле раз в 20 с
+      if (M.t <= 0.8 && !M.skinDone) { M.sub = { name: 'Каменная кожа', hp: Math.round(m.maxhp * 0.25), max: Math.round(m.maxhp * 0.25), t0: M.t }; M.skinDone = 1; say9('Каменная кожа!', '#c8c0b0'); }
+      if (M.t - (M.stomp || 0) >= 20) { M.stomp = M.t; say9('Удар по земле!', '#ffb08a'); alive().forEach(x => hurt(x, x.maxhp * 0.08, 'удар')); }
+    }
+  }
+  // ---- неактивные ----
   let G9KICK_T = 0;
   function g9KickTick() {
-    if (!G9ON() || !(+G9().inactiveKickDays > 0) || Date.now() - G9KICK_T < 600000) return; G9KICK_T = Date.now();
+    if (!(+G9().inactiveKickDays > 0) || Date.now() - G9KICK_T < 600000) return; G9KICK_T = Date.now();
     const lim = +G9().inactiveKickDays * 864e5; let n = 0;
     S.order.forEach(u => { const h = S.heroes[u]; if (h && h.rpg_guild && Date.now() - heroSeen(h) > lim) { log(`${DN(h)} давно не появлялся — выходит из гильдии «${g9Name(h.rpg_guild)}»`, '#9a8a7a'); h.rpg_guild = null; h.rpg_guildJoined = 0; delete h.rpg_guildAuto; h.rpg_g9Left = 1; n++; } });
     if (n) save();
   }
-  function g9Tick() { g9HikeTick(); g9KickTick(); }
-  function g9Snap() { // для пульта: по гильдиям — ГМ, казна, бафф, гильд-поход
-    if (!G9ON()) return null; const s = g9S(), P = G9();
-    return { gm: P.gm.enabled, bank: P.bank.enabled, hike: P.hike.enabled, minVotes: P.gm.minVotes, rewardGold: P.gm.rewardGold, maxDep: P.bank.maxPerWeek, waves: P.hike.waves, hmin: P.hike.min, hmax: P.hike.max,
-      buffs: P.bank.buffs.map(b => [b.id, b.name, b.txt, b.icon]),
-      g: C.guilds.map(g => { const gm = g9Gm(g.id), bf = g9Buff(g.id), q = G9Q[g.id]; return { id: g.id, gm: gm.user ? DN(S.heroes[gm.user]) : '', gmu: gm.user || '', gv: gm.votes, bank: +s.bank[g.id] || 0, buff: bf ? [bf.id, bf.name, bf.txt, bf.until] : null, prices: P.bank.buffs.map(b => g9Price(g.id, b)), hq: q ? q.users.length : 0, hl: g9HikeLeft(g.id), rew: s.gmRew[g.id] === weekKey() ? 1 : 0,
-        members: S.order.map(u => S.heroes[u]).filter(h => h && h.rpg_guild === g.id && heroActive(h)).slice(0, 40).map(h => [h.user, DN(h)]) }; }) };
+  function g9Tick() { if (!G9ON()) return; g9ElectTick(); g9HikeTick(); g9KickTick(); }
+  function g9Snap() {
+    if (!G9ON()) return null; const s = g9S(), P = G9(), e = s.elect || {};
+    return { gm: P.gm.enabled, bank: P.bank.enabled, hike: P.hike.enabled, minVotes: P.gm.minVotes, rewardGold: P.gm.rewardGold, medalDays: P.gm.medalDays, medalEvery: P.gm.medalEveryDays, maxDep: P.bank.maxPerWeek, waves: P.hike.waves, hmin: P.hike.min, hmax: P.hike.max, hwait: Math.round(P.hike.waitSec / 60), noGmMin: P.bank.noGmMin,
+      elect: e.first ? e.first : 0, buffs: P.bank.buffs.map(b => [b.id, b.name, b.txt, b.icon]),
+      g: C.guilds.map(g => { const gm = g9Gm(g.id), bf = g9Buff(g.id), q = G9Q[g.id], L = g9Count(g.id); return { id: g.id, gm: gm ? DN(S.heroes[gm.user]) : '', gmu: gm ? gm.user : '', gv: gm ? gm.votes : 0, lead: L.slice(0, 3).map(([u, n]) => [DN(S.heroes[u]), n]), bank: +s.bank[g.id] || 0, buff: bf ? [bf.id, bf.name, bf.txt, bf.until] : null, bwk: s.buffWk[g.id] === weekKey() ? 1 : 0, prices: P.bank.buffs.map(b => g9Price(g.id, b)), hq: q ? q.users.length : 0, hleft: q ? Math.max(0, Math.ceil((q.t0 + P.hike.waitSec * 1000 - Date.now()) / 60000)) : 0, rew: s.gmRew[g.id] === weekKey() ? 1 : 0,
+        members: S.order.map(u => S.heroes[u]).filter(h => h && h.rpg_guild === g.id && heroActive(h)).slice(0, 40).map(h => [h.user, DN(h), +h.rpg_medalAt && Date.now() - h.rpg_medalAt < P.gm.medalEveryDays * 864e5 ? 1 : 0]) }; }) };
   }
-  function g9MeSnap(h) { if (!G9ON() || !h || !h.rpg_guild) return null; const s = g9S(); return { vote: (s.votes[h.rpg_guild] || {})[h.user] || '', dep: g9Dep(s, h.user).amt, medal: +h.rpg_medalUntil > Date.now() ? h.rpg_medalUntil : 0, inQ: !!(G9Q[h.rpg_guild] && G9Q[h.rpg_guild].users.includes(h.user)) }; }
+  function g9MeSnap(h) { if (!G9ON() || !h || !h.rpg_guild) return null; const s = g9S(), b = BATTLES.find(x => x.user === h.user && x.G && x.G.g9), M = b && b.G.mech;
+    return { vote: (s.votes[h.rpg_guild] || {})[h.user] || '', dep: g9Dep(s, h.user).amt, medal: +h.rpg_medalUntil > Date.now() ? h.rpg_medalUntil : 0, inQ: !!(G9Q[h.rpg_guild] && G9Q[h.rpg_guild].users.includes(h.user)), went: g9Went(h) ? 1 : 0,
+      fight: M && M.sub ? [M.sub.name, Math.round(M.sub.hp / M.sub.max * 100), g9Focus(h) ? 1 : 0, Math.max(0, Math.ceil(((+h._g9fcd || 0) - Date.now()) / 1000))] : null }; }
 
   // ===================== v49: СЕЗОН 2 · ЗАТОЧКА · ПОСТРОЙКИ 10 УР. · ВАЙП =====================
   // Всё новое включается только конфигом (season / sharpen / buildingsV2) и только с сезона fromSeason (по умолчанию 2):
@@ -3595,7 +3667,7 @@
       const my = m.y - (m.d.h || 120) * persp(m.y) - 40, byU = {};
       if (G.turn % 2 === 0) bs.forEach(b => { const h = H(b), st = stats(h); let hl; if (h.rpg_hp > 0 && h.rpg_hp < st.maxhp * C.potionAutoHp && (hl = drinkPotion(h))) { const rt = ensureRT(h); fxText(rt.x - 60, rt.y - heroH(rt) - 40, `+${hl} зелье`, '#7dff9a', 26, 1.6, 'forest'); } });
       const ms = bs.map(b => { const h = H(b), st = stats(h); byU[h.user] = b; const hyIt = eqItem(h.rpg_equip.trinket); const hybrid = hyIt && hyIt.hybrid ? { type: hyIt.hybrid, power: (hyIt.hybridPower || 1) * ((GEARCAP() || {}).hybridMul || 1), every: hyIt.hybridEvery || 2 } : null; return { id: h.user, c: clsById(h.rpg_class), hp: h.rpg_hp, shield: h._shield || 0, maxhp: st.maxhp, atk: Math.round(st.atk * (1 + (h._rage || 0))), def: h.rpg_class === 'paladin' && (NERF('paladin') || {}).partyDefAdd ? Math.max(0, st.def + NERF('paladin').partyDefAdd) : st.def, block: equipBonus(h).block || 0, dodge: st.eq.dodge || 0, hybrid, slot: b.slot, tauntUntil: h._tauntUntil || 0, tauntCd: h._tauntCd || 0 }; }); // v7panel43: tauntUntil/Cd переживают тик (раньше ms пересобирался без них → лог «таунт!» был, а дух бил дальника)
-      const ev = PartyCore.step(G, m, ms, PCT());
+      const ev = PartyCore.step(G, m, ms, PCT()); if (G.g9) g9Mech(G, m, ms, ev, bs); // v9: механики мини-боссов
       ms.forEach(x => { const hh = S.heroes[x.id]; hh.rpg_hp = x.hp; if (hh._shield > 0 && !(x.shield > 0)) clog(`${DN(hh)}: щит палатки разрушен`, '#7fd0ff'); hh._shield = x.shield || 0; hh._tauntUntil = x.tauntUntil || 0; hh._tauntCd = x.tauntCd || 0; });
       const pos = u => { const rt = ensureRT(S.heroes[u]); return { rt, x: rt.x, y: rt.y - heroH(rt) - 40 }; };
       let k = 0;
@@ -3618,7 +3690,7 @@
       if (G.mimicAt) { G.mon = null; bs.forEach(b => { b.mon = null; }); mimicNextFromDeath(G); return; }
       G.mon = null; G.wave++; bs.forEach(b => { b.mon = null; b.wave = G.wave; });
       if (G.wave >= (G.waves || C.expeditionWaves)) { bs.forEach(b => finishExpedition(b, H(b))); fallenShare(G); log(`🛡 Отряд завершил поход: ${bs.map(b => DN(H(b))).join(', ')}`, '#bfe0ff'); }
-      else { G.phase = 'spawn'; bs.forEach(b => { const h = H(b), st = stats(h); if (st.regen) h.rpg_hp = Math.min(st.maxhp, h.rpg_hp + Math.round(st.maxhp * st.regen)); }); }
+      else { G.phase = 'spawn'; bs.forEach(b => { const h = H(b), st = stats(h); if (st.regen) h.rpg_hp = Math.min(st.maxhp, h.rpg_hp + Math.round(st.maxhp * st.regen)); if (G.g9) h.rpg_hp = Math.min(st.maxhp, h.rpg_hp + Math.round(st.maxhp * (G9().hike.waveHeal || 0))); }); } // v9: передышка между волнами гильд-похода
     }
   }
   // v49.3: павший в пати-походе получает долю отряда, если хоть кто-то дошёл до конца: fallenShare × (добыча выжившего после гибели павшего) × party.reward. Лута нет.
@@ -3818,7 +3890,7 @@
     'трофей': (n, a) => trophyCmd(n, a), 'трофеи': (n, a) => trophyCmd(n, a), // v49.8
     'сет': (n, a) => setsCmd(n, a), // v47: !сет 1|2, !сет сохранить 1|2
     'снять': (n, a) => unequip(n, a) || titleCmd(n, 'снять'), 'продать': (n, a) => { const s = String(a || '').trim(); if (/^(?:лут|loot)(?:\s+|:)/i.test(s)) return sellLoot(n, s); const veg = /^(огурец|помидор|морков|баклажан|тыкв|сорняк|всё|все)/i.test(s); return veg ? sellVeg(n, a) : sellEquip(n, a); }, 'купитьсемена': (n, a) => buySeeds(n, a),
-    'голос': (n, a) => g9VoteCmd(n, a), 'гм': n => g9VoteCmd(n, ''), 'наградить': (n, a) => g9RewardCmd(n, a), 'казна': (n, a) => g9BankCmd(n, a), 'бафф': (n, a) => g9BuffCmd(n, a), 'гильдпоход': n => g9HikeCmd(n), // v9: механики гильдий
+    'голос': (n, a) => g9VoteCmd(n, a), 'гм': (n, a) => /^(уйти|уйду|сложить|отставка)$/i.test(String(a || '').trim()) ? g9ResignCmd(n) : g9VoteCmd(n, ''), 'цель': n => g9FocusCmd(n), 'наградить': (n, a) => g9RewardCmd(n, a), 'казна': (n, a) => g9BankCmd(n, a), 'бафф': (n, a) => g9BuffCmd(n, a), 'гильдпоход': n => g9HikeCmd(n), // v9: механики гильдий
     'пати': n => partyJoin(n), // v6.55 п.19 // v6.55 п.5: !титул — список, !титул N — надеть, !титул снять — убрать
     'квест': (n, a) => chooseQuest(n, a), 'отмена': (n, a) => abandonQuest(n), 'неделя': (n, a) => takeWeekly(n, a), 'гильдия': (n, a) => a && GCONF.confirm ? guildAsk(n, a) : joinGuild(n, a), 'да': n => hasPending(n) ? pendingConfirm(n, true) : guildConfirm(n, true), 'нет': n => hasPending(n) ? pendingConfirm(n, false) : guildConfirm(n, false), 'заточка': (n, a) => sharpenCmd(n, a), 'точить': (n, a) => sharpenCmd(n, a), 'смена': (n, a) => changeCmd(n, a), 'железо': (n, a) => stoneToIron(n, a), 'босс': n => joinBoss(n), 'удар': n => strike(n), 'лечить': n => heal(n), 'оглушить': n => bossCC(n, 'stun'), 'замедлить': n => bossCC(n, 'slow'), 'связать': n => bossCC(n, 'bind'), 'очистить': n => bossCC(n, 'purge'), 'прикрыть': n => bossCC(n, 'cover'), 'заслон': n => bossCC(n, 'wall'), 'воскресить': n => bossCC(n, 'revive'), 'воскрешение': n => bossCC(n, 'revive'), 'рес': n => bossCC(n, 'revive'),
   };
@@ -3835,7 +3907,7 @@
     const cmd = lc(m[1]), fn = CHAT_CMDS[cmd]; if (!fn) return { ok: false };
     const h = S.heroes[n]; const t = Date.now();
     if (cmd === 'квест' && !m[2].trim()) return chooseQuest(n, '');
-    const cd = (cmd === 'голос' || cmd === 'гм' || cmd === 'наградить' || cmd === 'казна' || cmd === 'бафф' || cmd === 'гильдпоход' || cmd === 'погладить' || cmd === 'удар' || cmd === 'лечить' || cmd === 'квест' || cmd === 'титул' || cmd === 'экип' || cmd === 'сет' || cmd === 'снять' || cmd === 'купить' || cmd === 'чинить' || cmd === 'починить' || cmd === 'парикмахер') ? 0 : C.chatCommandCooldown * 1000; // у боевых свои кулдауны
+    const cd = (cmd === 'голос' || cmd === 'гм' || cmd === 'наградить' || cmd === 'казна' || cmd === 'бафф' || cmd === 'гильдпоход' || cmd === 'цель' || cmd === 'погладить' || cmd === 'удар' || cmd === 'лечить' || cmd === 'квест' || cmd === 'титул' || cmd === 'экип' || cmd === 'сет' || cmd === 'снять' || cmd === 'купить' || cmd === 'чинить' || cmd === 'починить' || cmd === 'парикмахер') ? 0 : C.chatCommandCooldown * 1000; // у боевых свои кулдауны
     if (cmd === 'поход') { const why = hikeBusy(h); if (why) { expeditionHint(h, why); const left = hikeCdLeft(h); return res(h, false, why === 'cooldown' ? `поход: КД ещё ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}` : why === 'queued' ? `поход: ты в очереди ${(expQueueInfo(h.user) || {}).pos || '?'} из ${EXPQ.length}` : why === 'inHike' ? 'поход: уже в походе' : 'поход: ещё возвращается в лагерь'); } } // v6.37: причина — зрителю, раньше общего антиспама
     if (t - (h.rpg_cmdT[cmd] || 0) < cd) return { ok: false, msg: `кулдаун ${Math.ceil((cd - (t - (h.rpg_cmdT[cmd] || 0))) / 1000)} с — команды !${cmd} не чаще раза в ${Math.round(cd / 1000)} с` }; // v49.10: раньше просто «кулдаун» — непонятно, сколько ждать
     // v49.12: в нокауте боевые команды не стартуют chat-КД (раньше rpg_cmdT ставился до проверки и кнопки уходили в откат)
@@ -4506,6 +4578,7 @@
     for (const [ox, oy, sc] of grp) { if (ox || oy) { ctx.save(); ctx.globalAlpha = alpha; shadow(m.x + ox * mw, m.y + oy * hh - 2, Math.round(mw * 0.4)); ctx.restore(); }
       drawImg(m.d.id, m.x + ox * mw, m.y + oy * hh, Math.round(hh * sc / 4) * 4, { flip: mflip, alpha, filter: m.hit > 0 ? 'brightness(1.35)' : undefined }); }
     if (!m.dead) { bar(m.x - 44, m.y - hh - 22, 88, 10, m.hp / m.maxhp, '#e05a3a'); text(m.d.name, m.x, m.y + 24, 22, m.d.rare ? '#ff9cc4' : '#ffd7c2'); }
+    if (!m.dead && b.G && b.G.g9 && b.G.mech && b.G.mech.sub) { const sb = b.G.mech.sub, yy = m.y - hh - 58; text(`🎯 ${sb.name}`, m.x, yy - 16, 20, '#ffd27a'); bar(m.x - 60, yy, 120, 9, Math.max(0, sb.hp / sb.max), '#e8b830'); } // v9: цель мини-босса
   }
 
   // v6.57c: кадр из ленты/сетки с целым экранным множителем (nearest): s экранных пикселей на пиксель арта
@@ -6240,7 +6313,7 @@
   // Кнопки пульта: игра выполняет ТО ЖЕ, что чат-команда от этого ника (chat()), в тихом режиме (без ответов в чат).
   // Ник приходит от relay (он берёт его из проверенного Twitch-токена), клиент пульта ник не передаёт.
   const PANEL_FARM = ['семена', 'посадить', 'грядка', 'жуки', 'собрать', 'магия', 'обмен', 'урожай', 'салат'];
-  const PANEL_ALLOW = ['голос', 'гм', 'наградить', 'казна', 'бафф', 'гильдпоход', 'погладить', 'поход', 'пати', 'огород', 'готовить', 'продать', 'квест', 'вклад', 'титул', 'парикмахер', 'купить', 'экип', 'сет', 'снять', 'чинить', 'починить', 'гильдия', 'вступить', 'да', 'нет',
+  const PANEL_ALLOW = ['голос', 'гм', 'цель', 'наградить', 'казна', 'бафф', 'гильдпоход', 'погладить', 'поход', 'пати', 'огород', 'готовить', 'продать', 'квест', 'вклад', 'титул', 'парикмахер', 'купить', 'экип', 'сет', 'снять', 'чинить', 'починить', 'гильдия', 'вступить', 'да', 'нет',
     'ход', 'босс', 'удар', 'лечить', 'оглушить', 'связать', 'очистить', 'замедлить', 'заслон', 'воскресить', 'прикрыть', 'отмена', 'купитьсемена', 'заточка'].concat(PANEL_FARM); // v49.4: + отмена квеста, покупка семян
   const PANEL_CD = {};
   // v7panel31: «Сделать ход» с пульта. Обычно ход — награда канала за баллы Twitch (пульт баллы списать не может).

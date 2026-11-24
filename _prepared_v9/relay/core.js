@@ -36,7 +36,7 @@ export const CMD_RULES = {
   'семена': { arg: 'none' }, 'посадить': { arg: 'none' }, 'грядка': { arg: 'none' }, 'жуки': { arg: 'none' }, 'собрать': { arg: 'none' },
   'магия': { arg: 'none' }, 'обмен': { arg: 'none' }, 'урожай': { arg: 'none' }, 'салат': { arg: 'none' },
   'погладить': { arg: 'opt' }, 'котик': { arg: 'none' }, // v8.7: пёсик и котик
-  'голос': { arg: 'opt' }, 'гм': { arg: 'none' }, 'наградить': { arg: 'req' }, 'казна': { arg: 'opt' }, 'бафф': { arg: 'opt', re: /^[1-9]$/ }, 'гильдпоход': { arg: 'none' } // v9: механики гильдий
+  'голос': { arg: 'opt' }, 'гм': { arg: 'none' }, 'наградить': { arg: 'req' }, 'казна': { arg: 'opt' }, 'бафф': { arg: 'opt', re: /^[1-9]$/ }, 'гильдпоход': { arg: 'none' }, 'цель': { arg: 'none' } // v9: механики гильдий
 };
 export function checkCmd(cmd, arg) {
   if (typeof cmd !== 'string' || !Object.prototype.hasOwnProperty.call(CMD_RULES, cmd)) return 'not-allowed';
