@@ -1641,6 +1641,24 @@
   const SHARP = new Map(), SHARP_ORIG = new Map(); let sharpBusy = false;
   const root0 = () => $('#bs') || document.body;
   function origImg(u) { let o = SHARP_ORIG.get(u); if (!o) { o = new Image(); o.decoding = 'async'; o.src = u; SHARP_ORIG.set(u, o); } return o; }
+  // уменьшение «как в фоторедакторе»: усреднение по площади (каждый пиксель результата — среднее всех исходных под ним) + лёгкая резкость.
+  // Встроенное уменьшение браузера на ПК (масштаб экрана 100%) мылит; на телефоне экран плотнее, поэтому там было чётко.
+  function downscale(img, tw, th) {
+    const sw = img.naturalWidth, sh = img.naturalHeight, c0 = document.createElement('canvas'); c0.width = sw; c0.height = sh; const g0 = c0.getContext('2d'); g0.drawImage(img, 0, 0);
+    const S = g0.getImageData(0, 0, sw, sh).data, out = new Float32Array(tw * th * 4), kx = sw / tw, ky = sh / th;
+    for (let y = 0; y < th; y++) { const y0 = y * ky, y1 = y0 + ky;
+      for (let x = 0; x < tw; x++) { const x0 = x * kx, x1 = x0 + kx; let r = 0, g = 0, b = 0, a = 0, wsum = 0;
+        for (let yy = Math.floor(y0); yy < Math.ceil(y1); yy++) { const wy = Math.min(y1, yy + 1) - Math.max(y0, yy); if (wy <= 0 || yy >= sh) continue;
+          for (let xx = Math.floor(x0); xx < Math.ceil(x1); xx++) { const wx = Math.min(x1, xx + 1) - Math.max(x0, xx); if (wx <= 0 || xx >= sw) continue;
+            const w = wx * wy, i = (yy * sw + xx) * 4, al = S[i + 3] * w; r += S[i] * al; g += S[i + 1] * al; b += S[i + 2] * al; a += al; wsum += w; } }
+        const o = (y * tw + x) * 4; out[o + 3] = a / wsum; if (a > 0) { out[o] = r / a; out[o + 1] = g / a; out[o + 2] = b / a; } } }
+    const c = document.createElement('canvas'); c.width = tw; c.height = th; const g = c.getContext('2d'), D = g.createImageData(tw, th), d = D.data, AMT = 0.45;
+    for (let y = 0; y < th; y++) for (let x = 0; x < tw; x++) { const o = (y * tw + x) * 4;
+      for (let ch = 0; ch < 3; ch++) { let s2 = 0, n = 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= tw || Y >= th) continue; const q = (Y * tw + X) * 4; if (out[q + 3] < 8) continue; s2 += out[q + ch]; n++; }
+        const v = n ? out[o + ch] + AMT * (out[o + ch] - s2 / n) : out[o + ch]; d[o + ch] = v < 0 ? 0 : v > 255 ? 255 : v; }
+      d[o + 3] = out[o + 3]; }
+    g.putImageData(D, 0, 0); return c;
+  }
   async function sharpHeroes() {
     if (sharpBusy || !on || !window.createImageBitmap) return; sharpBusy = true;
     try {
@@ -1653,7 +1671,7 @@
         if (th >= o.naturalHeight * 0.92) { if (img.dataset.orig) { img.src = orig; delete img.dataset.orig; img.style.height = ''; img.style.translate = ''; } continue; }
         const tw = Math.max(4, Math.round(o.naturalWidth * th / o.naturalHeight)), key = orig + '|' + th + (root0().classList.contains('live-on') ? '|L' : '');
         let url = SHARP.get(key);
-        if (!url) { const bm = await createImageBitmap(o, { resizeWidth: tw, resizeHeight: th, resizeQuality: 'high' }); const c = document.createElement('canvas'); c.width = tw; c.height = th; const g2 = c.getContext('2d'); g2.drawImage(bm, 0, 0); if (root0().classList.contains('live-on')) { g2.globalCompositeOperation = 'destination-over'; g2.shadowColor = 'rgba(255,236,205,.65)'; g2.shadowBlur = 2.5; g2.drawImage(bm, 0, 0); } bm.close && bm.close(); // светлая кайма — прямо в картинке (CSS-фильтр на масштабированной сцене мылит)
+        if (!url) { const bm = await createImageBitmap(downscale(o, tw, th)); const c = document.createElement('canvas'); c.width = tw; c.height = th; const g2 = c.getContext('2d'); g2.drawImage(bm, 0, 0); if (root0().classList.contains('live-on')) { g2.globalCompositeOperation = 'destination-over'; g2.shadowColor = 'rgba(255,236,205,.65)'; g2.shadowBlur = 2.5; g2.drawImage(bm, 0, 0); } bm.close && bm.close(); // светлая кайма — прямо в картинке (CSS-фильтр на масштабированной сцене мылит)
           const b = await new Promise(res => c.toBlob(res)); if (!b) continue; url = URL.createObjectURL(b); if (SHARP.size > 600) { for (const [k, u] of SHARP) { URL.revokeObjectURL(u); SHARP.delete(k); if (SHARP.size < 400) break; } } SHARP.set(key, url); }
         if (img.getAttribute('src') !== url) { img.dataset.orig = orig; img.src = url; }
         img.style.height = (th / (ss * dpr)) + 'px'; // ровно th пикселей экрана
