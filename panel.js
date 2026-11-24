@@ -66,7 +66,7 @@
   // ---------- Отрисовка ----------
   // v48: у каждого босса своё логово — game.js v48 шлёт boss.lair (например boss_queen) → img/boss_queen.jpg. Нет поля (старая игра) или файла — общее img/boss.jpg.
   function lairOf(l) { const lr = l === 'boss' && state && state.boss && state.boss.lair; return lr && /^boss_[a-z0-9_]{1,24}$/.test(lr) && !imgs['!' + lr] ? lr : l; }
-  function img(l) { l = lairOf(l); if (!imgs[l]) { const i = imgs[l] = new Image(), k = l; i.onload = draw; if (k !== 'boss' && /^boss_/.test(k)) i.onerror = () => { imgs['!' + k] = 1; delete imgs[k]; draw(); }; i.src = 'img/' + l + '.jpg?v=' + (l === 'camp' ? 'live1' : l === 'garden' ? 'live2' : l === 'town' ? 'live3' : 'locations-final-v1'); } return imgs[l]; }
+  function img(l) { l = lairOf(l); if (!imgs[l]) { const i = imgs[l] = new Image(), k = l; i.onload = draw; if (k !== 'boss' && /^boss_/.test(k)) i.onerror = () => { imgs['!' + k] = 1; delete imgs[k]; draw(); }; i.src = 'img/' + l + '.jpg?v=' + (l === 'camp' ? 'live1' : l === 'garden' ? 'live2' : l === 'town' ? 'live3' : l === 'forest' ? 'live4' : 'locations-final-v1'); } return imgs[l]; }
   function curLoc() { const me = state && state.me; return tab === 'me' ? (me ? me.loc : (state && state.cam) || 'camp') : tab; }
   // v7panel3b: на превью — спрайты героев как в игре (класс, пол, волосы, окраска сета, взгляд), свой — со звёздочкой и подсветкой; нет спрайта → точка
   // v7panel4 п.11: спрайты на превью выключены (лагали и не совпадали по цвету с игрой) — цветные точки класса. Код спрайтов оставлен: SPRITES = true вернёт их.
