@@ -1641,17 +1641,22 @@
   async function sharpHeroes() {
     if (sharpBusy || !on || !window.createImageBitmap) return; sharpBusy = true;
     try {
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = window.devicePixelRatio || 1, sc = $('#bsScene'), ss = sc ? (sc.getBoundingClientRect().width / 2560) : 1; if (!ss) return;
       for (const img of document.querySelectorAll('#bs .hero img')) {
         const orig = img.dataset.orig || img.getAttribute('src'); if (!orig || /^blob:/.test(orig)) continue;
         const o = origImg(orig); if (!o.complete || !o.naturalHeight) continue;
-        const r = img.getBoundingClientRect(); if (!r.height) continue;
-        const th = Math.max(8, Math.round(r.height * dpr)); if (th >= o.naturalHeight * 0.92) { if (img.dataset.orig) { img.src = orig; delete img.dataset.orig; } continue; }
+        const hero = img.closest('.hero'), hs = parseFloat(getComputedStyle(hero).getPropertyValue('--hs')) || 1, cssH = 192 * hs;
+        const th = Math.max(8, Math.round(cssH * ss * dpr)); // высота на экране в пикселях
+        if (th >= o.naturalHeight * 0.92) { if (img.dataset.orig) { img.src = orig; delete img.dataset.orig; img.style.height = ''; img.style.translate = ''; } continue; }
         const tw = Math.max(4, Math.round(o.naturalWidth * th / o.naturalHeight)), key = orig + '|' + th;
         let url = SHARP.get(key);
         if (!url) { const bm = await createImageBitmap(o, { resizeWidth: tw, resizeHeight: th, resizeQuality: 'high' }); const c = document.createElement('canvas'); c.width = tw; c.height = th; c.getContext('2d').drawImage(bm, 0, 0); bm.close && bm.close();
           const b = await new Promise(res => c.toBlob(res)); if (!b) continue; url = URL.createObjectURL(b); if (SHARP.size > 600) { for (const [k, u] of SHARP) { URL.revokeObjectURL(u); SHARP.delete(k); if (SHARP.size < 400) break; } } SHARP.set(key, url); }
         if (img.getAttribute('src') !== url) { img.dataset.orig = orig; img.src = url; }
+        img.style.height = (th / (ss * dpr)) + 'px'; // ровно th пикселей экрана
+        // привязка к пикселю экрана: дробный сдвиг даёт размытие
+        img.style.translate = ''; const r = img.getBoundingClientRect(), dx = Math.round(r.left * dpr) / dpr - r.left, dy = Math.round(r.top * dpr) / dpr - r.top;
+        if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) img.style.translate = (dx / ss) + 'px ' + (dy / ss) + 'px';
       }
     } catch (e) { console.warn('sharp', e); } finally { sharpBusy = false; }
   }
