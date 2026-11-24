@@ -346,13 +346,13 @@
     const k6 = String(t[6] || '').replace(/_sit$/, '');
     const sit = t[5] === 'sleep', hair = t[7] || '';
     // h8: сидячие спрайты убраны — спящие тоже рисуются стоя (новый стиль)
-    const key = (hair && k6 && !k6.endsWith('_' + hair)) ? k6 + '_' + hair : k6;
+    const key = (hair && k6 && !k6.endsWith('_' + hair) && !k6.endsWith('_' + hair + '_beard')) ? k6 + '_' + hair : k6; // v8.4: ключ с бородой уже полный
     return key ? 'img/h7/' + key + '.webp?v=h8' : '';
   }
   function sprFb(t) {
     const k6 = String(t[6] || '').replace(/_sit$/, '');
     const hair = t[7] || '';
-    const key = (hair && k6 && !k6.endsWith('_' + hair)) ? k6 + '_' + hair : k6;
+    const key = (hair && k6 && !k6.endsWith('_' + hair) && !k6.endsWith('_' + hair + '_beard')) ? k6 + '_' + hair : k6; // v8.4: ключ с бородой уже полный
     return key ? 'img/h/' + (key) + '.webp?v=h8' : (k6 ? 'img/h/' + k6 + '.webp' : '');
   }
 
