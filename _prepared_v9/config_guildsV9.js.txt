@@ -1,0 +1,13 @@
+  // ---------- v9: МЕХАНИКИ ГИЛЬДИЙ (вставить в config.js рядом с guildBalance) ----------
+  guildsV9: {
+    enabled: true,               // false — всё выключено, игра как раньше
+    gm: { enabled: true, minVotes: 2, rewardGold: 150, medalPct: 0.05, medalDays: 3 },
+    bank: { enabled: true, minDeposit: 10, maxPerWeek: 1000, days: 7, sizeNorm: 6, noGmMin: 200,
+      buffs: [ { id: 'gold', name: 'Знамя богатства', icon: 'buff_gold', price: 1500, gold: 0.15, txt: '+15% золота в походах' },
+               { id: 'xp',   name: 'Знамя мудрости',  icon: 'buff_xp',   price: 1500, xp: 0.15,   txt: '+15% опыта' },
+               { id: 'hp',   name: 'Знамя стойкости', icon: 'buff_hp',   price: 1200, hp: 0.10,   txt: '+10% здоровья' },
+               { id: 'dmg',  name: 'Знамя ярости',    icon: 'buff_dmg',  price: 2000, atk: 0.08,  txt: '+8% урона' } ] },
+    hike: { enabled: true, waves: 5, min: 2, max: 5, waitSec: 120, perDay: 1, mobHpPer: 1.3, mobAtk: 1.9, waveUp: 0.1, reward: 2.0, guildPts: 3, chest: 'silver',
+      boss: { hp: 2.4, atk: 1.15 } },
+    inactiveKickDays: 30         // 0 — никого не выводить из гильдии
+  },

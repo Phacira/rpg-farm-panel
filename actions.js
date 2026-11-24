@@ -86,7 +86,27 @@
       return [{ pic: /^[a-z0-9_]{3,40}$/.test(me.hk + '_' + hr) ? `img/h/${me.hk}_${hr}${on ? '_beard' : ''}.webp` : '', label: on ? '🧔 Отрастить бороду' : '🪒 Сбрить бороду', sub: `${BP} з`, dis: gold < BP, arg: 'борода', confirm: on ? `Отрастить бороду за ${BP} золота?` : `Сбрить бороду за ${BP} золота?` }]; };
     const hair = () => beardRow().concat((ref.hair || []).filter(([id]) => !brb || !Array.isArray(me.ha) || me.ha.includes(id)).map(([id, n]) => ({ pic: brb && /^[a-z0-9_]{3,40}$/.test(me.hk + '_' + id) ? `img/h/${me.hk}_${id}${bd}.webp` : '', label: n, sub: me && me.hair === id ? 'сейчас' : `${ref.hairPrice || 250} з`, dis: (me && me.hair === id) || gold < (ref.hairPrice || 250), arg: brb ? id : n, confirm: `Покрасить волосы в «${n}» за ${ref.hairPrice || 250} золота?` })));
     const guilds = () => { const G = ref.guilds || [], av = G.map(x => +x[3]).filter(v => !isNaN(v)), gmn = Math.min(...av), gmx = Math.max(...av); const hasF = G.some(x => x.length > 6); return G.map(([id, n, , ga, gt, gd, sjg, udp], i) => ({ label: n, sub: [me && me.gid === id ? 'ваша гильдия' : '', gt != null ? (gd ? `активных ${ga} из ${gt}` : `${gt} чел.`) : '', udp ? `слабая: +${udp}% золота и опыта` : '', !(me && me.gid === id) && (hasF ? sjg > 0 : av.length > 1 && +ga === gmn && gmn < gmx) ? (sjg ? `🎁 +${sjg} з за вступление` : '🎁 бонус за вступление') : ''].filter(Boolean).join(' · '), /* v8.7 */ /* v49.8: активные за gd дней */ dis: me && me.gid === id, arg: String(i + 1), confirm: `Вступить в гильдию «${n}»?${sjg && !(me && me.gid === id) ? `\nЭто маленькая гильдия: +${sjg} золота за вступление (раз в 30 дней) и переход без ожидания.` : ''}` })); };
-    const quests = () => me && me.q ? [{ label: 'У вас уже есть задание', dis: true }] : (me && me.of || []).map((id, i) => ({ label: `${i + 1}. ${(ref.quests || {})[id] || id}`, arg: String(i + 1) })).concat([{ label: 'Показать список (без хода)', arg: '' }]);
+
+    // v9: меню гильдии — гильд-мастер, казна, баффы, гильд-поход (если игра прислала ref.g9)
+    const G9 = ref.g9, myG = G9 && me && me.gid ? (G9.g || []).find(x => x.id === me.gid) : null, mg9 = (me && me.g9) || {};
+    const isMeU = u => me && (String(u).toLowerCase() === String(me.n || '').toLowerCase());
+    const fmtD = t => new Date(t).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+    const guildMenu = () => {
+      if (!myG) return guilds();
+      const others = (myG.members || []).filter(([u]) => !isMeU(u)), L = [];
+      L.push({ note: 1, label: `${me.gd}: ${myG.gm ? '👑 гильд-мастер — ' + myG.gm : 'гильд-мастер не выбран'}`, sub: `казна ${myG.bank} з${myG.buff ? ` · 🚩 ${myG.buff[1]} (${myG.buff[2]}) до ${fmtD(myG.buff[3])}` : ''}${mg9.medal ? ` · 🏅 у тебя медаль до ${fmtD(mg9.medal)}` : ''}` });
+      if (G9.gm) L.push({ label: 'Выбрать гильд-мастера', pic: 'img/g9/guild_vote.png', sub: mg9.vote ? `твой голос: ${((myG.members || []).find(([u]) => u === mg9.vote) || [0, mg9.vote])[1]}` : `ГМ становится тот, у кого больше голосов (от ${G9.minVotes})`,
+        next: [{ note: 1, label: 'ГМ раз в неделю награждает игрока и выбирает бафф гильдии' }].concat(others.map(([u, dn]) => ({ label: dn, sub: u === myG.gmu ? `сейчас ГМ · ${myG.gv} гол.` : u === mg9.vote ? 'твой голос' : '', cmd: 'голос', arg: u, dis: u === mg9.vote })), mg9.vote ? [{ label: 'Отозвать голос', cmd: 'голос', arg: 'снять' }] : []) });
+      if (G9.gm && isMeU(myG.gmu)) L.push({ label: 'Наградить игрока', pic: 'img/g9/gm_medal.png', sub: myG.rew ? 'на этой неделе уже наградил' : `+${G9.rewardGold} з и медаль (+5% золота и опыта)`, dis: !!myG.rew,
+        next: others.map(([u, dn]) => ({ label: dn, cmd: 'наградить', arg: u, confirm: `Наградить ${dn}? Это награда гильд-мастера на всю неделю.` })) });
+      if (G9.bank) L.push({ label: 'Внести в казну', pic: 'img/g9/guild_bank.png', sub: `в казне ${myG.bank} з · ты внёс ${mg9.dep || 0} из ${G9.maxDep} за неделю`,
+        next: [50, 100, 200, 500].map(v => ({ label: `${v} золота`, cmd: 'казна', arg: String(v), dis: (me.gold || 0) < v || (mg9.dep || 0) >= G9.maxDep })) });
+      if (G9.bank) L.push({ label: 'Бафф гильдии', pic: 'img/g9/buff_gold.png', sub: myG.buff ? `${myG.buff[1]} до ${fmtD(myG.buff[3])}` : 'на 7 дней для всей гильдии, из казны',
+        next: [{ note: 1, label: myG.gm ? 'Покупает гильд-мастер' : 'ГМ нет — купить может тот, кто внёс в казну 200+ з на этой неделе' }].concat((G9.buffs || []).map((b, i) => ({ label: `${b[1]} — ${myG.prices[i]} з`, pic: `img/g9/${b[3]}.png`, sub: b[2], cmd: 'бафф', arg: String(i + 1), dis: !!myG.buff || myG.bank < myG.prices[i], confirm: `Поднять «${b[1]}» (${b[2]}) на 7 дней за ${myG.prices[i]} з из казны?` }))) });
+      if (G9.hike) L.push({ label: '⚔ Гильд-поход', sub: !myG.hl ? 'сегодня уже был' : mg9.inQ ? `ты в отряде · ${myG.hq}/${G9.hmax}` : `${G9.waves} волн и мини-босс · отряд ${myG.hq}/${G9.hmax}`, dis: !myG.hl || !!mg9.inQ, cmd: 'гильдпоход', confirm: `Идти в гильд-поход? Отряд ${G9.hmin}–${G9.hmax} игроков твоей гильдии, ${G9.waves} волн и мини-босс.` });
+      L.push({ label: '🏰 Сменить гильдию', next: guilds() });
+      return L;
+    };    const quests = () => me && me.q ? [{ label: 'У вас уже есть задание', dis: true }] : (me && me.of || []).map((id, i) => ({ label: `${i + 1}. ${(ref.quests || {})[id] || id}`, arg: String(i + 1) })).concat([{ label: 'Показать список (без хода)', arg: '' }]);
     // v49.8: «Надеть» — только то, что лежит в сумке и не надето (кольцо может быть в слоте ring1 или ring2); дубли id не показываем
     const wear = () => { const L = [...new Set(me && me.eqOwn || [])].filter(id => !eqWorn(id)).map(id => (ref.eq || []).find(i => i[0] === id)).filter(Boolean).map(([id, n, , slot, , , stt]) => ({ ic: ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : '', label: n, sub: (SLOT_RU[slot] || slot) + (stt ? ' · ' + stt : ''), arg: id, confirm: `Надеть «${n}»?` }));
       return L.length ? L : [{ label: 'В сумке нет вещей, которые можно надеть', sub: 'всё купленное уже надето', note: 1 }]; };
@@ -170,7 +190,7 @@
         ['⏳', 'Грядка', 'грядка', '', 'сколько ждать'], ['🐞', 'Жуки', 'жуки', '', 'отогнать'], ['🧺', 'Собрать', 'собрать', '', 'урожай'],
         ['✨', 'Магия', 'магия', '', magicSub], ['🔁', 'Обмен', 'обмен', '', '10 сорняков → овощ', 'Обменять 10 сорняков на овощ?'], ['🥗', 'Салат', 'салат', '', saladSub, saladAsk], ['📦', 'Урожай', 'урожай', '', 'что у меня есть'],
         ['🍲', 'Готовить', 'готовить', recipes, me && me.ccd > 0 ? `КД ${Math.floor(me.ccd / 60)}:${String(me.ccd % 60).padStart(2, '0')}` : 'можно'], ['💰', 'Продать', 'продать', () => crops, 'овощи'], ['🏗', 'Вклад', 'вклад', () => bldPick('garden'), 'в сарай']],
-      camp: [['🏰', 'Гильдия', 'гильдия', guilds, me && me.gd ? me.gd : 'выбрать'],
+      camp: [['🏰', 'Гильдия', 'гильдия', guildMenu, me && me.gd ? me.gd : 'выбрать'],
         ['✔', 'Да', 'да', '', 'подтвердить гильдию'], ['✖', 'Нет', 'нет', '', 'отменить выбор'], ['🏗', 'Вклад', 'вклад', () => bldPick('camp'), 'костёр, палатка']],
       forest: [['⚔', 'В поход', 'поход', '', hike], ...(me ? [turnBtn] : []), ['🛡', 'Пати-поход', 'пати', '', me && me.pty ? 'вы в очереди' : 'вместе с другими']],
       boss: bossOrder(me, [['☠', 'Записаться', 'босс', '', 'в отряд на босса'], ['👊', 'Удар', 'удар', '', 'раз в 60 с'], ['💚', 'Лечить', 'лечить', '', 'раз в 30 с'],
@@ -178,7 +198,7 @@
         ['🐌', 'Замедлить', 'замедлить', '', 'замедлить каст'], ['🛡', 'Заслон', 'заслон', '', 'щит отряду'], ['🎯', 'Прикрыть', 'прикрыть', '', 'принять удар Метки'], ['✝', 'Воскресить', 'воскресить', '', 'поднять союзника']]),
       me: me ? [turnBtn, ['🎒', 'Надеть', 'экип', wear, 'своё снаряжение'], ['🧤', 'Снять', 'снять', unwear, 'вещь со слота'], ['💰', 'Продать вещь', 'продать', sellEq, 'кузня · трофеи'], ...trophyBtn(), ['🏷', 'Титул', 'титул', titles, me.ttOn || 'выбрать'],
         ...(me.pt && me.pt.length ? [['🐾', 'Питомец', 'экип', pets, ((me.pt.find(p => p[0] === me.ptOn) || [])[1]) || 'не взят']] : []),
-        hairBtn, ['🏰', 'Гильдия', 'гильдия', guilds, me.gd || 'выбрать'], ['⚒', 'Кузница', 'купить', shop, 'купить / надеть / продать'], ...(me.dr && me.dr.i && me.dr.i.length ? [['🔧', 'Починить', 'чинить', repair, 'у кузницы · ' + me.dr.t + ' з']] : []), ...sharpBtn()]
+        hairBtn, ['🏰', 'Гильдия', 'гильдия', guildMenu, me.gd || 'выбрать'], ['⚒', 'Кузница', 'купить', shop, 'купить / надеть / продать'], ...(me.dr && me.dr.i && me.dr.i.length ? [['🔧', 'Починить', 'чинить', repair, 'у кузницы · ' + me.dr.t + ' з']] : []), ...sharpBtn()]
         : [['🧙', 'Стать героем', 'вступить', '', 'нужна награда канала']]
     };
   }
