@@ -33,7 +33,7 @@
     const m = meta(k); if (!m || !/^[a-z0-9_]{3,40}$/.test(k)) return null;
     const ramp = hid && ramps && ramps[hid], key = k + '|' + (ramp ? hid : '') + '|' + (dy || '');
     if (OUT.has(key)) return OUT.get(key);
-    const im = load(BASE + k + '.webp?v=h8'), mk = m[5] && ramp ? load(BASE + 'hm_' + k + '.png') : null;
+    const im = load(BASE + k + '.webp?v=' + (/_priest_/.test(k) ? 'h8p' : 'h8')), mk = m[5] && ramp ? load(BASE + 'hm_' + k + '.png') : null;
     if (!ok(im) || (mk && !ok(mk) && !mk.bad)) return null;
     let c = canvasOf(im);
     try { if (dy) dye(c, dy); if (mk && ok(mk)) hair(c, mk, ramp); } catch (e) { c = canvasOf(im); }
