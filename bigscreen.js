@@ -99,6 +99,7 @@
           <img class="bg" id="bsBg" alt="">
           <canvas class="bg live" id="bsLive" width="1920" height="1080" hidden></canvas>
           <div class="glow" id="bsGlow"></div>
+          <button type="button" class="dog-hit" id="bsDog" title="Погладить пёсика" aria-label="Погладить пёсика" hidden></button>
           <div id="bsActors"></div>
           <div id="bsWalls" aria-hidden="true"></div>
           <div class="fx-layer" id="bsFx"></div>
@@ -1703,6 +1704,17 @@
     liveKick();
   }
   document.addEventListener('visibilitychange', liveKick);
+  // v8.6: пёсик в городе — тап/клик по нему: твой герой идёт гладить (команда уходит в игру)
+  let dogLast = 0;
+  let dogDown = null;
+  document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#bsDog')) dogDown = { x: e.clientX, y: e.clientY, t: Date.now() }; }, true);
+  document.addEventListener('pointerup', e => { const b = e.target.closest && e.target.closest('#bsDog'); const dd = dogDown; dogDown = null; if (!b || !dd || Math.hypot(e.clientX - dd.x, e.clientY - dd.y) > 12 || Date.now() - dd.t > 600) return; e.preventDefault(); e.stopPropagation();
+    if (Date.now() - dogLast < 3000) return; dogLast = Date.now();
+    if (window.LIVE6) LIVE6.pet('town');
+    if (window.PanelActions && PanelActions.fire) PanelActions.fire('парикмахер', 'погладить', '🐶 Погладить пёсика'); }, true);
+  function dogSpot() { const b = $('#bsDog'); if (!b) return; const d = window.LIVE6 && LIVE6.dogXY && LIVE6.dogXY('town'), vl = ($('#bs') && $('#bs').dataset.view) || bsLoc;
+    b.hidden = !(on && d && vl === 'town'); if (b.hidden) return; b.style.left = (d.x - 70) + 'px'; b.style.top = (d.y - 130) + 'px'; }
+  setInterval(dogSpot, 500);
   function sync() { return window.__keepScroll ? window.__keepScroll(sync0) : sync0(); } // n3: прокрутка не сбрасывается
   function sync0() {
     enterBtn();

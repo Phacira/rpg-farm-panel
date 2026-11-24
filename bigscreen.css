@@ -517,3 +517,7 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs .hero img,#bs.live-on .hero img{filter:none}
 #bs .hero.hit img{filter:brightness(1.7)}
 #bs.live-on .scene img.bg{opacity:0} /* v8.6: под живым фоном картинка не просвечивает полоской по краю */
+
+/* v8.6: пёсик — область клика */
+#bs .dog-hit{position:absolute;width:140px;height:140px;background:transparent;border:0;padding:0;margin:0;cursor:pointer;z-index:2;border-radius:50%;-webkit-tap-highlight-color:transparent;min-height:0;min-width:0;box-shadow:none}
+#bs .dog-hit:hover{background:radial-gradient(circle,rgba(255,230,160,.18),transparent 70%)}
