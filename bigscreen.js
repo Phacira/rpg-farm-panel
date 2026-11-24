@@ -24,6 +24,7 @@
     else { const s = new Set(v.split(',').map(x => x.trim()).filter(Boolean)); fold.loc = s.has('loc'); fold.bar = s.has('bar'); fold.feed = s.has('feed'); fold.party = s.has('party'); }
   })();
   const $ = (s, r) => (r || document).querySelector(s);
+  const ZOOM_OK = typeof CSS !== 'undefined' && CSS.supports && CSS.supports('zoom', '2');
   const esc = s => window.__panel && __panel.esc ? __panel.esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const wantOn = () => { try { if (/[?&]big=1/.test(location.search)) return true; if (/[?&]big=0/.test(location.search)) return false; return localStorage.getItem(KEY) === '1'; } catch (e) { return /[?&]big=1/.test(location.search); } };
 
@@ -1446,7 +1447,8 @@
       [ox, oy] = clampCam(ox, oy, s, vw, vh);
     }
     updateBossHint(s, ox, oy, vw, vh, st);
-    scene.style.transform = 'translate(' + ox + 'px,' + oy + 'px) scale(' + s + ')'; // v8.6: без 3d-слоя — браузер рисует героев в итоговом размере, чётче
+    if (ZOOM_OK) { scene.style.zoom = s; scene.style.transform = 'translate(' + (ox / s) + 'px,' + (oy / s) + 'px)'; } // v8.6: масштаб через zoom — сцена рисуется в реальном размере, без мыла
+    else scene.style.transform = 'translate(' + ox + 'px,' + oy + 'px) scale(' + s + ')';
     clipNames();
     const zlab = $('#bsZoom [data-z="reset"]');
     if (zlab && !zlab.matches(':active')) zlab.textContent = zoomLabel(camZ);
@@ -1664,6 +1666,7 @@
   // браузер после зума/сдвига камеры оставляет сцену нарисованной в старом (мелком) масштабе и растягивает — мыло.
   // Когда камера остановилась, просим перерисовать сцену в текущем масштабе.
   let camPrev = '', camDone = '';
+
   function reraster() { const sc = $('#bsScene'); if (!sc || !on) return; const t = sc.style.transform; if (t === camPrev && t !== camDone) { camDone = t; sc.style.willChange = 'transform'; requestAnimationFrame(() => requestAnimationFrame(() => { sc.style.willChange = 'auto'; })); } camPrev = t; }
   setInterval(() => { sharpHeroes(); reraster(); }, 700);
   // v8.6: живой фон (облака, звёзды, вечер/ночь, костёр, флаги…) — тот же модуль, что в игре (live6.js), рисуется в canvas поверх картинки фона
