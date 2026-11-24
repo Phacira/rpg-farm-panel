@@ -7,7 +7,7 @@ body.bs-on #sheet{z-index:40}
 body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:100%;height:100%;height:100dvh;min-height:100%;min-height:100dvh;min-height:-webkit-fill-available;max-width:none;z-index:15;background:#000;color:#f3eadc;font:13px/1.35 system-ui,sans-serif;font-weight:700;overflow:hidden;-webkit-backface-visibility:hidden}
 
 #bs .scene-wrap{position:absolute;inset:0;overflow:hidden;background:#100a12}
-#bs .scene{position:absolute;left:0;top:0;width:2560px;height:1440px;transform-origin:0 0;-webkit-backface-visibility:hidden}
+#bs .scene{position:absolute;left:0;top:0;width:2560px;height:1440px;transform-origin:0 0}
 #bs .scene .bg{position:absolute;inset:0;width:2560px;height:1440px;display:block;object-fit:fill;pointer-events:none}
 #bs .glow{position:absolute;left:1280px;top:650px;width:840px;height:520px;transform:translate(-50%,-45%);background:radial-gradient(ellipse,rgba(255,140,50,.28) 0%,rgba(180,70,20,.12) 42%,transparent 70%);mix-blend-mode:screen;pointer-events:none}
 #bs[data-view="boss"] .glow,#bs[data-view="forest"] .glow,#bs[data-view="town"] .glow,#bs[data-view="garden"] .glow{display:none}
@@ -16,7 +16,7 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs .hero .shadow{position:absolute;left:0;bottom:0;width:calc(78px * var(--hs,1));height:calc(14px * var(--hs,1));transform:translate(-50%,45%);background:radial-gradient(ellipse closest-side,rgba(0,0,0,.55) 0%,rgba(0,0,0,.4) 55%,transparent 100%);pointer-events:none} /* h8d: тень плоская и прямо под ступнями — герои не «висят» */
 #bs .hero .ring{display:none;position:absolute;left:0;bottom:2px;width:calc(120px * var(--hs,1));height:calc(30px * var(--hs,1));transform:translate(-50%,40%);border:3px solid #ffd27a;border-radius:50%;box-shadow:0 0 14px rgba(255,210,122,.8),inset 0 0 8px rgba(255,210,122,.35);pointer-events:none}
 #bs .hero.me .ring{display:block}
-#bs .hero img{position:absolute;left:0;bottom:0;height:calc(192px * var(--hs,1));width:auto;transform:translateX(-50%);image-rendering:auto;image-rendering:-webkit-optimize-contrast;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))}
+#bs .hero img{position:absolute;left:0;bottom:0;height:calc(192px * var(--hs,1));width:auto;transform:translateX(-50%);image-rendering:auto;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))}
 #bs .hero.flip img{transform:translateX(-50%) scaleX(-1)}
 #bs .hero .name{position:absolute;left:0;bottom:calc(200px * var(--hs,1));transform:translateX(-50%) translateY(var(--ny,0px));white-space:nowrap;text-align:center;font-size:calc(22px * var(--hs,1));line-height:1.15;color:#fff;text-shadow:0 1px 0 #000,0 0 6px #000,0 2px 8px #000;padding:2px 8px;pointer-events:none}
 #bs .hero.has-hp .name{bottom:calc(214px * var(--hs,1))}

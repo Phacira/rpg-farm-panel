@@ -3,13 +3,14 @@
 // Время суток общее для всех (по часам): CONFIG.live.cycleMin — длина круга «закат → ночь → закат» в минутах.
 // Выключить всё: CONFIG.live = { enabled: false }. Выключить эффект: CONFIG.live.off = ['birds', 'leaves', ...]
 (function () {
-  const W = 2560, H = 1440, SK = 0.5; // небо считается в половинном разрешении — дёшево, облака мягкие
+  const W = 2560, H = 1440, SK = 1, SKY_H = 620; // небо — полоса сверху в полном разрешении (облака чёткие) // небо считается в половинном разрешении — дёшево, облака мягкие
   const LOC = {
     camp: {
       sky: 'camp_sky.png', // маска неба: PNG с прозрачностью (небо непрозрачное), 1280×720
       stars: [[663,38,0.78,0.3,1.91],[192,93,0.91,5.71,0.94],[856,17,0.67,3.46,0.69],[1158,31,1.16,3.96,1.53],[272,74,0.79,3.4,1.51],[370,26,0.91,4.01,1.2],[643,119,0.91,2.85,1.08],[499,20,0.9,3.3,2.0],[919,73,0.93,0.46,1.42],[700,38,1.15,2.65,2.14],[642,87,0.99,3.73,1.53],[934,17,1.09,5.93,1.36],[133,15,1.01,1.94,1.52],[912,72,1.0,5.57,1.16],[945,90,0.62,0.74,0.69],[588,33,1.02,2.5,2.07],[1016,20,0.62,2.52,1.04],[850,91,0.98,2.39,0.97],[169,45,0.61,4.14,0.62],[1206,46,0.68,0.03,1.27],[815,102,0.78,3.02,1.24],[390,17,1.19,2.77,0.78],[1230,13,0.57,3.56,1.46],[52,18,1.11,3.86,0.84],[516,88,0.92,2.98,0.78],[638,21,0.6,4.71,1.78],[1112,6,1.03,1.87,1.63],[534,132,0.76,1.05,1.84],[464,51,0.86,2.23,0.65],[572,120,0.68,4.35,2.13],[715,93,0.56,0.64,1.35],[691,52,0.84,6.19,1.58],[245,99,1.05,4.71,1.36],[680,22,1.06,6.1,1.23],[325,43,1.2,0.17,1.55],[717,39,0.88,0.82,0.62],[432,7,0.68,1.84,0.98],[268,15,1.14,2.22,1.33],[1027,33,0.87,3.29,0.63],[306,44,0.6,3.89,0.79],[116,63,0.63,0.27,0.76],[1048,51,0.98,2.84,1.45],[1071,66,1.15,5.61,0.92],[916,35,0.79,2.46,1.11],[492,109,0.55,4.2,1.85],[749,36,0.68,0.86,1.35],[997,41,1.19,5.23,0.86],[827,86,0.79,2.24,0.75],[749,4,0.74,2.88,1.73],[787,84,0.86,1.86,2.14],[468,26,0.56,1.71,2.05],[371,69,1.03,5.15,1.96],[529,103,0.6,5.77,1.51],[669,22,0.7,5.02,0.89],[148,68,1.16,3.98,1.88],[455,17,0.69,0.76,0.62],[264,11,0.87,1.5,0.78],[330,67,0.54,1.27,1.1],[624,135,1.03,1.82,1.4],[364,69,0.74,0.11,1.0],[31,4,1.01,3.46,0.9],[972,62,1.15,0.67,1.91],[440,58,0.74,5.23,1.73],[286,103,1.19,6.17,1.94],[29,18,0.94,5.53,1.29],[113,21,0.97,2.39,1.41],[600,11,0.82,0.99,1.31],[539,93,1.17,6.11,1.48],[500,8,1.18,1.94,1.17],[781,21,0.83,3.16,0.92],[183,36,0.78,0.26,0.64],[476,21,0.91,3.32,1.8],[1012,38,0.7,3.89,0.83],[1035,35,1.14,4.73,1.51],[470,21,0.52,0.84,1.18],[500,125,0.68,2.87,0.71],[1077,16,1.02,2.98,1.89],[543,60,1.01,1.29,1.78],[783,19,0.84,4.29,1.83],[406,19,0.92,2.08,1.64]], // [x, y, r, фаза, частота] в половинном разрешении
       fire: [1257, 846], steam: [1257, 683],
-      flags: [[339, 304, 467, 574], [877, 314, 989, 564], [1537, 323, 1646, 574], [2057, 304, 2179, 583]],
+      flagAtlas: 'camp_flags.png', // вырезанные флаги (верхний ряд) и место под ними без флага (нижний ряд) — колышется только ткань флага
+      flags: [[324, 290, 157, 298, 0, 0, 306], [863, 300, 139, 278, 157, 0, 306], [1523, 308, 136, 280, 296, 0, 306], [2043, 290, 149, 306, 432, 0, 306]], // [x, y, w, h, x в атласе, y флага, y подложки]
       windows: [[1446, 223, 4], [1431, 254, 4], [1524, 253, 4], [1524, 264, 12], [1310, 261, 3], [1537, 267, 10], [1480, 291, 14], [1476, 293, 15], [1354, 323, 11], [1320, 329, 10], [1386, 334, 29], [1413, 340, 10], [1527, 386, 37], [1534, 393, 34]],
       flies: [[20, 1030, 470, 1400], [2085, 1030, 2540, 1400]], leaves: true, birds: true
     }
@@ -25,13 +26,15 @@
   // 0 = закат, 1 = глубокая ночь; общий для игры и сайта (по часам)
   function nightK() { if (!on('daynight')) return 0.35; const c = cfg(), per = Math.max(1, +c.cycleMin || 240) * 60000, t = (Date.now() % per) / per; return 0.5 - 0.5 * Math.cos(t * Math.PI * 2); }
 
+  // облако как нарисованные на фоне: вытянутая тёмная полоса из нескольких «лепёшек», светлее сверху, тонкая тёплая кайма заката снизу
   function makeCloud(w) {
-    const h = Math.round(w * 0.26), c = mk(w + 8, h + 14), g = c.getContext('2d'), n = 5 + Math.floor(Math.random() * 4), blobs = [];
-    for (let i = 0; i < n; i++) { const bx = 4 + w * (0.12 + 0.76 * i / (n - 1)) + rnd(-6, 6), r = h * rnd(.26, .48); blobs.push([bx, 4 + h * 0.62 - r * 0.35 + rnd(-2, 2), r]); }
-    const shape = (ox, oy) => { g.beginPath(); blobs.forEach(([bx, by, r]) => { g.moveTo(bx + ox + r, by + oy); g.arc(bx + ox, by + oy, r, 0, 7); }); g.rect(4 + w * 0.08 + ox, 4 + h * 0.55 + oy, w * 0.84, h * 0.3); g.fill(); };
-    g.fillStyle = '#1c1028'; [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([ox, oy]) => shape(ox, oy));
-    const gr = g.createLinearGradient(0, 0, 0, h + 8); gr.addColorStop(0, '#4b3567'); gr.addColorStop(.6, '#3a2856'); gr.addColorStop(1, '#2a1c40'); g.fillStyle = gr; shape(0, 0);
-    g.save(); g.globalCompositeOperation = 'source-atop'; const gl = g.createLinearGradient(0, h + 8, 0, h * 0.55); gl.addColorStop(0, 'rgba(220,110,80,.35)'); gl.addColorStop(1, 'rgba(220,110,80,0)'); g.fillStyle = gl; g.fillRect(0, 0, w + 8, h + 14); g.restore();
+    const h = Math.round(w * 0.16), pad = 8, c = mk(w + pad * 2, h + pad * 2), g = c.getContext('2d'), n = 3 + Math.floor(Math.random() * 4), lobes = [];
+    for (let i = 0; i < n; i++) { const t = n === 1 ? .5 : i / (n - 1), rx = w * rnd(.18, .3) * (0.7 + 0.5 * Math.sin(t * Math.PI)), ry = h * rnd(.28, .45) * (0.6 + 0.6 * Math.sin(t * Math.PI)); lobes.push([pad + rx + t * (w - 2 * rx), pad + h * 0.62 - ry * rnd(.2, .6), rx, ry]); }
+    const shape = (oy, k) => { g.beginPath(); lobes.forEach(([x, y, rx, ry]) => { g.moveTo(x + rx * k, y + oy); g.ellipse(x, y + oy, rx * k, ry * k, 0, 0, 7); }); };
+    g.fillStyle = '#e48a5c'; shape(2.5, 1); g.fill(); // тёплая кайма снизу (выглядывает из-под тела облака)
+    g.fillStyle = '#3a2650'; shape(0, 1); g.fill();
+    g.fillStyle = '#4b3366'; shape(-h * 0.12, 0.82); g.fill(); // светлый верх
+    g.fillStyle = 'rgba(110,80,140,.45)'; shape(-h * 0.2, 0.55); g.fill();
     return c;
   }
   function newFly(L) { const r = L.flies[Math.floor(Math.random() * L.flies.length)]; return { x: rnd(r[0], r[2]), y: rnd(r[1], r[3]), vx: rnd(-8, 8), vy: rnd(-5, 5), p: rnd(0, 6.28), life: rnd(6, 14) }; }
@@ -40,18 +43,19 @@
     const L = LOC[loc]; if (!L) return null;
     let s = st[loc]; if (s) return s;
     s = st[loc] = { ready: false, clouds: [], sprites: [], stars: [], sparks: [], steam: [], flies: [], leaves: [], birds: [], shoot: null, nextShoot: 4, nextBirds: 8 };
-    const sw = W * SK, sh = H * SK;
+    const sw = W, sh = SKY_H;
     s.sky = mk(sw, sh); s.mask = mk(sw, sh);
     const im = new Image();
     im.onerror = () => console.warn('live6: нет маски неба', base + L.sky);
     im.onload = () => {
-      s.mask.getContext('2d').drawImage(im, 0, 0, sw, sh); // без getImageData: в OBS (file://) чтение пикселей картинки запрещено
-      s.stars = (L.stars || []).map(([x, y, r, p, f]) => ({ x, y, r, p, f }));
+      s.mask.getContext('2d').drawImage(im, 0, 0, im.width, im.height * SKY_H / H, 0, 0, sw, sh); // без getImageData: в OBS (file://) чтение пикселей картинки запрещено
+      s.stars = (L.stars || []).map(([x, y, r, p, f]) => ({ x: x * 2, y: y * 2, r: r * 1.6, p, f }));
       s.ready = true;
     };
-    im.src = base + L.sky;
+    im.src = base + L.sky + '?v=2';
+    if (L.flagAtlas) { const a = new Image(); a.onload = () => { s.atlas = a; }; a.src = base + L.flagAtlas + '?v=1'; }
     for (let i = 0; i < 7; i++) s.sprites.push(makeCloud(Math.round(rnd(120, 250))));
-    for (let i = 0; i < 6; i++) s.clouds.push({ s: s.sprites[i % s.sprites.length], x: rnd(-150, sw), y: rnd(8, 120), v: rnd(3, 7), a: rnd(.55, .85) });
+    for (let i = 0; i < 6; i++) s.clouds.push({ s: s.sprites[i % s.sprites.length], x: rnd(-300, sw), y: rnd(20, 260), v: rnd(6, 14), a: rnd(.75, .95) });
     if (L.flies) for (let i = 0; i < 7; i++) s.flies.push(newFly(L));
     return s;
   }
@@ -62,10 +66,10 @@
     if (on('daynight')) { g.fillStyle = `rgba(18,10,40,${0.45 * nk})`; g.fillRect(0, 0, sw, sh); }
     if (on('stars')) { g.fillStyle = '#fff7e0'; s.stars.forEach(t => { const tw = 0.55 + 0.45 * Math.sin(T * t.f + t.p); g.globalAlpha = Math.min(1, (0.35 + 0.65 * nk) * tw); g.beginPath(); g.arc(t.x, t.y, t.r, 0, 7); g.fill(); }); g.globalAlpha = 1; }
     if (on('shoot')) {
-      s.nextShoot -= dt; if (!s.shoot && s.nextShoot <= 0 && nk > .3) { s.shoot = { x: rnd(100, sw - 100), y: rnd(5, 60), vx: rnd(190, 260) * (Math.random() < .5 ? -1 : 1), vy: rnd(60, 90), t: 0 }; s.nextShoot = rnd(10, 25); }
-      const o = s.shoot; if (o) { o.t += dt; o.x += o.vx * dt; o.y += o.vy * dt; const a = Math.max(0, 1 - o.t / 0.9), gr = g.createLinearGradient(o.x, o.y, o.x - o.vx * .12, o.y - o.vy * .12); gr.addColorStop(0, `rgba(255,250,230,${a})`); gr.addColorStop(1, 'rgba(255,250,230,0)'); g.strokeStyle = gr; g.lineWidth = 1.5; g.beginPath(); g.moveTo(o.x, o.y); g.lineTo(o.x - o.vx * .12, o.y - o.vy * .12); g.stroke(); if (o.t > .9) s.shoot = null; }
+      s.nextShoot -= dt; if (!s.shoot && s.nextShoot <= 0 && nk > .3) { s.shoot = { x: rnd(200, sw - 200), y: rnd(10, 120), vx: rnd(380, 520) * (Math.random() < .5 ? -1 : 1), vy: rnd(120, 180), t: 0 }; s.nextShoot = rnd(10, 25); }
+      const o = s.shoot; if (o) { o.t += dt; o.x += o.vx * dt; o.y += o.vy * dt; const a = Math.max(0, 1 - o.t / 0.9), gr = g.createLinearGradient(o.x, o.y, o.x - o.vx * .12, o.y - o.vy * .12); gr.addColorStop(0, `rgba(255,250,230,${a})`); gr.addColorStop(1, 'rgba(255,250,230,0)'); g.strokeStyle = gr; g.lineWidth = 2.5; g.beginPath(); g.moveTo(o.x, o.y); g.lineTo(o.x - o.vx * .12, o.y - o.vy * .12); g.stroke(); if (o.t > .9) s.shoot = null; }
     }
-    if (on('clouds')) { s.clouds.forEach(c => { c.x += c.v * dt; if (c.x > sw + 10) { c.x = -c.s.width - rnd(0, 200); c.y = rnd(8, 120); c.v = rnd(3, 7); c.s = s.sprites[Math.floor(Math.random() * s.sprites.length)]; } g.globalAlpha = c.a * (1 - 0.25 * nk); g.drawImage(c.s, Math.round(c.x), Math.round(c.y)); }); g.globalAlpha = 1; }
+    if (on('clouds')) { s.clouds.forEach(c => { c.x += c.v * dt; if (c.x > sw + 10) { c.x = -c.s.width - rnd(0, 400); c.y = rnd(20, 260); c.v = rnd(6, 14); c.s = s.sprites[Math.floor(Math.random() * s.sprites.length)]; } g.globalAlpha = c.a * (1 - 0.25 * nk); g.drawImage(c.s, Math.round(c.x), Math.round(c.y)); }); g.globalAlpha = 1; }
     g.globalCompositeOperation = 'destination-in'; g.drawImage(s.mask, 0, 0); g.globalCompositeOperation = 'source-over';
   }
 
@@ -77,10 +81,14 @@
     const now = performance.now(); if (s.last == null) s.last = now; dt = Math.min(0.1, Math.max(0, (now - s.last) / 1000)); s.last = now; T = now / 1000;
     const nk = nightK();
     skyLayer(s, dt, nk);
-    ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(s.sky, 0, 0, W, H); ctx.restore();
-    if (on('flags') && bg && L.flags) { const bw = bg.naturalWidth || bg.width, kx = bw / W;
+    ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(s.sky, 0, 0, W, SKY_H); ctx.restore();
+    if (on('flags') && L.flags && s.atlas) {
+      const sc = Math.abs(ctx.getTransform().a) || 1, step = Math.max(1, 1 / sc), A = s.atlas;
       ctx.save(); ctx.imageSmoothingEnabled = true;
-      L.flags.forEach(([x0, y0, x1, y1], i) => { const h = y1 - y0, w = x1 - x0; for (let y = y0 + 8; y < y1; y += 2) { const k = (y - y0) / h, dx = Math.sin(T * 1.6 + i * 1.3 - k * 4) * 3 * k * k; if (Math.abs(dx) < 0.2) continue; ctx.drawImage(bg, x0 * kx, y * kx, w * kx, 2 * kx, x0 + dx, y, w, 2); } });
+      L.flags.forEach(([X, Y, w, h, ax, fy, uy], i) => {
+        ctx.drawImage(A, ax, uy, w, h, X, Y, w, h); // подложка: палатка без флага (видна на краях, когда флаг сдвинут)
+        for (let y = 0; y < h; y += step) { const k = Math.max(0, (y - 22) / h), dx = Math.sin(T * 1.6 + i * 1.3 - k * 4) * 3 * k * k, sh = Math.min(step + 0.5, h - y); ctx.drawImage(A, ax, fy + y, w, sh, X + dx, Y + y, w, sh); }
+      });
       ctx.restore(); }
     if (on('daynight')) {
       // ночь: дальний план темнеет сильнее, земля внизу (где стоят герои) — слабее, чтобы герои читались

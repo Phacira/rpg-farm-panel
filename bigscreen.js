@@ -1446,7 +1446,7 @@
       [ox, oy] = clampCam(ox, oy, s, vw, vh);
     }
     updateBossHint(s, ox, oy, vw, vh, st);
-    scene.style.transform = 'translate3d(' + ox + 'px,' + oy + 'px,0) scale(' + s + ')';
+    scene.style.transform = 'translate(' + ox + 'px,' + oy + 'px) scale(' + s + ')'; // v8.6: без 3d-слоя — браузер рисует героев в итоговом размере, чётче
     clipNames();
     const zlab = $('#bsZoom [data-z="reset"]');
     if (zlab && !zlab.matches(':active')) zlab.textContent = zoomLabel(camZ);
