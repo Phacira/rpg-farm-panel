@@ -1661,7 +1661,11 @@
       }
     } catch (e) { console.warn('sharp', e); } finally { sharpBusy = false; }
   }
-  setInterval(sharpHeroes, 700);
+  // браузер после зума/сдвига камеры оставляет сцену нарисованной в старом (мелком) масштабе и растягивает — мыло.
+  // Когда камера остановилась, просим перерисовать сцену в текущем масштабе.
+  let camPrev = '', camDone = '';
+  function reraster() { const sc = $('#bsScene'); if (!sc || !on) return; const t = sc.style.transform; if (t === camPrev && t !== camDone) { camDone = t; sc.style.willChange = 'transform'; requestAnimationFrame(() => requestAnimationFrame(() => { sc.style.willChange = 'auto'; })); } camPrev = t; }
+  setInterval(() => { sharpHeroes(); reraster(); }, 700);
   // v8.6: живой фон (облака, звёзды, вечер/ночь, костёр, флаги…) — тот же модуль, что в игре (live6.js), рисуется в canvas поверх картинки фона
   let liveRaf = 0;
   function liveKick() { if (!liveRaf) liveRaf = requestAnimationFrame(liveTick); }
