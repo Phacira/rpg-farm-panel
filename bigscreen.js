@@ -101,6 +101,7 @@
           <div class="glow" id="bsGlow"></div>
           <button type="button" class="dog-hit" id="bsDog" title="Погладить пёсика" aria-label="Погладить пёсика" hidden></button>
           <div id="bsActors"></div>
+          <canvas class="bg live top" id="bsLiveTop" width="1920" height="1080" hidden></canvas>
           <div id="bsWalls" aria-hidden="true"></div>
           <div class="fx-layer" id="bsFx"></div>
         </div>
@@ -1695,11 +1696,13 @@
     liveRaf = 0;
     const cv = $('#bsLive'), img = $('#bsBg'), root = $('#bs');
     const vl = (root && root.dataset.view) || bsLoc, ok = on && cv && img && window.LIVE6 && LIVE6.has(vl) && new RegExp('/' + vl + '\\.jpg').test(img.getAttribute('src') || '') && !document.hidden; // v8.6: только для показанной локации
-    if (!ok) { if (cv) cv.hidden = true; if (root) root.classList.remove('live-on'); return; }
-    if (!img.complete || !img.naturalWidth) { setTimeout(liveKick, 200); return; }
+    const cvT = $('#bsLiveTop');
+    if (!ok) { if (cv) cv.hidden = true; if (cvT) cvT.hidden = true; if (root) root.classList.remove('live-on'); return; }
+    if (!img.complete || !img.naturalWidth) { cv.hidden = true; if (cvT) cvT.hidden = true; root.classList.remove('live-on'); setTimeout(liveKick, 120); return; } // v8.7: пока грузится новая локация — не держим на экране старый живой фон
     const g = cv.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(img, 0, 0, cv.width, cv.height);
     const k = cv.width / 2560; g.setTransform(k, 0, 0, k, 0, 0);
     try { LIVE6.draw(g, vl, img, 0, 'img/'); } catch (e) { console.warn('live6', e); }
+    if (cvT && LIVE6.drawTop) { const gt = cvT.getContext('2d'); gt.setTransform(1, 0, 0, 1, 0, 0); gt.clearRect(0, 0, cvT.width, cvT.height); gt.setTransform(k, 0, 0, k, 0, 0); try { LIVE6.drawTop(gt, vl, 'img/'); } catch (e) { console.warn('live6 top', e); } cvT.hidden = false; } // v8.7: пёсик/котик поверх героев
     cv.hidden = false; root.classList.add('live-on');
     liveKick();
   }
@@ -1710,10 +1713,13 @@
   document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#bsDog')) dogDown = { x: e.clientX, y: e.clientY, t: Date.now() }; }, true);
   document.addEventListener('pointerup', e => { const b = e.target.closest && e.target.closest('#bsDog'); const dd = dogDown; dogDown = null; if (!b || !dd || Math.hypot(e.clientX - dd.x, e.clientY - dd.y) > 12 || Date.now() - dd.t > 600) return; e.preventDefault(); e.stopPropagation();
     if (Date.now() - dogLast < 3000) return; dogLast = Date.now();
-    if (window.LIVE6) LIVE6.pet('town');
-    if (window.PanelActions && PanelActions.fire) PanelActions.fire('парикмахер', 'погладить', '🐶 Погладить пёсика'); }, true);
-  function dogSpot() { const b = $('#bsDog'); if (!b) return; const d = window.LIVE6 && LIVE6.dogXY && LIVE6.dogXY('town'), vl = ($('#bs') && $('#bs').dataset.view) || bsLoc;
-    b.hidden = !(on && d && vl === 'town'); if (b.hidden) return; b.style.left = (d.x - 70) + 'px'; b.style.top = (d.y - 130) + 'px'; }
+    const cat = b.dataset.pet === 'cat';
+    if (window.LIVE6) LIVE6.pet(cat ? 'garden' : 'town');
+    if (window.PanelActions && PanelActions.fire) { if (cat) PanelActions.fire('парикмахер', 'котик', '🐱 Погладить котика'); else PanelActions.fire('парикмахер', 'погладить', '🐶 Погладить пёсика'); } }, true);
+  function dogSpot() { const b = $('#bsDog'); if (!b) return; const vl = ($('#bs') && $('#bs').dataset.view) || bsLoc, L = window.LIVE6;
+    const d = L && vl === 'town' && L.dogXY ? L.dogXY('town') : L && vl === 'garden' && L.catXY ? L.catXY('garden') : null; // v8.7: и котика на огороде можно погладить
+    b.hidden = !(on && d); if (b.hidden) return; const cat = vl === 'garden'; b.dataset.pet = cat ? 'cat' : 'dog'; b.title = b.ariaLabel = cat ? 'Погладить котика' : 'Погладить пёсика';
+    b.style.left = (d.x - 70) + 'px'; b.style.top = (d.y - (cat ? 110 : 130)) + 'px'; }
   setInterval(dogSpot, 500);
   function sync() { return window.__keepScroll ? window.__keepScroll(sync0) : sync0(); } // n3: прокрутка не сбрасывается
   function sync0() {

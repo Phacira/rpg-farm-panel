@@ -125,19 +125,6 @@
       let g = ctx.createRadialGradient(F[0], fy, 0, F[0], fy, R); g.addColorStop(0, `rgba(255,150,60,${0.30 + 0.15 * nk})`); g.addColorStop(.35, `rgba(255,110,40,${0.10 + 0.06 * nk})`); g.addColorStop(1, 'rgba(255,90,30,0)'); ctx.fillStyle = g; ctx.fillRect(F[0] - R, fy - R, R * 2, R * 2);
       g = ctx.createRadialGradient(F[0], F[1] - 14, 0, F[0], F[1] - 14, 86 * fl); g.addColorStop(0, 'rgba(255,210,120,.35)'); g.addColorStop(1, 'rgba(255,160,60,0)'); ctx.fillStyle = g; ctx.fillRect(F[0] - 100, F[1] - 114, 200, 200);
       ctx.restore(); }
-    if (L.dog && s.dog && on('dog')) { const P = L.dog, sw = s.dog.width / 2, sh = s.dog.height, w = P.w, h = w * sh / sw, x0 = P.x - w / 2, y0 = P.y - h;
-      if (petQ[loc]) { s.dogHappy = 4; s.dogSay = 1.2; petQ[loc] = 0; s.hearts = 1.6; }
-      s.dogHappy = Math.max(0, s.dogHappy - dt); s.dogBark -= dt; if (s.dogBark <= 0) { s.dogSay = 1; s.dogBark = rnd(14, 30); }
-      const happy = s.dogHappy > 0, wag = Math.sin(T * (happy ? 16 : 5)) * (happy ? 0.32 : 0.14), bob = s.dogSay > 0 ? Math.abs(Math.sin(T * 14)) * 3 : 0;
-      ctx.save(); ctx.imageSmoothingEnabled = true; ctx.filter = 'brightness(' + (0.85 - 0.22 * nk).toFixed(2) + ')';
-      const pX = x0 + P.px * w, pY = y0 + P.py * h - bob; ctx.save(); ctx.translate(pX, pY); ctx.rotate(wag); ctx.drawImage(s.dog, sw, 0, sw, sh, -P.px * w, -P.py * h, w, h); ctx.restore();
-      ctx.drawImage(s.dog, 0, 0, sw, sh, x0, y0 - bob, w, h); ctx.restore();
-      if (s.dogSay > 0) { s.dogSay -= dt; const a = Math.min(1, s.dogSay * 3); ctx.save(); ctx.globalAlpha = a; ctx.font = 'bold 26px sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#1e120a'; ctx.fillStyle = '#fff3d0'; ctx.strokeText('Гав!', x0 + w * 0.2, y0 - 6); ctx.fillText('Гав!', x0 + w * 0.2, y0 - 6); ctx.restore(); }
-      if (s.hearts > 0) { s.hearts -= dt; for (let i = 0; i < 3; i++) { const k = ((1.6 - s.hearts) / 1.6 + i * 0.25) % 1; ctx.save(); ctx.globalAlpha = 1 - k; ctx.fillStyle = '#ff7aa8'; ctx.font = '24px sans-serif'; ctx.fillText('♥', x0 + w * (0.3 + 0.2 * i), y0 - 10 - k * 50); ctx.restore(); } }
-    }
-    if (L.cat && s.cat && on('cat')) { const P = L.cat, w = P.w, h = w * s.cat.height / s.cat.width, br = 1 + 0.03 * Math.sin(T * 1.7); // дышит
-      ctx.save(); ctx.imageSmoothingEnabled = true; ctx.filter = 'brightness(' + (0.82 - 0.22 * nk).toFixed(2) + ') saturate(0.85)'; ctx.drawImage(s.cat, P.x - w / 2, P.y - h * br, w, h * br); ctx.restore();
-      const zp = (T * 0.35) % 1; ctx.save(); ctx.globalAlpha = Math.sin(zp * Math.PI) * 0.8; ctx.fillStyle = '#e8e0ff'; ctx.font = 'bold ' + Math.round(18 + 10 * zp) + 'px sans-serif'; ctx.fillText('z', P.x - w * 0.35 + zp * 26, P.y - h - 6 - zp * 40); ctx.restore(); }
     if (L.windows && on('windows')) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; L.windows.forEach(([wx, wy, sz], i) => { const f = 0.6 + 0.4 * Math.sin(T * (0.7 + i * 0.13) + i * 2.1) * Math.sin(T * 0.31 + i), r = 6 + Math.sqrt(sz) * 1.7, g = ctx.createRadialGradient(wx, wy, 0, wx, wy, r); g.addColorStop(0, `rgba(255,200,110,${(0.25 + 0.35 * nk) * Math.max(0.2, f)})`); g.addColorStop(1, 'rgba(255,170,80,0)'); ctx.fillStyle = g; ctx.fillRect(wx - r, wy - r, r * 2, r * 2); }); ctx.restore(); }
     const S2 = L.steam;
     if (S2 && on('steam')) { if (Math.random() < dt * 3) s.steam.push({ x: S2[0] + rnd(-20, 20), y: S2[1], r: rnd(11, 18), t: 0, l: rnd(2.5, 3.8), vx: rnd(-6, 6) });
@@ -150,6 +137,31 @@
     if (L.birds && on('birds')) { s.nextBirds -= dt; if (s.nextBirds <= 0 && !s.birds.length) { const n = 3 + Math.floor(Math.random() * 4), y = rnd(60, 200), dir = Math.random() < .5 ? 1 : -1; for (let i = 0; i < n; i++) s.birds.push({ x: dir > 0 ? -60 - i * 31 : W + 60 + i * 31, y: y + (i % 2) * 14 + i * 4, v: dir * rnd(100, 130), p: rnd(0, 6) }); s.nextBirds = rnd(20, 40); }
       ctx.save(); ctx.strokeStyle = 'rgba(25,15,30,.85)'; ctx.lineWidth = 3; s.birds = s.birds.filter(b => { b.x += b.v * dt; const f = Math.sin(T * 9 + b.p) * 6; ctx.beginPath(); ctx.moveTo(b.x - 10, b.y - f); ctx.quadraticCurveTo(b.x - 4, b.y - 3, b.x, b.y); ctx.quadraticCurveTo(b.x + 4, b.y - 3, b.x + 10, b.y - f); ctx.stroke(); return b.x > -120 && b.x < W + 120; }); ctx.restore(); }
   }
+  // v8.7: пёсик и котик — отдельным слоем ПОВЕРХ героев (чтобы оружие их не загораживало)
+  function drawTop(ctx, loc, base) {
+    if (!cfg().enabled) return;
+    const L = LOC[loc]; if (!L || !(L.dog || L.cat)) return;
+    const s = init(loc, base || 'assets/bg/'); if (!s || !s.ready) return;
+    const now = performance.now(); if (s.lastTop == null) s.lastTop = now; const dt = Math.min(0.1, Math.max(0, (now - s.lastTop) / 1000)); s.lastTop = now; T = now / 1000;
+    const nk = nightK();
+    if (L.dog && s.dog && on('dog')) { const P = L.dog, sw = s.dog.width / 2, sh = s.dog.height, w = P.w, h = w * sh / sw, x0 = P.x - w / 2, y0 = P.y - h;
+      if (petQ[loc]) { s.dogHappy = 4; s.dogSay = 1.2; petQ[loc] = 0; s.hearts = 1.6; }
+      s.dogHappy = Math.max(0, s.dogHappy - dt); s.dogBark -= dt; if (s.dogBark <= 0) { s.dogSay = 1; s.dogBark = rnd(14, 30); }
+      const happy = s.dogHappy > 0, wag = Math.sin(T * (happy ? 16 : 5)) * (happy ? 0.32 : 0.14), bob = s.dogSay > 0 ? Math.abs(Math.sin(T * 14)) * 3 : 0;
+      ctx.save(); ctx.imageSmoothingEnabled = true; ctx.filter = 'brightness(' + (0.85 - 0.22 * nk).toFixed(2) + ')';
+      const pX = x0 + P.px * w, pY = y0 + P.py * h - bob; ctx.save(); ctx.translate(pX, pY); ctx.rotate(wag); ctx.drawImage(s.dog, sw, 0, sw, sh, -P.px * w, -P.py * h, w, h); ctx.restore();
+      ctx.drawImage(s.dog, 0, 0, sw, sh, x0, y0 - bob, w, h); ctx.restore();
+      if (s.dogSay > 0) { s.dogSay -= dt; const a = Math.min(1, s.dogSay * 3); ctx.save(); ctx.globalAlpha = a; ctx.font = 'bold 26px sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#1e120a'; ctx.fillStyle = '#fff3d0'; ctx.strokeText('Гав!', x0 + w * 0.2, y0 - 6); ctx.fillText('Гав!', x0 + w * 0.2, y0 - 6); ctx.restore(); }
+      if (s.hearts > 0) { s.hearts -= dt; for (let i = 0; i < 3; i++) { const k = ((1.6 - s.hearts) / 1.6 + i * 0.25) % 1; ctx.save(); ctx.globalAlpha = 1 - k; ctx.fillStyle = '#ff7aa8'; ctx.font = '24px sans-serif'; ctx.fillText('♥', x0 + w * (0.3 + 0.2 * i), y0 - 10 - k * 50); ctx.restore(); } }
+    }
+    if (L.cat && s.cat && on('cat')) { const P = L.cat, w = P.w, h = w * s.cat.height / s.cat.width;
+      if (petQ[loc]) { s.catHappy = 4; s.hearts = 1.6; petQ[loc] = 0; }
+      s.catHappy = Math.max(0, (s.catHappy || 0) - dt); const happy = s.catHappy > 0, br = 1 + (happy ? 0.06 * Math.abs(Math.sin(T * 6)) : 0.03 * Math.sin(T * 1.7)); // дышит / мурчит
+      ctx.save(); ctx.imageSmoothingEnabled = true; ctx.filter = 'brightness(' + (0.82 - 0.22 * nk).toFixed(2) + ') saturate(0.85)'; ctx.drawImage(s.cat, P.x - w / 2, P.y - h * br, w, h * br); ctx.restore();
+      if (happy) { const a = Math.min(1, s.catHappy * 2); ctx.save(); ctx.globalAlpha = a; ctx.font = 'bold 24px sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#1e120a'; ctx.fillStyle = '#fff3d0'; const ty = P.y - h - 10 - Math.sin(T * 3) * 3; ctx.strokeText('Мрр~', P.x, ty); ctx.fillText('Мрр~', P.x, ty); ctx.restore(); }
+      if (s.hearts > 0) { s.hearts -= dt; for (let i = 0; i < 3; i++) { const k = ((1.6 - s.hearts) / 1.6 + i * 0.25) % 1; ctx.save(); ctx.globalAlpha = 1 - k; ctx.fillStyle = '#ff7aa8'; ctx.font = '22px sans-serif'; ctx.fillText('♥', P.x - w * 0.4 + w * 0.35 * i, P.y - h - 30 - k * 50); ctx.restore(); } }
+      const zp = (T * 0.35) % 1; if (!happy) { ctx.save(); ctx.globalAlpha = Math.sin(zp * Math.PI) * 0.8; ctx.fillStyle = '#e8e0ff'; ctx.font = 'bold ' + Math.round(18 + 10 * zp) + 'px sans-serif'; ctx.fillText('z', P.x - w * 0.35 + zp * 26, P.y - h - 6 - zp * 40); ctx.restore(); } }
+  }
   const petQ = {};
-  window.LIVE6 = { pet: loc => { petQ[loc || 'town'] = 1; }, dogXY: loc => { const d = (LOC[loc || 'town'] || {}).dog; return d ? { x: d.x, y: d.y } : null; }, draw, has: loc => !!LOC[loc] && cfg().enabled !== false, nightK, LOC, ALL };
+  window.LIVE6 = { pet: loc => { petQ[loc || 'town'] = 1; }, dogXY: loc => { const d = (LOC[loc || 'town'] || {}).dog; return d ? { x: d.x, y: d.y } : null; }, draw, drawTop, catXY: loc => { const c = (LOC[loc || 'garden'] || {}).cat; return c ? { x: c.x, y: c.y } : null; }, has: loc => !!LOC[loc] && cfg().enabled !== false, nightK, LOC, ALL };
 })();
