@@ -345,7 +345,7 @@
   function sprUrl(t) {
     const k6 = String(t[6] || '').replace(/_sit$/, '');
     const sit = t[5] === 'sleep', hair = t[7] || '';
-    if (sit) return 'img/h/' + k6 + '_sit.webp';
+    if (sit) return 'img/h/' + k6.replace(/_(black|blond|chestnut|red|chestnut_loose|white|silver)(_beard)?$/, '') + '_sit.webp'; // v8.1: сидячие спрайты — без цвета волос (moon_f_archer_sit)
     const key = (hair && k6 && !k6.endsWith('_' + hair)) ? k6 + '_' + hair : k6;
     return key ? 'img/h7/' + key + '.webp' : '';
   }
@@ -1012,7 +1012,7 @@
         const img = el.querySelector('img');
         if (img) {
           img.src = src;
-          img.onerror = (fb && fb !== src) ? function () { img.onerror = null; img.src = fb; } : function () { img.remove(); };
+          img.onerror = (fb && fb !== src) ? function () { img.onerror = null; img.dataset.bad = src; img.src = fb; } : function () { img.remove(); };
         }
         box.appendChild(el);
         it = actorTween.nodes[key] = { el, kind: 'hero', x: +t[1], y: +t[2], from: null, hp: isFinite(hpN) ? hpN : null, mhp: isFinite(hpM) ? hpM : null, sh: isFinite(shN) ? shN : null };
@@ -1022,7 +1022,7 @@
         it.el.dataset.cls = cls || '';
         it.el.style.setProperty('--hs', hs);
         const img = it.el.querySelector('img');
-        if (src && img && img.getAttribute('src') !== src) img.src = src;
+        if (src && img && img.getAttribute('src') !== src && img.dataset.bad !== src) img.src = src; // v8.1: не возвращаться к картинке, которая не загрузилась (был цикл → герой пропадал)
         const nm = it.el.querySelector('.name');
         if (nm) nm.innerHTML = nameHtml;
         let bar = it.el.querySelector('.hhp');
