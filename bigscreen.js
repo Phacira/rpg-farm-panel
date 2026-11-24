@@ -345,7 +345,7 @@
   function sprUrl(t) {
     const k6 = String(t[6] || '').replace(/_sit$/, '');
     const sit = t[5] === 'sleep', hair = t[7] || '';
-    if (sit) return 'img/h/' + k6.replace(/_(black|blond|chestnut|red|chestnut_loose|white|silver)(_beard)?$/, '') + '_sit.webp'; // v8.1: сидячие спрайты — без цвета волос (moon_f_archer_sit)
+    // h8: сидячие спрайты убраны — спящие тоже рисуются стоя (новый стиль)
     const key = (hair && k6 && !k6.endsWith('_' + hair)) ? k6 + '_' + hair : k6;
     return key ? 'img/h7/' + key + '.webp?v=h8' : '';
   }

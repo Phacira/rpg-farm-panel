@@ -29,6 +29,7 @@
   }
   // k — ключ спрайта из снимка, hid — id цвета волос, dy — #цвет окраски сета, ramps — {id: [[r,g,b]×3]} из ref.hair
   function get(k, hid, dy, ramps) {
+    k = String(k || '').replace(/_sit$/, ''); // h8: сидячих поз больше нет — все стоят
     const m = meta(k); if (!m || !/^[a-z0-9_]{3,40}$/.test(k)) return null;
     const ramp = hid && ramps && ramps[hid], key = k + '|' + (ramp ? hid : '') + '|' + (dy || '');
     if (OUT.has(key)) return OUT.get(key);
