@@ -401,7 +401,7 @@
       if (!u) { try { const sp = H.get(k6, hid, dy, rampsOf()); if (sp) { u = (sp.crop || sp.c).toDataURL(); if (PIC.size > 300) PIC.clear(); PIC.set(key, u); } } catch (e) {} }
       if (u) return `<img class="hpic ${cl || ''}" src="${u}" alt="${esc(cls || '')}">`;
     }
-    return `<img class="hpic ${cl || ''}" src="img/h/${esc(k6)}.webp" alt="${esc(cls || '')}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'hpic fb ${cl || ''}',title:'${esc(cls || '')}',textContent:'${CLS_IC[cls] || '🧝'}'}))">`;
+    return `<img class="hpic ${cl || ''}" src="img/h/${esc(k6)}.webp?v=h8" alt="${esc(cls || '')}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'hpic fb ${cl || ''}',title:'${esc(cls || '')}',textContent:'${CLS_IC[cls] || '🧝'}'}))">`;
   }
   function mobPic(id, flt, cl) {
     id = String(id || ''); if (!MOBS.includes(id)) return `<span class="mpic fb ${cl || ''}">👾</span>`;

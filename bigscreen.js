@@ -347,13 +347,13 @@
     const sit = t[5] === 'sleep', hair = t[7] || '';
     if (sit) return 'img/h/' + k6.replace(/_(black|blond|chestnut|red|chestnut_loose|white|silver)(_beard)?$/, '') + '_sit.webp'; // v8.1: сидячие спрайты — без цвета волос (moon_f_archer_sit)
     const key = (hair && k6 && !k6.endsWith('_' + hair)) ? k6 + '_' + hair : k6;
-    return key ? 'img/h7/' + key + '.webp' : '';
+    return key ? 'img/h7/' + key + '.webp?v=h8' : '';
   }
   function sprFb(t) {
     const k6 = String(t[6] || '').replace(/_sit$/, '');
     const hair = t[7] || '';
     const key = (hair && k6 && !k6.endsWith('_' + hair)) ? k6 + '_' + hair : k6;
-    return key ? 'img/h/' + (key) + '.webp' : (k6 ? 'img/h/' + k6 + '.webp' : '');
+    return key ? 'img/h/' + (key) + '.webp?v=h8' : (k6 ? 'img/h/' + k6 + '.webp' : '');
   }
 
   function bgOf(l, st) {
