@@ -1637,6 +1637,7 @@
   // v8.6: чёткие герои — браузер плохо уменьшает большие картинки внутри масштабированной сцены (мыло). Каждую картинку героя заранее
   // уменьшаем качественно (createImageBitmap, resizeQuality: 'high') ровно до размера на экране и подставляем — дальше она рисуется 1:1.
   const SHARP = new Map(), SHARP_ORIG = new Map(); let sharpBusy = false;
+  const root0 = () => $('#bs') || document.body;
   function origImg(u) { let o = SHARP_ORIG.get(u); if (!o) { o = new Image(); o.decoding = 'async'; o.src = u; SHARP_ORIG.set(u, o); } return o; }
   async function sharpHeroes() {
     if (sharpBusy || !on || !window.createImageBitmap) return; sharpBusy = true;
@@ -1648,9 +1649,9 @@
         const hero = img.closest('.hero'), hs = parseFloat(getComputedStyle(hero).getPropertyValue('--hs')) || 1, cssH = 192 * hs;
         const th = Math.max(8, Math.round(cssH * ss * dpr)); // высота на экране в пикселях
         if (th >= o.naturalHeight * 0.92) { if (img.dataset.orig) { img.src = orig; delete img.dataset.orig; img.style.height = ''; img.style.translate = ''; } continue; }
-        const tw = Math.max(4, Math.round(o.naturalWidth * th / o.naturalHeight)), key = orig + '|' + th;
+        const tw = Math.max(4, Math.round(o.naturalWidth * th / o.naturalHeight)), key = orig + '|' + th + (root0().classList.contains('live-on') ? '|L' : '');
         let url = SHARP.get(key);
-        if (!url) { const bm = await createImageBitmap(o, { resizeWidth: tw, resizeHeight: th, resizeQuality: 'high' }); const c = document.createElement('canvas'); c.width = tw; c.height = th; c.getContext('2d').drawImage(bm, 0, 0); bm.close && bm.close();
+        if (!url) { const bm = await createImageBitmap(o, { resizeWidth: tw, resizeHeight: th, resizeQuality: 'high' }); const c = document.createElement('canvas'); c.width = tw; c.height = th; const g2 = c.getContext('2d'); g2.drawImage(bm, 0, 0); if (root0().classList.contains('live-on')) { g2.globalCompositeOperation = 'destination-over'; g2.shadowColor = 'rgba(255,236,205,.65)'; g2.shadowBlur = 2.5; g2.drawImage(bm, 0, 0); } bm.close && bm.close(); // светлая кайма — прямо в картинке (CSS-фильтр на масштабированной сцене мылит)
           const b = await new Promise(res => c.toBlob(res)); if (!b) continue; url = URL.createObjectURL(b); if (SHARP.size > 600) { for (const [k, u] of SHARP) { URL.revokeObjectURL(u); SHARP.delete(k); if (SHARP.size < 400) break; } } SHARP.set(key, url); }
         if (img.getAttribute('src') !== url) { img.dataset.orig = orig; img.src = url; }
         img.style.height = (th / (ss * dpr)) + 'px'; // ровно th пикселей экрана
