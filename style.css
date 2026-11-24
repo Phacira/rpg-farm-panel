@@ -389,3 +389,10 @@ details.hq .hq-body{padding:8px 10px 10px}
 /* v8.1: напоминание о награде «Сделать ход» в этом стриме */
 .rwhint{margin:0 0 10px;padding:10px 12px;border-radius:10px;background:rgba(255,170,60,.16);border:1px solid rgba(255,190,90,.55);color:#ffd9a0;font-weight:600;line-height:1.35;animation:rwp 2.4s ease-in-out infinite}
 @keyframes rwp{50%{border-color:rgba(255,210,120,.95)}}
+
+/* v8.5: «Что нового» */
+.news{margin:0 0 8px}.news details{background:#1a1022;border:1px solid #6a4a8a;border-radius:10px;padding:6px 10px}
+.news summary{cursor:pointer;font-weight:700;color:#ffd27a;list-style:none}.news summary::-webkit-details-marker{display:none}
+.news-dot,.news-new{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:9px;background:#c0392b;color:#fff;font-size:11px;font-weight:700;vertical-align:middle}
+.news-body{margin-top:6px;max-height:320px;overflow:auto}.news-it{margin:6px 0 10px}.news-h{font-weight:700;color:#e8d7ff}.news-d{color:#b89ad8;font-weight:400;margin-right:4px}
+.news-it ul{margin:4px 0 0;padding-left:18px}.news-it li{margin:2px 0;line-height:1.35}.news-it:not(.new){opacity:.75}

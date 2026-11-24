@@ -198,12 +198,14 @@
       const b = e.target.closest('button[data-i], button[data-ui]'); if (!b || b.disabled) return;
       if (b.dataset.ui === 'inv') return setInv(true);
       if (b.dataset.ui === 'log') return setLog(true);
+      if (b.dataset.ui === 'news') return setNews();
       if (b.dataset.ui === 'quests') return setSheet('quests');
       if (b.dataset.ui === 'more') return setSheet('more');
       const i = +b.dataset.i, defs = lastDefs[i];
       if (!defs) return;
       if (defs._ui === 'inv') return setInv(true);
       if (defs._ui === 'log') return setLog(true);
+      if (defs._ui === 'news') return setNews();
       if (defs[2] && window.__bossLeft && __bossLeft(defs[2])) return;
       if (window.PanelActions && PanelActions.activate) PanelActions.activate(defs);
     };
@@ -375,7 +377,8 @@
     }
     list = list.concat([
       { _ui: 'inv', 0: '🎒', 1: 'Инвентарь', 4: '' },
-      { _ui: 'log', 0: '📜', 1: 'Журнал', 4: '' }
+      { _ui: 'log', 0: '📜', 1: 'Журнал', 4: '' },
+      { _ui: 'news', 0: '🆕', 1: 'Что нового', 4: window.RPGNews && RPGNews.unseen() ? '● новое' : '' } // v8.5
     ]);
     // normalize array-like
     return list.map(d => Array.isArray(d) ? d : Object.assign([d[0], d[1], d._ui, '', d[4]], d));
@@ -402,7 +405,7 @@
   function splitPhoneBar(defs, kind) {
     const quest = { _ui: 'quests', 0: '📋', 1: 'Задания', 4: '' };
     const more = { _ui: 'more', 0: '⋯', 1: 'Ещё', 4: '' };
-    const isUi = d => d._ui === 'inv' || d._ui === 'log';
+    const isUi = d => d._ui === 'inv' || d._ui === 'log' || d._ui === 'news';
     const isOther = d => d[7] === 'other';
     const ui = defs.filter(isUi);
     const others = defs.filter(d => !isUi(d) && isOther(d));
@@ -1596,8 +1599,19 @@
     });
   }
 
+  // v8.5: «Что нового» — в том же окне, что инвентарь
+  let invMode = 'inv';
+  function setNews() {
+    const ov = $('#bsOverlay'); if (!ov || !window.RPGNews) return;
+    setLog(false); if (sheetKind) setSheet(false);
+    invMode = 'news'; ov.hidden = false;
+    const ht = $('#bsInvTitle'); if (ht) ht.textContent = '🆕 Что нового';
+    $('#bsInvBody').innerHTML = '<div class="news-body bs-news">' + RPGNews.html() + '</div>';
+    if (RPGNews.unseen()) { RPGNews.markSeen(); const c = ctx(); fillBar(c); }
+  }
   function setInv(show, title) {
     const ov = $('#bsOverlay'); if (!ov) return;
+    invMode = 'inv';
     if (show) { setLog(false); if (sheetKind) setSheet(false); }
     ov.hidden = !show;
     const ht = $('#bsInvTitle');
@@ -1626,7 +1640,7 @@
     c.tab = bsLoc;
     const tips = collectTips(c);
     hookToasts(); fillUnit(c); fillGoal(c); fillQuests(c); fillParty(c); fillFeed(c); fillBoss(c); fillBar(c, tips); fillActors(c); fillWalls(c); fillTips(tips); applyFold();
-    if (!$('#bsOverlay').hidden) setInv(true);
+    if (!$('#bsOverlay').hidden && invMode !== 'news') setInv(true);
     if (!$('#bsLogOv').hidden) fillLog();
     requestAnimationFrame(() => { layout(); const imgs = [...document.querySelectorAll('#bs img')].filter(i => !i.complete); if (!imgs.length) { layout(); window.__bsReady = true; return; }
       let n = imgs.length; const done = () => { if (--n <= 0) { layout(); window.__bsReady = true; } };

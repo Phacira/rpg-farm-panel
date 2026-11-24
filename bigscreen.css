@@ -485,3 +485,6 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 
 /* v8: строка фазы босса */
 #bs .bossbar-ph{margin-top:4px;color:#e0c8ff;font:700 12px/1.3 system-ui,sans-serif;text-align:center}
+
+/* v8.5: «Что нового» на большом экране */
+#bs .bs-news{padding:4px 16px 14px;color:#f1e6ff;font-size:15px;max-height:none}#bs .bs-news .news-h{font-size:17px}
