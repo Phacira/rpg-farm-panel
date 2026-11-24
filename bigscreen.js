@@ -96,6 +96,7 @@
       <div class="scene-wrap" id="bsWrap">
         <div class="scene" id="bsScene">
           <img class="bg" id="bsBg" alt="">
+          <canvas class="bg live" id="bsLive" width="1920" height="1080" hidden></canvas>
           <div class="glow" id="bsGlow"></div>
           <div id="bsActors"></div>
           <div id="bsWalls" aria-hidden="true"></div>
@@ -361,7 +362,7 @@
 
   function bgOf(l, st) {
     if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs518';
-    return 'img/' + (l || 'camp') + '.jpg?v=bs518';
+    return 'img/' + (l || 'camp') + '.jpg?v=' + (l === 'camp' || !l ? 'live1' : 'bs518');
   }
 
   let lastDefs = [], lastMore = [], sheetKind = '', tipCmds = new Set();
@@ -1128,7 +1129,8 @@
       if (!seen.has(k)) { actorTween.nodes[k].el.remove(); delete actorTween.nodes[k]; }
     });
 
-    $('#bsBg').src = bgOf(l, st);
+    { const u = bgOf(l, st), b = $('#bsBg'); if (b.getAttribute('src') !== u) b.src = u; }
+    liveKick();
     $('#bs').dataset.view = l;
     const chip = $('#bsChip'); if (chip) chip.textContent = '';
     ingestFx(st, l);
@@ -1632,6 +1634,22 @@
     if (show) fillLog();
   }
 
+  // v8.6: живой фон (облака, звёзды, вечер/ночь, костёр, флаги…) — тот же модуль, что в игре (live6.js), рисуется в canvas поверх картинки фона
+  let liveRaf = 0;
+  function liveKick() { if (!liveRaf) liveRaf = requestAnimationFrame(liveTick); }
+  function liveTick() {
+    liveRaf = 0;
+    const cv = $('#bsLive'), img = $('#bsBg'), root = $('#bs');
+    const ok = on && cv && img && window.LIVE6 && LIVE6.has(bsLoc) && !document.hidden;
+    if (!ok) { if (cv) cv.hidden = true; if (root) root.classList.remove('live-on'); return; }
+    if (!img.complete || !img.naturalWidth) { setTimeout(liveKick, 200); return; }
+    const g = cv.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(img, 0, 0, cv.width, cv.height);
+    const k = cv.width / 2560; g.setTransform(k, 0, 0, k, 0, 0);
+    try { LIVE6.draw(g, bsLoc, img, 0, 'img/'); } catch (e) { console.warn('live6', e); }
+    cv.hidden = false; root.classList.add('live-on');
+    liveKick();
+  }
+  document.addEventListener('visibilitychange', liveKick);
   function sync() { return window.__keepScroll ? window.__keepScroll(sync0) : sync0(); } // n3: прокрутка не сбрасывается
   function sync0() {
     enterBtn();

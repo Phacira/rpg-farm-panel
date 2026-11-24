@@ -506,3 +506,7 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs.pc .bars-wrap > .bar-group[data-grp="bar"]{min-width:0;flex:0 1 auto}
 #bs.pc .actionbar{overflow-x:auto;scrollbar-width:thin}
 @media (max-width:1150px){#bs.pc .bars-wrap{flex-direction:column;align-items:center}} /* узкое окно — две строки, как раньше, но компактнее */
+
+/* v8.6: живой фон поверх картинки; свой статичный отсвет костра не нужен */
+#bs .scene canvas.live{position:absolute;inset:0;width:2560px;height:1440px;pointer-events:none}
+#bs.live-on .glow{display:none}
