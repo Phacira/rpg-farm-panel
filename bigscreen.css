@@ -510,3 +510,5 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 /* v8.6: живой фон поверх картинки; свой статичный отсвет костра не нужен */
 #bs .scene canvas.live{position:absolute;inset:0;width:2560px;height:1440px;pointer-events:none}
 #bs.live-on .glow{display:none}
+/* v8.6: светлая кайма у героев — читаются на тёмном живом фоне */
+#bs.live-on .hero img{filter:drop-shadow(0 0 1.5px rgba(255,236,205,.6)) drop-shadow(0 1px 1px rgba(0,0,0,.4))}
