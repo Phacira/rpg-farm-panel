@@ -437,8 +437,10 @@
     const me = c && c.me, ref = (c && c.ref) || {}, tips = [];
     if (!me) return tips;
     const rw = me.rw || {}, stock = (+rw.hike || 0) + (+rw.cook || 0) + (+rw.quest || 0);
-    if (!ref.tb && !stock) { // подсказка только когда ходов в запасе нет: после награды запас > 0 — плашка уходит
-      const nm = ref.trn || 'Сделать ход';
+    const nm = ref.trn || 'Сделать ход';
+    if (me.rws === 0) { // v8.1: игра знает, прожата ли награда в этом стриме — плашка висит, пока не прожмут
+      tips.push({ id: 'turn', cmd: 'ход', kind: 'warn', icon: '🎲', text: 'Вы ещё не прожали «' + nm + '» в этом стриме — прожмите награду за баллы канала' + (ref.tb ? ' или кнопку «Ход»' : '') });
+    } else if (me.rws == null && !ref.tb && !stock) { // старая игра: подсказка только когда ходов в запасе нет
       tips.push({ id: 'turn', cmd: 'ход', kind: 'warn', icon: '🎲', text: 'Прожмите награду «' + nm + '» за баллы канала' });
     }
     if (window.__bldBuildingTxt) __bldBuildingTxt(bsLoc).forEach((t, i) => tips.push({ id: 'bld' + i, cmd: '', kind: 'info', icon: '', text: t })); // fix: стройка на этой локации

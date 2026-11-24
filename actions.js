@@ -252,7 +252,8 @@
     const on = ctx.online, list = (defs(ctx)[ctx.tab] || []);
     curList = list;
     const title = { town: 'Город', garden: 'Огород', camp: 'Лагерь', forest: 'Лес', boss: 'Босс', me: 'Мой герой' }[ctx.tab] || '';
-    el.innerHTML = `<h2>Действия: ${esc(title)}</h2>${!on ? '<p class="note">Кнопки работают, когда идёт стрим.</p>' : !ctx.me && ctx.tab !== 'me' ? '<p class="note">У вас пока нет героя — кнопки появятся, когда он будет.</p>' : ''}
+    const rwn = (ctx.ref && ctx.ref.trn) || 'Сделать ход', rwHint = on && ctx.me && ctx.me.rws === 0 ? `<div class="rwhint">🎲 Вы ещё не прожали «${esc(rwn)}» в этом стриме — прожмите награду за баллы канала${ctx.ref && ctx.ref.tb ? ' или кнопку «Ход»' : ''}</div>` : ''; // v8.1
+    el.innerHTML = `${rwHint}<h2>Действия: ${esc(title)}</h2>${!on ? '<p class="note">Кнопки работают, когда идёт стрим.</p>' : !ctx.me && ctx.tab !== 'me' ? '<p class="note">У вас пока нет героя — кнопки появятся, когда он будет.</p>' : ''}
       <div class="acts">${list.map((d, i) => { const grp = d[7] === 'other' && (!list[i - 1] || list[i - 1][7] !== 'other') ? '<div class="agrp">Не твой класс</div>' : ''; const busy = Object.values(pend).some(p => p.cmd === d[2]);
         const bc = ctx.tab === 'boss' && !d[6] && BOSS_CMDS.includes(d[2]) ? ` data-bc="${d[2]}" data-sub="${esc(d[4] || '')}" data-en="${!on || (!ctx.me && d[2] !== 'вступить') || busy ? 0 : 1}"` : '';
         return `<button class="act${busy ? ' busy' : ''}${d[6] ? ' off' : ''}" data-a="${i}"${bc}${d[6] ? ' disabled aria-disabled="true" title="' + esc(d[4]) + '"' : !on || (!ctx.me && d[2] !== 'вступить') || busy ? ' disabled' : ''}><span class="ai">${d[0]}</span><span class="al">${esc(d[1])}</span><small>${esc(d[4] || '')}</small></button>`.replace(/^/, grp); }).join('')}</div>

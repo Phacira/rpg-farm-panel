@@ -385,3 +385,7 @@ details.hq .hq-body{padding:8px 10px 10px}
 
 /* v8: фаза босса под картой */
 .bph{color:#e0c8ff}
+
+/* v8.1: напоминание о награде «Сделать ход» в этом стриме */
+.rwhint{margin:0 0 10px;padding:10px 12px;border-radius:10px;background:rgba(255,170,60,.16);border:1px solid rgba(255,190,90,.55);color:#ffd9a0;font-weight:600;line-height:1.35;animation:rwp 2.4s ease-in-out infinite}
+@keyframes rwp{50%{border-color:rgba(255,210,120,.95)}}
