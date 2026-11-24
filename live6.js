@@ -19,7 +19,7 @@
       fire: [2029, 1193], steam: [2029, 1007], fireR: 0.6,
       windows: [[1826, 139, 60], [2400, 307, 60]],
       flies: [[20, 1150, 500, 1420], [2100, 1150, 2540, 1420]], leaves: true, birds: true,
-      cat: { img: 'garden_cat.png', x: 1110, y: 284, w: 150 } // спящий котик на заборе
+      cat: { img: 'garden_cat.png', x: 1110, y: 282, w: 85 } // спящий котик на заборе
     },
   };
   const ALL = ['cat', 'clouds', 'stars', 'shoot', 'daynight', 'fire', 'sparks', 'steam', 'windows', 'flags', 'ffly', 'leaves', 'birds'];
