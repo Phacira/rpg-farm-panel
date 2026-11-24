@@ -488,3 +488,18 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 
 /* v8.5: «Что нового» на большом экране */
 #bs .bs-news{padding:4px 16px 14px;color:#f1e6ff;font-size:15px;max-height:none}#bs .bs-news .news-h{font-size:17px}
+
+/* n2: сворачиваемые «Цель стрима» и «Задания», список заданий листается */
+#bs .bsp header.foldh{cursor:pointer;user-select:none}
+#bs .bsp header.foldh .fold-chev{position:static;flex:none;width:18px;height:18px;line-height:16px;margin-left:4px}
+#bs.fold-goal .bsp.goal > :not(header),#bs.fold-quests .bsp.quests > :not(header){display:none}
+#bs.fold-goal .bsp.goal header,#bs.fold-quests .bsp.quests header{margin-bottom:0}
+#bs .bsp.quests .qdone{max-height:150px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+/* n2: на компьютере локации и кнопки — одна компактная строка внизу, не налезает на героев */
+#bs.pc .bars-wrap{flex-direction:row;align-items:flex-end;gap:8px;max-width:calc(100% - 28px)}
+#bs.pc .locbar,#bs.pc .actionbar{padding:5px 7px;gap:4px;border-radius:14px}
+#bs.pc .locbar button,#bs.pc .actionbar button{height:58px;min-width:58px;border-radius:10px;font-size:11px}
+#bs.pc .locbar button .ic,#bs.pc .actionbar .ic{font-size:17px}
+#bs.pc .locbar button .lbl{font-size:11px;max-width:60px}
+#bs.pc .actionbar .sub{font-size:8px;max-width:62px}
+#bs.pc .locbar button{min-width:52px}

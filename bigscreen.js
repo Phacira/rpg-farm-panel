@@ -13,7 +13,7 @@
   let fold = { loc: false, bar: false, feed: false, party: false };
   try {
     const o = JSON.parse(localStorage.getItem(FOLD_KEY) || '{}');
-    if (o && typeof o === 'object') { fold.loc = !!o.loc; fold.bar = !!o.bar; fold.feed = !!o.feed; fold.party = !!o.party; }
+    if (o && typeof o === 'object') { fold.loc = !!o.loc; fold.bar = !!o.bar; fold.feed = !!o.feed; fold.party = !!o.party; fold.goal = !!o.goal; fold.quests = !!o.quests; }
   } catch (e) {}
   (function applyFoldQuery() {
     const m = /[?&]fold=([^&]*)/.exec(location.search);
@@ -218,7 +218,7 @@
       const fb = e.target.closest('#bs [data-bsfold]');
       if (fb) {
         const k = fb.dataset.bsfold;
-        if (k === 'loc' || k === 'bar' || k === 'feed' || k === 'party') {
+        if (k === 'loc' || k === 'bar' || k === 'feed' || k === 'party' || k === 'goal' || k === 'quests') {
           e.preventDefault();
           fold[k] = !fold[k];
           try { localStorage.setItem(FOLD_KEY, JSON.stringify(fold)); } catch (err) {}
@@ -239,7 +239,7 @@
     }
     document.addEventListener('touchmove', function (e) {
       if (!on) return;
-      const ok = e.target.closest && e.target.closest('#bs .dock-pane, #bs .log-body, #bs .inv-body, #bs .sheet-body, #bs .actionbar, #bs .window, #bs .bossbar');
+      const ok = e.target.closest && e.target.closest('#bs .dock-pane, #bs .log-body, #bs .inv-body, #bs .sheet-body, #bs .actionbar, #bs .window, #bs .bossbar, #bs .qdone, #bs .bsp-col, #sheet, .sheet, .overlay'); // n2: окна кузницы/пульта и список заданий тоже листаются пальцем
       if (!ok) e.preventDefault();
     }, { passive: false });
     if (window.ResizeObserver) {
@@ -265,6 +265,7 @@
     root.classList.toggle('fold-bar', !!fold.bar);
     root.classList.toggle('fold-feed', !!fold.feed);
     root.classList.toggle('fold-party', !!fold.party);
+    root.classList.toggle('fold-goal', !!fold.goal); root.classList.toggle('fold-quests', !!fold.quests); // n2
     const lab = { loc: fold.loc ? 'Показать локации' : 'Свернуть локации', bar: fold.bar ? 'Показать кнопки' : 'Свернуть кнопки', feed: fold.feed ? 'Показать журнал' : 'Свернуть журнал', party: fold.party ? 'Показать очередь' : 'Свернуть очередь' };
     root.querySelectorAll('[data-bsfold]').forEach(b => {
       const k = b.dataset.bsfold, a = lab[k];
@@ -631,7 +632,7 @@
     if (strip) strip.hidden = !g;
     if (!g) return;
     const [t, pr, nd, dn] = g, pc = Math.max(0, Math.min(100, Math.round(100 * pr / (nd || 1))));
-    el.innerHTML = `<header>🎯 Цель стрима</header>
+    el.innerHTML = `<header data-bsfold="goal" class="foldh">🎯 Цель стрима<button type="button" class="fold-chev" data-bsfold="goal" aria-label="Свернуть">${fold.goal ? '▸' : '▾'}</button></header>
       <div class="goal-title">${esc(t)}</div>
       <div class="bar goalb"><i style="width:${dn ? 100 : pc}%"></i><span>${dn ? '✔ выполнено' : `${pr} / ${nd}`}</span></div>
       ${dn || !g[4] ? '' : `<div class="muted">награда: ${esc(g[4])}</div>`}`;
@@ -665,7 +666,7 @@
   function fillQuests(c) {
     const el = $('#bsQuests'), q = questBody(c);
     const head = '📜 Задания' + (q.d ? '<small>выполнено ' + esc(q.d) + '</small>' : '');
-    if (el) el.innerHTML = '<header>' + head + '</header>' + q.html;
+    if (el) el.innerHTML = '<header data-bsfold="quests" class="foldh">' + head + '<button type="button" class="fold-chev" data-bsfold="quests" aria-label="Свернуть">' + (fold.quests ? '▸' : '▾') + '</button></header>' + q.html;
     const dq = $('#bsDockQ'); if (dq) dq.innerHTML = q.html;
   }
 
@@ -846,7 +847,7 @@
   }
   function locActors(st, l) {
     let list = ((st && st.locs && st.locs[l]) || []).filter(t => !isSleeping(t)).map(t => t.slice()).sort((a, b) => a[2] - b[2] || a[1] - b[1]);
-    if (l === 'forest' || l === 'boss') {
+    if (l === 'forest') { // n2: отряд похода — только в лесу (у босса его не показываем)
       const have = new Set(list.map(t => String(t[0]).toLowerCase()));
       partyMb(st).forEach(m => {
         const n = m && m[0]; if (!n || have.has(String(n).toLowerCase())) return;
