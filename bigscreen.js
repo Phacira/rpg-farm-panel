@@ -1029,7 +1029,7 @@
         it.el.dataset.cls = cls || '';
         it.el.style.setProperty('--hs', hs);
         const img = it.el.querySelector('img');
-        if (src && img && img.getAttribute('src') !== src && img.dataset.bad !== src) img.src = src; // v8.1: не возвращаться к картинке, которая не загрузилась (был цикл → герой пропадал)
+        if (src && img && (img.dataset.orig || img.getAttribute('src')) !== src && img.dataset.bad !== src) { delete img.dataset.orig; img.src = src; } // v8.1: не возвращаться к картинке, которая не загрузилась (был цикл → герой пропадал)
         const nm = it.el.querySelector('.name');
         if (nm) nm.innerHTML = nameHtml;
         let bar = it.el.querySelector('.hhp');
@@ -1634,6 +1634,28 @@
     if (show) fillLog();
   }
 
+  // v8.6: чёткие герои — браузер плохо уменьшает большие картинки внутри масштабированной сцены (мыло). Каждую картинку героя заранее
+  // уменьшаем качественно (createImageBitmap, resizeQuality: 'high') ровно до размера на экране и подставляем — дальше она рисуется 1:1.
+  const SHARP = new Map(), SHARP_ORIG = new Map(); let sharpBusy = false;
+  function origImg(u) { let o = SHARP_ORIG.get(u); if (!o) { o = new Image(); o.decoding = 'async'; o.src = u; SHARP_ORIG.set(u, o); } return o; }
+  async function sharpHeroes() {
+    if (sharpBusy || !on || !window.createImageBitmap) return; sharpBusy = true;
+    try {
+      const dpr = window.devicePixelRatio || 1;
+      for (const img of document.querySelectorAll('#bs .hero img')) {
+        const orig = img.dataset.orig || img.getAttribute('src'); if (!orig || /^blob:/.test(orig)) continue;
+        const o = origImg(orig); if (!o.complete || !o.naturalHeight) continue;
+        const r = img.getBoundingClientRect(); if (!r.height) continue;
+        const th = Math.max(8, Math.round(r.height * dpr)); if (th >= o.naturalHeight * 0.92) { if (img.dataset.orig) { img.src = orig; delete img.dataset.orig; } continue; }
+        const tw = Math.max(4, Math.round(o.naturalWidth * th / o.naturalHeight)), key = orig + '|' + th;
+        let url = SHARP.get(key);
+        if (!url) { const bm = await createImageBitmap(o, { resizeWidth: tw, resizeHeight: th, resizeQuality: 'high' }); const c = document.createElement('canvas'); c.width = tw; c.height = th; c.getContext('2d').drawImage(bm, 0, 0); bm.close && bm.close();
+          const b = await new Promise(res => c.toBlob(res)); if (!b) continue; url = URL.createObjectURL(b); if (SHARP.size > 600) { for (const [k, u] of SHARP) { URL.revokeObjectURL(u); SHARP.delete(k); if (SHARP.size < 400) break; } } SHARP.set(key, url); }
+        if (img.getAttribute('src') !== url) { img.dataset.orig = orig; img.src = url; }
+      }
+    } catch (e) { console.warn('sharp', e); } finally { sharpBusy = false; }
+  }
+  setInterval(sharpHeroes, 700);
   // v8.6: живой фон (облака, звёзды, вечер/ночь, костёр, флаги…) — тот же модуль, что в игре (live6.js), рисуется в canvas поверх картинки фона
   let liveRaf = 0;
   function liveKick() { if (!liveRaf) liveRaf = requestAnimationFrame(liveTick); }
