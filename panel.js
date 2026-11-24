@@ -137,13 +137,18 @@
     const mobs = l === 'forest' ? (state.mobs || []) : [], mobImgs = window.__mobImgs || (window.__mobImgs = {});
     for (const [id, mx, my, hp] of mobs) {
       const px = Math.round(mx * k), py = Math.round(my * k);
-      if (!mobImgs[id]) { const im = new Image(); im.src = `img/mob/${id}.${id === 'mimic' ? 'png' : 'webp'}`; mobImgs[id] = im; }
+      if (!mobImgs[id]) { const im = new Image(); im.onload = () => draw(); im.src = `img/mob/${id}.${id === 'mimic' ? 'png' : 'webp'}`; mobImgs[id] = im; }
       const im = mobImgs[id];
       if (im.complete && im.naturalWidth) {
-        const sz = Math.round(60 * k);
-        x.drawImage(im, px - sz/2, py - sz, sz, sz);
+        // v7panel40: мобы того же роста, что в игре (config.monsters[].h), с сохранением пропорций картинки; крысы — стайкой из трёх
+        const MOB_H = { slime: 100, goblin: 150, wolf: 130, rat: 64, tree_spirit: 170, mimic: 120 };
+        const mh = Math.round((MOB_H[id] || 120) * k * 2) /* ×2: свой герой на пульте тоже увеличен (350 вместо ~190) */, mw = Math.round(mh * im.naturalWidth / im.naturalHeight);
+        const grp = id === 'rat' ? [[-0.55, -0.34], [0.55, -0.34], [0, 0]] : [[0, 0]];
+        x.save(); x.globalAlpha = .28; x.fillStyle = '#1a0e06'; x.beginPath(); x.ellipse(px, py + 1, mw * .45, Math.max(2, mh * .06), 0, 0, 7); x.fill(); x.restore();
+        for (const [ox, oy] of grp) x.drawImage(im, Math.round(px + ox * mw - mw / 2), Math.round(py + oy * mh - mh), mw, mh);
+        const top = py - mh - (id === 'rat' ? mh * .34 : 0);
         x.fillStyle = hp > 50 ? '#7dff9a' : hp > 25 ? '#ffaa6a' : '#ff6a6a';
-        x.font = `600 ${Math.round(11 * u)}px system-ui`; x.textAlign = 'center'; x.fillText(hp + '%', px, py - sz - 4);
+        x.font = `600 ${Math.round(13 * u)}px system-ui`; x.textAlign = 'center'; x.textBaseline = 'bottom'; x.lineWidth = 3 * u; x.strokeStyle = 'rgba(0,0,0,.85)'; x.strokeText(hp + '%', px, top - 4 * u); x.fillText(hp + '%', px, top - 4 * u);
       } else {
         x.fillStyle = '#ff6a6a'; x.beginPath(); x.arc(px, py - 12, 14, 0, 7); x.fill();
       }
