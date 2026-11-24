@@ -18,10 +18,11 @@
       sky: 'garden_sky.png', stars: [[381,12,0.81,0.89,1.46],[121,4,0.63,1.52,0.65],[520,40,1.03,3.22,0.65],[221,51,0.58,1.83,0.71],[429,6,0.83,6.16,1.24],[552,43,0.56,2.09,2.14],[241,17,0.67,0.63,0.7],[268,53,0.95,0.73,1.27],[435,0,0.69,6.1,1.89],[622,2,0.65,2.48,1.97],[528,1,1.04,2.07,1.07],[150,9,0.56,3.66,0.99],[315,39,1.14,5.14,1.0],[212,13,0.53,6.05,0.98],[140,16,0.66,3.51,1.96],[573,27,1.14,1.28,0.63],[123,5,0.62,2.32,1.52],[269,11,0.75,5.6,2.17],[279,9,0.55,3.43,1.78],[164,11,0.95,6.24,2.01],[616,18,0.97,1.27,0.87],[494,41,0.78,1.57,1.61],[410,27,0.77,3.66,1.11],[278,17,0.85,5.26,1.96],[346,14,0.82,1.73,0.94],[278,51,0.82,0.16,1.93],[236,57,0.58,3.36,1.62],[405,25,1.08,1.61,1.74],[458,11,0.79,5.61,1.22],[252,27,0.67,2.45,0.74],[341,8,1.15,2.88,2.07],[532,16,0.99,6.14,0.66],[318,29,0.51,1.78,1.76],[279,29,1.14,3.94,1.16],[398,27,1.04,1.22,0.75],[490,16,1.01,1.63,0.76],[258,25,0.78,4.3,0.63],[217,3,0.53,3.46,1.42],[300,24,0.63,1.28,1.94],[126,17,1.17,2.9,1.82],[338,12,0.86,0.1,2.03],[528,35,1.14,4.68,1.84],[378,9,1.06,1.89,0.76],[485,32,0.81,3.17,1.82],[201,33,0.68,5.69,1.48],[606,3,0.51,1.54,0.67],[499,5,0.87,5.89,1.76],[235,6,0.94,2.86,0.93],[254,46,0.81,4.19,1.33],[280,37,1.01,1.5,0.78],[490,24,1.17,3.15,1.64],[124,1,0.69,2.67,1.6],[209,28,0.88,0.46,0.74],[245,57,1.07,3.92,1.83],[528,49,1.07,2.32,1.65],[292,28,0.75,4.56,1.19],[240,41,1.0,3.58,2.07],[173,3,0.94,0.9,1.79],[225,53,1.15,5.75,0.99],[343,41,0.64,2.67,1.07]],
       fire: [2029, 1193], steam: [2029, 1007], fireR: 0.6,
       windows: [[1826, 139, 60], [2400, 307, 60]],
-      flies: [[20, 1150, 500, 1420], [2100, 1150, 2540, 1420]], leaves: true, birds: true
+      flies: [[20, 1150, 500, 1420], [2100, 1150, 2540, 1420]], leaves: true, birds: true,
+      cat: { img: 'garden_cat.png', x: 1110, y: 284, w: 150 } // спящий котик на заборе
     },
   };
-  const ALL = ['clouds', 'stars', 'shoot', 'daynight', 'fire', 'sparks', 'steam', 'windows', 'flags', 'ffly', 'leaves', 'birds'];
+  const ALL = ['cat', 'clouds', 'stars', 'shoot', 'daynight', 'fire', 'sparks', 'steam', 'windows', 'flags', 'ffly', 'leaves', 'birds'];
   const rnd = (a, b) => a + Math.random() * (b - a);
   const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
   let T = 0;
@@ -59,6 +60,7 @@
       s.ready = true;
     };
     im.src = base + L.sky + '?v=2';
+    if (L.cat) { const c = new Image(); c.onload = () => { s.cat = c; }; c.src = base + L.cat.img + '?v=1'; }
     if (L.flagAtlas) { const a = new Image(); a.onload = () => { s.atlas = a; }; a.src = base + L.flagAtlas + '?v=1'; }
     for (let i = 0; i < 7; i++) s.sprites.push(makeCloud(Math.round(rnd(120, 250))));
     for (let i = 0; i < 6; i++) s.clouds.push({ s: s.sprites[i % s.sprites.length], x: rnd(-300, sw), y: rnd(20, 260), v: rnd(6, 14), a: rnd(.75, .95) });
@@ -109,6 +111,9 @@
       let g = ctx.createRadialGradient(F[0], fy, 0, F[0], fy, R); g.addColorStop(0, `rgba(255,150,60,${0.30 + 0.15 * nk})`); g.addColorStop(.35, `rgba(255,110,40,${0.10 + 0.06 * nk})`); g.addColorStop(1, 'rgba(255,90,30,0)'); ctx.fillStyle = g; ctx.fillRect(F[0] - R, fy - R, R * 2, R * 2);
       g = ctx.createRadialGradient(F[0], F[1] - 14, 0, F[0], F[1] - 14, 86 * fl); g.addColorStop(0, 'rgba(255,210,120,.35)'); g.addColorStop(1, 'rgba(255,160,60,0)'); ctx.fillStyle = g; ctx.fillRect(F[0] - 100, F[1] - 114, 200, 200);
       ctx.restore(); }
+    if (L.cat && s.cat && on('cat')) { const P = L.cat, w = P.w, h = w * s.cat.height / s.cat.width, br = 1 + 0.03 * Math.sin(T * 1.7); // дышит
+      ctx.save(); ctx.imageSmoothingEnabled = true; ctx.filter = 'brightness(' + (0.82 - 0.22 * nk).toFixed(2) + ') saturate(0.85)'; ctx.drawImage(s.cat, P.x - w / 2, P.y - h * br, w, h * br); ctx.restore();
+      const zp = (T * 0.35) % 1; ctx.save(); ctx.globalAlpha = Math.sin(zp * Math.PI) * 0.8; ctx.fillStyle = '#e8e0ff'; ctx.font = 'bold ' + Math.round(18 + 10 * zp) + 'px sans-serif'; ctx.fillText('z', P.x - w * 0.35 + zp * 26, P.y - h - 6 - zp * 40); ctx.restore(); }
     if (L.windows && on('windows')) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; L.windows.forEach(([wx, wy, sz], i) => { const f = 0.6 + 0.4 * Math.sin(T * (0.7 + i * 0.13) + i * 2.1) * Math.sin(T * 0.31 + i), r = 6 + Math.sqrt(sz) * 1.7, g = ctx.createRadialGradient(wx, wy, 0, wx, wy, r); g.addColorStop(0, `rgba(255,200,110,${(0.25 + 0.35 * nk) * Math.max(0.2, f)})`); g.addColorStop(1, 'rgba(255,170,80,0)'); ctx.fillStyle = g; ctx.fillRect(wx - r, wy - r, r * 2, r * 2); }); ctx.restore(); }
     const S2 = L.steam;
     if (S2 && on('steam')) { if (Math.random() < dt * 3) s.steam.push({ x: S2[0] + rnd(-20, 20), y: S2[1], r: rnd(11, 18), t: 0, l: rnd(2.5, 3.8), vx: rnd(-6, 6) });

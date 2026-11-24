@@ -508,7 +508,7 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 @media (max-width:1150px){#bs.pc .bars-wrap{flex-direction:column;align-items:center}} /* узкое окно — две строки, как раньше, но компактнее */
 
 /* v8.6: живой фон поверх картинки; свой статичный отсвет костра не нужен */
-#bs .scene canvas.live{position:absolute;inset:0;width:2560px;height:1440px;pointer-events:none}
+#bs .scene canvas.live{position:absolute;left:-2px;top:-2px;width:2564px;height:1444px;pointer-events:none}
 #bs.live-on .glow{display:none}
 /* v8.6: светлая кайма у героев — читаются на тёмном живом фоне */
 #bs.live-on .hero img{filter:drop-shadow(0 0 1.5px rgba(255,236,205,.6)) drop-shadow(0 1px 1px rgba(0,0,0,.4))}
@@ -516,3 +516,4 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 /* v8.6: без CSS-фильтров у героев — внутри масштабированной сцены они размывают картинку; кайма вшита в саму картинку */
 #bs .hero img,#bs.live-on .hero img{filter:none}
 #bs .hero.hit img{filter:brightness(1.7)}
+#bs.live-on .scene img.bg{opacity:0} /* v8.6: под живым фоном картинка не просвечивает полоской по краю */
