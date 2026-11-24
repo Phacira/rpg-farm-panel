@@ -1693,12 +1693,12 @@
   function liveTick() {
     liveRaf = 0;
     const cv = $('#bsLive'), img = $('#bsBg'), root = $('#bs');
-    const ok = on && cv && img && window.LIVE6 && LIVE6.has(bsLoc) && !document.hidden;
+    const vl = (root && root.dataset.view) || bsLoc, ok = on && cv && img && window.LIVE6 && LIVE6.has(vl) && /\/camp\.jpg/.test(img.getAttribute('src') || '') === (vl === 'camp') && !document.hidden; // v8.6: только для показанной локации
     if (!ok) { if (cv) cv.hidden = true; if (root) root.classList.remove('live-on'); return; }
     if (!img.complete || !img.naturalWidth) { setTimeout(liveKick, 200); return; }
     const g = cv.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(img, 0, 0, cv.width, cv.height);
     const k = cv.width / 2560; g.setTransform(k, 0, 0, k, 0, 0);
-    try { LIVE6.draw(g, bsLoc, img, 0, 'img/'); } catch (e) { console.warn('live6', e); }
+    try { LIVE6.draw(g, vl, img, 0, 'img/'); } catch (e) { console.warn('live6', e); }
     cv.hidden = false; root.classList.add('live-on');
     liveKick();
   }
