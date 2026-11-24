@@ -363,7 +363,7 @@
 
   function bgOf(l, st) {
     if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=bs518';
-    return 'img/' + (l || 'camp') + '.jpg?v=' + (l === 'camp' || !l ? 'live1' : 'bs518');
+    return 'img/' + (l || 'camp') + '.jpg?v=' + (l === 'camp' || !l ? 'live1' : l === 'garden' ? 'live2' : 'bs518');
   }
 
   let lastDefs = [], lastMore = [], sheetKind = '', tipCmds = new Set();
@@ -1693,7 +1693,7 @@
   function liveTick() {
     liveRaf = 0;
     const cv = $('#bsLive'), img = $('#bsBg'), root = $('#bs');
-    const vl = (root && root.dataset.view) || bsLoc, ok = on && cv && img && window.LIVE6 && LIVE6.has(vl) && /\/camp\.jpg/.test(img.getAttribute('src') || '') === (vl === 'camp') && !document.hidden; // v8.6: только для показанной локации
+    const vl = (root && root.dataset.view) || bsLoc, ok = on && cv && img && window.LIVE6 && LIVE6.has(vl) && new RegExp('/' + vl + '\\.jpg').test(img.getAttribute('src') || '') && !document.hidden; // v8.6: только для показанной локации
     if (!ok) { if (cv) cv.hidden = true; if (root) root.classList.remove('live-on'); return; }
     if (!img.complete || !img.naturalWidth) { setTimeout(liveKick, 200); return; }
     const g = cv.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(img, 0, 0, cv.width, cv.height);
