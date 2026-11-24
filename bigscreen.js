@@ -350,13 +350,13 @@
     const k6 = String(t[6] || '').replace(/_sit$/, '');
     const sit = t[5] === 'sleep', hair = t[7] || '';
     // h8: сидячие спрайты убраны — спящие тоже рисуются стоя (новый стиль)
-    const key = (hair && k6 && !k6.endsWith('_' + hair) && !k6.endsWith('_' + hair + '_beard')) ? k6 + '_' + hair : k6; // v8.4: ключ с бородой уже полный
+    const key = (hair && k6 && !/_(black|blond|chestnut|red|chestnut_loose)(_beard)?$/.test(k6)) ? k6 + '_' + hair : k6; // v8.6: ключ из игры уже с волосами — не дописываем старый цвет (grey/lightbrown → нет файла → мыльная запасная картинка)
     return key ? 'img/h7/' + key + '.webp?v=' + (/_priest_/.test(key) ? 'h8p' : 'h8') : '';
   }
   function sprFb(t) {
     const k6 = String(t[6] || '').replace(/_sit$/, '');
     const hair = t[7] || '';
-    const key = (hair && k6 && !k6.endsWith('_' + hair) && !k6.endsWith('_' + hair + '_beard')) ? k6 + '_' + hair : k6; // v8.4: ключ с бородой уже полный
+    const key = (hair && k6 && !/_(black|blond|chestnut|red|chestnut_loose)(_beard)?$/.test(k6)) ? k6 + '_' + hair : k6; // v8.6: ключ из игры уже с волосами — не дописываем старый цвет (grey/lightbrown → нет файла → мыльная запасная картинка)
     return key ? 'img/h/' + (key) + '.webp?v=' + (/_priest_/.test(key) ? 'h8p' : 'h8') : (k6 ? 'img/h/' + k6 + '.webp' : '');
   }
 
