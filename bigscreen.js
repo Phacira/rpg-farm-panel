@@ -979,7 +979,7 @@
       const flip = faceRight ? false : +t[1] > 1280;
       const src = sprUrl(t), fb = sprFb(t);
       const cn = CLSN[cls] || cls || '';
-      const hs = t._hs || 1;
+      const hs = (t._hs || 1) * (l === 'camp' || l === 'town' ? 1.25 : 1); // v8.6: в лагере/городе герои как в OBS (240 вместо 192) — больше деталей, не мылятся
       const mb = partyMb(st).find(m => String(m[0]).toLowerCase() === String(n).toLowerCase());
       const me = st && st.me;
       let hpN = t.length > 16 ? +t[15] : NaN, hpM = t.length > 16 ? +t[16] : NaN;
