@@ -1632,7 +1632,8 @@
     if (show) fillLog();
   }
 
-  function sync() {
+  function sync() { return window.__keepScroll ? window.__keepScroll(sync0) : sync0(); } // n3: прокрутка не сбрасывается
+  function sync0() {
     enterBtn();
     if (!on) return;
     mount();
