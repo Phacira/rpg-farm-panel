@@ -406,7 +406,8 @@
     const bc = cmd ? ` data-bc="${esc(cmd)}" data-sub="${esc(sub)}" data-en="${dis ? 0 : 1}"` : '';
     const uiA = ui ? ` data-ui="${esc(ui)}"` : '';
     const subTxt = lock.text || (left ? ('⏳ откат ' + left + ' с') : sub);
-    return `<button type="button" data-i="${i}"${uiA}${bc} class="${cls.trim()}"${off ? ' disabled' : ''}>`
+    const prog = d._prog != null ? ` style="--prog:${Math.max(0, Math.min(100, d._prog))}%"` : ''; // готовка: полоска прогресса на кнопке
+    return `<button type="button" data-i="${i}"${uiA}${bc} class="${cls.trim()}${d._prog != null ? ' prog' : ''}"${off ? ' disabled' : ''}${prog}>`
       + (other && !more ? `<span class="grp">не твой класс</span>` : '')
       + `<span class="ic">${ic}</span><span class="lbl">${esc(lab)}</span>`
       + (subTxt ? `<small class="sub">${esc(subTxt)}</small>` : '') + `</button>`;

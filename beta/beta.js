@@ -158,6 +158,7 @@
         if (d[2] === 'собрать' && b.st === 2) d[4] = 'созрело!';
       }
       if (d[2] === 'магия' && mg && (!mg.left || mg.cd > 0 || !mg.seeds)) soft(d);
+      if (d[2] === 'готовить') cookBtn(d, me);
       if (d[2] === 'салат' && sal && (!sal.left || !sal.can)) soft(d);
     });
     regroup(D, me);
@@ -209,6 +210,13 @@
       }
     }
   }
+  // готовка: что варится и сколько осталось (полоска на кнопке), откат команды «не чаще раза в N с»
+  const mmss = s => Math.floor(s / 60) + ':' + String(Math.max(0, Math.round(s)) % 60).padStart(2, '0');
+  function cookBtn(d, me) {
+    const ck = me.ck, cc = me.cc && me.cc['готовить'];
+    if (ck) { d._soft = 1; d[4] = (ck[4] ? 'варится · ' : 'в очереди · ') + mmss(ck[1]); d._prog = Math.round(100 * (1 - ck[1] / ck[2])); }
+    else if (cc > 0) { d._soft = 1; d[4] = 'через ' + cc + ' с'; }
+  }
   // 5) ПК: редкие кнопки огорода и города — в «Ещё», чтобы всё помещалось без прокрутки
   const RARE = new Set(['вклад', 'грядка']);
   window.__betaPcSplit = (defs, loc) => {
@@ -232,6 +240,7 @@
     let c = u.querySelector('.b-chips'); if (!me || (!me.bed && !me.mg)) { if (c) c.remove(); return; }
     const b = me.bed, mg = me.mg, out = [];
     if (b) out.push(b.bugs ? ['bug', 'жуки!', 'warn'] : b.st === 2 ? ['basket', 'созрело', 'ok'] : b.st === 1 ? ['sprout', b.left > 0 ? mins(b.left) : 'растёт', ''] : ['sprout', 'пусто', 'mute']);
+    if (me.ck) out.push(['pot', (me.ck[3] > 1 ? me.ck[3] + '× ' : '') + mmss(me.ck[1]), '']);
     if (mg) out.push(['star4', mg.left + '/' + mg.max + (mg.cd > 0 && mg.left ? ' · ' + mins(mg.cd) : ''), mg.left && !(mg.cd > 0) ? 'ok' : 'mute']);
     const html = out.map(([i, t, k]) => `<span class="b-chip ${k}">${window.BetaIcon(i)}${t}</span>`).join('');
     if (!c) { c = document.createElement('div'); c.className = 'b-chips'; u.appendChild(c); }

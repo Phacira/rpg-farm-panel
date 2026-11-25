@@ -138,3 +138,8 @@ body.beta #bs:not(.phone-p):not(.phone-l) .bs-off { top: 162px; }
 /* подписи над героями поменьше */
 body.beta #bs .hero .name { font-size: calc(18px * var(--hs, 1)); padding: 1px 6px; }
 body.beta #bs .hero .name small { font-size: .72em; opacity: .9; }
+
+/* готовка: полоска прогресса внизу кнопки */
+body.beta #bs .actionbar button.prog { position: relative; overflow: hidden; }
+body.beta #bs .actionbar button.prog::before { content: ""; position: absolute; left: 0; bottom: 0; height: 3px; width: var(--prog, 0%); background: #e8b866; border-radius: 0 2px 2px 0; transition: width 1s linear; }
+body.beta #bs .actionbar button.prog.soft { opacity: .85; }
