@@ -122,3 +122,15 @@ body.beta #bs.phone-p .actionbar .sub, body.beta #bs.phone-l .actionbar .sub { m
 body.beta #bs .actionbar button[data-ui="more"] { order: 99 !important; }
 body.beta #bs.phone-p .bars-wrap > .bar-group { width: 100%; align-items: stretch !important; }
 body.beta #bs.phone-p .actionbar { width: 100%; box-sizing: border-box; }
+
+/* «Ещё» на ПК: ровные строки — значок, название, пояснение под ним */
+body.beta #bs .sheet-body:has(.more-btn) { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; padding: 10px; }
+body.beta #bs .sheet-body .more-btn { display: grid !important; grid-template-columns: 30px 1fr; grid-template-rows: auto auto; align-items: center; column-gap: 8px;
+  width: 100%; text-align: left; padding: 10px 12px !important; margin: 0 !important; border: 1px solid #2e2540 !important; border-radius: 12px !important;
+  background: #1f1829 !important; color: #efe6d8 !important; font: 500 14px Rubik, system-ui, sans-serif !important; }
+body.beta #bs .sheet-body .more-btn:hover { border-color: rgba(232, 184, 102, .5) !important; }
+body.beta #bs .sheet-body .more-btn .ic { grid-row: 1 / 3; font-size: 20px; color: #e8b866; display: flex; justify-content: center; }
+body.beta #bs .sheet-body .more-btn .lbl { grid-column: 2; font-weight: 600; }
+body.beta #bs .sheet-body .more-btn .sub { grid-column: 2; font-size: 11px; color: #a89cb4; font-weight: 400; display: block; }
+body.beta #bs .sheet-body .more-btn .grp { display: none; }
+body.beta #bs:not(.phone-p):not(.phone-l) .bs-off { top: 162px; }

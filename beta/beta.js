@@ -220,7 +220,8 @@
   window.__betaFeedMine = true;
   // 3) грядка и магия прямо в карточке героя
   function chips() {
-    const u = document.getElementById('bsUnit'), me = meNow(); if (!u) return;
+    const u0 = document.getElementById('bsUnit'), me = meNow(); if (!u0) return; const u = u0.querySelector('.unit-main') || u0;
+    const old = u0.querySelector(':scope > .b-chips'); if (old && u !== u0) old.remove();
     let c = u.querySelector('.b-chips'); if (!me || (!me.bed && !me.mg)) { if (c) c.remove(); return; }
     const b = me.bed, mg = me.mg, out = [];
     if (b) out.push(b.bugs ? ['bug', 'жуки!', 'warn'] : b.st === 2 ? ['basket', 'созрело', 'ok'] : b.st === 1 ? ['sprout', b.left > 0 ? mins(b.left) : 'растёт', ''] : ['sprout', 'пусто', 'mute']);
