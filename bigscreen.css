@@ -530,3 +530,9 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 #bs .scene canvas.live.top{z-index:3000}
 #bs .dog-hit{position:absolute;width:140px;height:140px;background:transparent;border:0;padding:0;margin:0;cursor:pointer;z-index:3001;border-radius:50%;-webkit-tap-highlight-color:transparent;min-height:0;min-width:0;box-shadow:none}
 #bs .dog-hit:hover{background:radial-gradient(circle,rgba(255,230,160,.18),transparent 70%)}
+
+/* v9i: босс — выпад при атаке и вспышка при получении урона */
+#bs .mob.boss.batk{animation:bs-boss-atk .56s ease-out}
+@keyframes bs-boss-atk{0%,100%{transform:translateX(0)}45%{transform:translateX(-60px) scale(1.03)}}
+#bs .mob.boss.bhit{filter:brightness(1.55);animation:bs-boss-hit .18s linear}
+@keyframes bs-boss-hit{0%,100%{margin-left:0}25%{margin-left:4px}75%{margin-left:-4px}}

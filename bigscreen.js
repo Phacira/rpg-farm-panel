@@ -1235,7 +1235,7 @@
         }
         if (aloc && aloc !== loc && aloc !== 'all') return;
         const want = (kind === 'mh' || kind === 'ma' || kind === 'md') ? 'mob' : (kind === 'l' || kind === 'h' || kind === 'd' || kind === 'wf') ? 'hero' : '';
-        pending.push({ t: (id != null && a[1]) ? +a[1] : now, go: function () { findActors(who).filter(it => !want || it.kind === want).forEach(it => pulseKind(it, kind)); } });
+        pending.push({ t: (id != null && a[1]) ? +a[1] : now, go: function () { findActors(who).filter(it => !want || it.kind === want).forEach(it => pulseKind(it, kind)); bossReact(kind, aloc || loc); } });
       });
     }
     pending.sort((a, b) => a.t - b.t);
@@ -1247,6 +1247,14 @@
       });
     }
     inferCombat(st, loc);
+  }
+  // v9i: босс тоже живой — выпад к героям, когда бьёт, и вспышка, когда по нему попадают
+  let bossAtkAt = 0;
+  function bossReact(kind, aloc) {
+    if (aloc !== 'boss') return;
+    const b = actorTween.nodes['boss']; if (!b || !b.el) return;
+    if (kind === 'l') pulse(b.el, 'bhit', 180);
+    else if (kind === 'h') { const t = Date.now(); if (t - bossAtkAt > 650) { bossAtkAt = t; pulse(b.el, 'batk', 560); } }
   }
   function nearestOf(it, kind) {
     let best = null, nd = 1e9;
