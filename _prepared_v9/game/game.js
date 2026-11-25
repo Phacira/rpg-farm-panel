@@ -2052,8 +2052,12 @@
     S.order.forEach(u => { const h = S.heroes[u]; if (h && h.rpg_guild && Date.now() - heroSeen(h) > lim) { log(`${DN(h)} давно не появлялся — выходит из гильдии «${g9Name(h.rpg_guild)}»`, '#9a8a7a'); h.rpg_guild = null; h.rpg_guildJoined = 0; delete h.rpg_guildAuto; h.rpg_g9Left = 1; n++; } });
     if (n) save();
   }
+  let G9BR = 0, G9BR_T = 0; // v9e: один раз после загрузки — записанные на босса идут в логово
+  function g9BossRestore() { if (G9BR) return; G9BR = 1; const b = S.boss; if (!b || b.phase !== 'signup' || !Array.isArray(b.signup)) return; let n = 0;
+    b.signup.forEach(u => { const h = S.heroes[u]; if (!h) return; const rt = ensureRT(h); if (rt.loc === 'boss' || rt.mode === 'boss' || BATTLES.some(x => x.user === u)) return; rt.mode = 'boss'; rt.stayUntil = 0; rt.formation = null; const p = SPOT('boss', 'reserve'); travel(h, 'boss', p.x + R(-40, 40), p.y, () => placeFormation()); n++; });
+    if (n) { placeFormation(); log(`Отряд на босса снова собирается в логове (${n})`, '#ffb08a'); } }
   let G9WK_T = 0;
-  function g9Tick() { if (!G9ON()) return; g9ElectTick(); g9HikeTick(); g9KickTick(); if (Date.now() - G9WK_T > 20000) { G9WK_T = Date.now(); g9WeekTick(); } }
+  function g9Tick() { if (!G9BR && (G9BR_T = G9BR_T || Date.now()) && Date.now() - G9BR_T > 3000) g9BossRestore(); if (!G9ON()) return; g9ElectTick(); g9HikeTick(); g9KickTick(); if (Date.now() - G9WK_T > 20000) { G9WK_T = Date.now(); g9WeekTick(); } }
   function g9Snap() {
     if (!G9ON()) return null; const s = g9S(), P = G9(), e = s.elect || {};
     const W9 = g9Win();
@@ -3038,7 +3042,7 @@
 
   // v48: у каждого босса своё логово. lair в списке боссов (config.js) → фон assets/bg/<lair>.png (+ 1080/<lair>.png), пульт img/<lair>.jpg.
   // Без поля lair — общее логово огра ('boss'). Нет файла фона — тоже логово огра (точки/факелы — огра). Настройки логова: CONFIG.lairs[<lair>] поверх этих.
-  const LAIRS_DEF = { boss: {}, boss_queen: { torches: [], portal: [1480, 520, 220], spots: { boss: [1780, 1180], reserve: [420, 1280] }, backY1: 1320, feetMax: 1330, floor: [840, 1320], cocoons: [[2100, 1080], [2000, 1280], [2220, 1140]] },
+  const LAIRS_DEF = { boss: { grid: [[320, 175], [290, 165], [260, 150], [230, 130], [210, 115], [190, 100], [170, 90], [155, 85], [140, 80], [130, 75], [120, 60], [110, 50]] }, /* v9e: реже ряды — ники не наезжают */ boss_queen: { torches: [], portal: [1480, 520, 220], spots: { boss: [1780, 1180], reserve: [420, 1280] }, backY1: 1320, feetMax: 1330, floor: [840, 1320], cocoons: [[2100, 1080], [2000, 1280], [2220, 1140]] },
     boss_treant: { torches: [], spots: { boss: [1860, 1180], arena: [1250, 1200], reserve: [420, 1280] }, floor: [820, 1320], feetMax: 1330, sprouts: [[1620, 980], [1680, 1280], [2060, 1280], [2220, 1140]] } }; // v49.10: пол с ~52–55%; коконы/ростки на полу рядом с боссом, не в воздухе и не на героях/HUD
   function bossDefOf(b) { if (!b || !BE || !BE.bosses) return null; return BE.bosses.find(x => x.name === b.name) || BE.bosses.find(x => x.id === b.key) || null; }
   function lairOf(d) { return !d ? 'boss' : d.lair || (d.id === 'queen_boss' ? 'boss_queen' : d.id === 'treant_boss' ? 'boss_treant' : 'boss'); }
@@ -3153,7 +3157,7 @@
     const h = getHero(nick, true), b = S.boss;
     if (bossWaiting()) return res(h, false, `${b.name} появится через ${fmtTime(b.spawnAt - now())} — тогда пиши !босс`);
     if (!bossActive()) return res(h, false, b && b.phase === 'done' ? 'босс этого стрима уже был' : 'сейчас нет босса');
-    if (b.signup.includes(h.user)) return res(h, false, 'уже записан');
+    if (b.signup.includes(h.user)) { const rt0 = ensureRT(h); if (rt0.loc === 'boss' || rt0.mode === 'boss') return res(h, false, 'уже записан'); rt0.mode = 'boss'; rt0.stayUntil = 0; rt0.formation = null; const p0 = SPOT('boss', 'reserve'); travel(h, 'boss', p0.x + R(-40, 40), p0.y, () => placeFormation()); placeFormation(); return res(h, true, 'ты уже в отряде — идёшь к боссу'); } // v9e
     const bl = blocked(h, 'boss'); if (bl) return res(h, false, bl);
     const st = stats(h); const healed = BE.signupHeal !== false && h.rpg_hp < st.maxhp; /* v49.6: при записи на босса HP восстанавливается до полного — не ждём лагерь */ if (!healed && h.rpg_hp < st.maxhp * BE.minHpShare) return res(h, false, `нужно HP ≥ ${Math.round(BE.minHpShare * 100)}% (сейчас ${h.rpg_hp}/${st.maxhp}) — отдохни у костра или выпей зелье`);
     if (b.signup.length >= BE.maxSquads * BE.squadSize + BE.maxReserve) return res(h, false, 'арена полна');
@@ -3189,7 +3193,7 @@
       return { y0, y1: Math.min(fm, y1), xl: () => 180, xr: () => bs.x - 360 };
     }
     // v49.10: герои всегда левее босса (раньше нижний ряд заходил под ноги/вправо и перекрывал огра)
-    return { y0: 820, y1: Math.min(fm, 1290), xl: y => y > 960 ? 400 : 170, xr: () => bs.x - 340 };
+    return { y0: (L.floor && L.floor[0]) || 960, y1: Math.min(fm, (L.floor && L.floor[1]) || 1310), xl: y => y > 1100 ? 300 : 170, xr: () => bs.x - 340 }; // v9e: новый фон — пол ниже лестницы трона
   }
   const BGRID6 = [[300, 150], [270, 130], [240, 115], [220, 100], [200, 90], [185, 82], [170, 76], [155, 76], [140, 76], [130, 76], [140, 66], [130, 58], [120, 50], [110, 44]];
   function bossGrid(k, bs, n) {
