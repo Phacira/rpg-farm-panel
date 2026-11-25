@@ -1,8 +1,9 @@
 /* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs526. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen', SEE_KEY = 'rpgPanel.bsSeen';
-  const LOCS = [['town', '🏘', 'Город'], ['garden', '🌱', 'Огород'], ['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс']];
-  const LOCN = { camp: 'Лагерь', forest: 'Лес', boss: 'Босс', garden: 'Огород', town: 'Город' };
+  const LOCS = [['town', '🏘', 'Город'], ['garden', '🌱', 'Огород'], ['lake', '🎣', 'Озеро'], ['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс']];
+  const hasLoc = l => l !== 'lake' || !!(window.__panel && window.__panel.state && window.__panel.state.locs && window.__panel.state.locs.lake); // v11: озеро — только если оно есть в игре
+  const LOCN = { camp: 'Лагерь', forest: 'Лес', boss: 'Босс', garden: 'Огород', town: 'Город', lake: 'Озеро' };
   const CLSN = { warrior: 'Воин', archer: 'Лучник', mage: 'Маг', priest: 'Жрец', paladin: 'Паладин', assassin: 'Ассасин' };
   const MOB_RU = { wolf: 'Волк', goblin: 'Гоблин', slime: 'Слизень', rat: 'Стая крыс', tree_spirit: 'Дух дерева', mimic: 'Мимик', ogre_boss: 'Огр', queen_boss: 'Королева-Матка', treant_king_boss: 'Король Трентов' };
   const MOB_H = { slime: 100, goblin: 150, wolf: 130, rat: 64, tree_spirit: 170, mimic: 120 };
@@ -369,7 +370,7 @@
 
   function bgOf(l, st) {
     if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=live6';
-    return 'img/' + (l || 'camp') + '.jpg?v=' + (l === 'camp' || !l ? 'live1' : l === 'garden' ? 'live2' : l === 'town' ? 'live3' : l === 'forest' ? 'live4' : l === 'boss' ? 'live6' : 'bs518');
+    return 'img/' + (l || 'camp') + '.jpg?v=' + (l === 'camp' || !l ? 'live1' : l === 'garden' ? 'live2' : l === 'town' ? 'live3' : l === 'forest' ? 'live4' : l === 'boss' ? 'live6' : l === 'lake' ? 'lake1' : 'bs518');
   }
 
   let lastDefs = [], lastMore = [], sheetKind = '', tipCmds = new Set();
@@ -442,7 +443,7 @@
     const phone = kind === 'phone-p' || kind === 'phone-l';
     const split = phone ? splitPhoneBar(defs, kind) : (window.__betaPcSplit ? __betaPcSplit(defs, bsLoc) : { main: defs, more: [] }); // бета: редкие кнопки в «Ещё»
     lastMore = split.more;
-    $('#bsLocbar').innerHTML = LOCS.map(l => `<button type="button" data-loc="${l[0]}"${l[0] === bsLoc ? ' class="on"' : ''}><span class="ic">${l[1]}</span><span class="lbl">${l[2]}</span></button>`).join('');
+    $('#bsLocbar').innerHTML = LOCS.filter(l => hasLoc(l[0])).map(l => `<button type="button" data-loc="${l[0]}"${l[0] === bsLoc ? ' class="on"' : ''}><span class="ic">${l[1]}</span><span class="lbl">${l[2]}</span></button>`).join('');
     $('#bsBar').innerHTML = split.main.map(d => btnHtml(d, d._ui ? -1 : defs.indexOf(d), false)).join('');
     if (sheetKind) fillSheet();
   }
