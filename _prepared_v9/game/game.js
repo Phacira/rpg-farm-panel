@@ -2063,7 +2063,7 @@
     const W9 = g9Win();
     return { win: W9 ? [W9.gid, W9.pa, Math.round((+P.week.smithOff || 0) * 100), (C.chests[P.week.chest] || {}).name || ''] : null, wk: P.week.enabled ? [Math.round((+P.week.smithOff || 0) * 100), (C.chests[P.week.chest] || {}).name || '', P.week.minPts] : null, hmin: P.hike.min, gm: P.gm.enabled, bank: P.bank.enabled, hike: P.hike.enabled, minVotes: P.gm.minVotes, rewardGold: P.gm.rewardGold, medalDays: P.gm.medalDays, medalEvery: P.gm.medalEveryDays, maxDep: P.bank.maxPerWeek, waves: P.hike.waves, hmin: P.hike.min, hmax: P.hike.max, hwait: Math.round(P.hike.waitSec / 60), noGmMin: P.bank.noGmMin,
       elect: e.first ? e.first : 0, buffs: P.bank.buffs.map(b => [b.id, b.name, b.txt, b.icon]),
-      g: C.guilds.map(g => { const gm = g9Gm(g.id), bf = g9Buff(g.id), q = G9Q[g.id], L = g9Count(g.id); return { id: g.id, gm: gm ? DN(S.heroes[gm.user]) : '', gmu: gm ? gm.user : '', gv: gm ? gm.votes : 0, lead: L.slice(0, 3).map(([u, n]) => [DN(S.heroes[u]), n]), bank: +s.bank[g.id] || 0, buff: bf ? [bf.id, bf.name, bf.txt, bf.until] : null, bwk: s.buffWk[g.id] === weekKey() ? 1 : 0, prices: P.bank.buffs.map(b => g9Price(g.id, b)), hq: q ? q.users.length : 0, hleft: q ? Math.max(0, Math.ceil((q.t0 + P.hike.waitSec * 1000 - Date.now()) / 60000)) : 0, rew: s.gmRew[g.id] === weekKey() ? 1 : 0,
+      g: C.guilds.map(g => { const gm = g9Gm(g.id), bf = g9Buff(g.id), q = G9Q[g.id], L = g9Count(g.id); return { id: g.id, gm: gm ? DN(S.heroes[gm.user]) : '', gmu: gm ? gm.user : '', gv: gm ? gm.votes : 0, lead: L.slice(0, 3).map(([u, n]) => [DN(S.heroes[u]), n]), bank: +s.bank[g.id] || 0, buff: bf ? [bf.id, bf.name, bf.txt, bf.until] : null, bwk: s.buffWk[g.id] === weekKey() ? 1 : 0, prices: P.bank.buffs.map(b => g9Price(g.id, b)), hq: q ? q.users.length : 0, hleft: q ? Math.max(0, Math.ceil((q.t0 + P.hike.waitSec * 1000 - Date.now()) / 60000)) : 0, hsec: q ? Math.max(0, Math.round((q.t0 + P.hike.waitSec * 1000 - Date.now()) / 1000)) : 0, hu: q ? q.users.slice(0, 5).map(u => [DN(S.heroes[u]), (S.heroes[u] || {}).rpg_class || '']) : [], hmax: P.hike.max, hmin: P.hike.min, rew: s.gmRew[g.id] === weekKey() ? 1 : 0,
         members: S.order.map(u => S.heroes[u]).filter(h => h && h.rpg_guild === g.id && heroActive(h)).slice(0, 40).map(h => [h.user, DN(h), +h.rpg_medalAt && Date.now() - h.rpg_medalAt < P.gm.medalEveryDays * 864e5 ? 1 : 0]) }; }) };
   }
   function g9MeSnap(h) { if (!G9ON() || !h || !h.rpg_guild) return null; const s = g9S(), b = BATTLES.find(x => x.user === h.user && x.G && x.G.g9), M = b && b.G.mech;
@@ -5067,7 +5067,7 @@
       text(GACTD() ? guildActTxt(r.a, r.n) : `${r.n} ${plural(r.n, 'человек', 'человека', 'человек')}`, gx + gw - (PER_ON() ? 330 : 140), y, 22, '#7a5a3a', 'right', 0); // v49.10: колонки не наезжают
       if (PER_ON()) { text(String(r.d), gx + gw - 190, y, 21, '#7a5a3a', 'right', 0); text(String(r.pa), gx + gw - 30, y, 24, '#4a2e18', 'right', 0); } else text(String(r.d), gx + gw - 20, y, 22, '#4a2e18', 'right', 0);
       if (G9ON()) { // v9: под строкой гильдии — гильд-мастер, бафф, казна
-        const gm = g9Gm(r.g.id), bf = g9Buff(r.g.id), y2 = y + 25; let x2 = gx + 56;
+        const gm = g9Gm(r.g.id) || {}, bf = g9Buff(r.g.id), y2 = y + 25; let x2 = gx + 56;
         const ic = (k, x) => { const im = IMG[k]; if (im && im.width && !isPH(k)) ctx.drawImage(im, x, y2 - 11, 22, 22); };
         ic('g9_crown', x2); text(gm.user ? `ГМ: ${DN(S.heroes[gm.user])}` : 'ГМ не выбран — !голос <ник>', x2 + 28, y2, 17, gm.user ? '#6a3a12' : '#9a7a5a', 'left', 0); x2 += 28 + measure(gm.user ? `ГМ: ${DN(S.heroes[gm.user])}` : 'ГМ не выбран — !голос <ник>', 17) + 24;
         if (bf) { ic('g9_' + bf.icon, x2); text(bf.name, x2 + 28, y2, 17, '#2e5a18', 'left', 0); x2 += 28 + measure(bf.name, 17) + 24; }
@@ -6275,7 +6275,7 @@
     const n = q.length, full = n >= P.size, left = !n ? -1 : full ? 0 : Math.max(0, Math.round(P.waitSec - (Date.now() - PARTYQ.t0) / 1000));
     const go = [], seen = {};
     BATTLES.forEach(b => { const p = b.party; if (!p || seen[p.id] || go.length >= 6) return; seen[p.id] = 1; const us = (p.users || []).slice(0, P.size + 2), G = b.G || b;
-      go.push([us.map(cut), us.map(u => BATTLES.some(x => x.user === u && x.party === p) ? 1 : 0).join(''), String(G.phase || ''), Math.min(G.waves || C.expeditionWaves, (+G.wave || 0) + 1)]); });
+      go.push([us.map(cut), us.map(u => BATTLES.some(x => x.user === u && x.party === p) ? 1 : 0).join(''), String(G.phase || ''), Math.min(G.waves || C.expeditionWaves, (+G.wave || 0) + 1), G.waves || C.expeditionWaves, p.g9 ? 1 : 0]); });
     const mb = [], seenM = {};
     BATTLES.forEach(b => {
       if (!b || !b.party || seenM[b.user]) return;
