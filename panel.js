@@ -606,12 +606,13 @@
   // n3: перерисовка раз в секунду не сбрасывает прокрутку — запоминаем scrollTop/Left всех прокручиваемых блоков и окна и возвращаем после
   function scrollKey(el) { const p = []; while (el && el !== document.body && !el.id) { const par = el.parentElement; p.unshift(el.tagName + '.' + (typeof el.className === 'string' ? el.className.replace(/\s+/g, '.') : '') + ':' + (par ? Array.prototype.indexOf.call(par.children, el) : 0)); el = par; } return (el && el.id ? '#' + el.id : '') + '/' + p.join('/'); }
   function findByKey(k) { const parts = k.split('/'), root = parts.shift(); let el = root ? document.getElementById(root.slice(1)) : document.body; for (const s of parts) { if (!el || !s) break; const i = +s.slice(s.lastIndexOf(':') + 1); el = el.children[i]; } return el; }
+  ['scroll', 'touchstart', 'touchmove', 'wheel'].forEach(ev => window.addEventListener(ev, () => { window.__scrollT = Date.now(); }, { passive: true }));
   window.__keepScroll = function (fn) {
     const saved = [], wy = window.scrollY;
     try { document.querySelectorAll('body *').forEach(el => { if ((el.scrollTop > 0 || el.scrollLeft > 0) && el.id !== 'logl') saved.push([scrollKey(el), el.scrollTop, el.scrollLeft]); }); } catch (e) {}
     try { return fn(); } finally {
       saved.forEach(([k, t, l]) => { const el = findByKey(k); if (el && el.id !== 'logl') { if (el.scrollTop !== t) el.scrollTop = t; if (el.scrollLeft !== l) el.scrollLeft = l; } });
-      if (Math.abs(window.scrollY - wy) > 1) window.scrollTo(window.scrollX, wy);
+      if (Math.abs(window.scrollY - wy) > 1 && Date.now() - (window.__scrollT || 0) > 900) window.scrollTo(window.scrollX, wy); // v9: не дёргаем страницу, пока человек листает (на телефоне кнопки «прыгали»)
       // n3: полный текст кнопки во всплывающей подсказке (если надпись обрезана — наведи мышку)
       try { document.querySelectorAll('#acts button, #sheet button, #bs .actionbar button, #bs .locbar button, #bs .sheet-body button, #bs .inv-body button, .tabs button').forEach(b => { if (b.title && !b.dataset.autot) return; const t = (b.innerText || '').replace(/\s+/g, ' ').trim(); if (t && b.title !== t) { b.title = t; b.dataset.autot = '1'; } }); } catch (e) {}
     }
