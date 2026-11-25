@@ -1138,7 +1138,7 @@
       let it = actorTween.nodes[key];
       if (!it) {
         const el = document.createElement('div');
-        el.className = 'mob boss' + (flip ? ' flip' : ''); el.dataset.idle = /queen/.test(id) ? 'hover' : /treant/.test(id) ? 'sway' : 'breath'; // v8.7: босс «дышит», как на стриме
+        el.className = 'mob boss' + (flip ? ' flip' : ''); el.dataset.idle = /queen/.test(id) ? 'hover' : /treant/.test(id) ? 'sway' : 'breath'; el.dataset.atk = /ogre/.test(id) ? 'stomp' : 'lunge'; // v9i: огр топает, остальные делают выпад // v8.7: босс «дышит», как на стриме
         el.innerHTML = '<img alt="" style="height:' + h + 'px;' + flt + '" onerror="this.remove()"><div class="mname">' + esc(st.boss.name || '') + '</div>';
         const img = el.querySelector('img'); if (img) img.src = src;
         box.appendChild(el);
