@@ -48,7 +48,9 @@
           .concat([{ label: `${n}: все (${have} шт.)`, arg: n.toLowerCase(), confirm: `Продать все: ${n.toLowerCase()} (${have} шт.)?` }]) }; }));
     // v7panel4 п.5: выбор рецепта (ref.recipes: [название, вид, что нужно, ур. открытия]; me.rcp[i]: 1 — открыт, 2 — хватает овощей)
     const recipes = () => [{ label: 'Лучшее из доступного', sub: 'игра выберет сама', arg: '' }].concat((ref.recipes || []).map(([n, kind, need, lv], i) => { const f = me && me.rcp ? me.rcp[i] || 0 : 1, open = f & 1, can = f & 2; return {
-      label: (kind === 'potion' ? '🧪 ' : '🍲 ') + n, sub: !open ? `закрыт: нужен ур. ${lv}` : (can ? 'хватает: ' : 'не хватает: ') + need, dis: !open, arg: String(i + 1) + (ref.bc ? ' 1' : ''), confirm: `${kind === 'potion' ? 'Сварить' : 'Приготовить'} «${n}»?` }; }));
+      label: (kind === 'potion' ? '🧪 ' : '🍲 ') + n, sub: !open ? `закрыт: нужен ур. ${lv}` : (can ? 'хватает: ' : 'не хватает: ') + need, dis: !open, arg: String(i + 1) + (ref.bc ? ' 1' : ''), confirm: `${kind === 'potion' ? 'Сварить' : 'Приготовить'} «${n}»?`,
+        // v10b: на большом экране тоже можно сразу несколько порций — второй шаг «сколько»
+        ...(ref.bc > 1 && open && can ? { next: Array.from({ length: +ref.bc }, (_, k) => ({ label: `${k + 1} ${k ? (k < 4 ? 'порции' : 'порций') : 'порция'}`, sub: k ? 'если овощей не хватит — сколько получится' : '', arg: `${i + 1} ${k + 1}`, confirm: `${kind === 'potion' ? 'Сварить' : 'Приготовить'} «${n}» × ${k + 1}?` })) } : {}) }; }));
     // v49.9 (fs499): цена продажи одной вещи (с учётом заточки / лишней копии) — общая для «Продать вещь» и кузницы
     const sellOffer = (id, n, price) => { const own = me && me.eqOwn || [], worn = Object.values(me && me.eqOn || {}), cnt = own.filter(x => x === id).length, wn = worn.filter(x => x === id).length;
       const can = cnt > wn, e = me && me.esp && me.esp[id], extra = can && wn > 0, lv = e && !extra ? e[1] : 0;
