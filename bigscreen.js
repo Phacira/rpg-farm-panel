@@ -1696,6 +1696,8 @@
     g.putImageData(D, 0, 0); return c;
   }
   async function sharpHeroes() {
+    // v10: своё уменьшение спрайтов давало мыло (тонкие черты лица пропадали) — браузер рисует чётче. Возвращаем оригиналы
+    if (!window.__sharpOn) { document.querySelectorAll('#bs .hero img').forEach(img => { if (img.dataset.orig) { img.src = img.dataset.orig; delete img.dataset.orig; img.style.height = ''; img.style.translate = ''; } }); return; }
     if (sharpBusy || !on || !window.createImageBitmap) return; sharpBusy = true;
     try {
       const dpr = window.devicePixelRatio || 1, sc = $('#bsScene'), ss = sc ? (sc.getBoundingClientRect().width / 2560) : 1; if (!ss) return;
