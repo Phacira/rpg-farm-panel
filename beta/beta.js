@@ -247,19 +247,22 @@
     if (c.dataset.h !== html) { c.dataset.h = html; c.innerHTML = html; }
   }
 
+  // замены делаем сразу в колбэке наблюдателя (до отрисовки кадра), иначе на миг видны старые эмодзи-кнопки
+  let busy = false;
+  const mo = new MutationObserver(ms => {
+    if (busy) return; busy = true;
+    try {
+      for (const m of ms) {
+        if (m.type === 'characterData') { if (m.target.isConnected) walk(m.target); }
+        else m.addedNodes.forEach(n => { if (n.isConnected) walk(n); });
+      }
+      if (document.body) { markNew(document); chips(); }
+    } finally { mo.takeRecords(); busy = false; }
+  });
+  mo.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
   function start() {
     if (/\/beta\//.test(location.pathname)) { const tg = document.createElement('div'); tg.className = 'beta-tag'; tg.innerHTML = 'Бета нового вида<a href="./">обычная версия</a>'; document.body.appendChild(tg); setTimeout(() => tg.classList.add('gone'), 6000); }
-    walk(document.body);
-    let q = [], t = 0;
-    const flush = () => { t = 0; const l = q; q = []; l.forEach(n => n.isConnected && walk(n)); markNew(document); chips(); };
-    new MutationObserver(ms => {
-      for (const m of ms) {
-        if (m.type === 'characterData') q.push(m.target);
-        else m.addedNodes.forEach(n => q.push(n));
-      }
-      if (!t) t = requestAnimationFrame(flush);
-    }).observe(document.body, { childList: true, subtree: true, characterData: true });
-    markNew(document);
+    walk(document.body); markNew(document); chips();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
