@@ -8,8 +8,14 @@
                { id: 'hp',   name: 'Знамя стойкости', icon: 'buff_hp',   price: 1200, hp: 0.10,   txt: '+10% здоровья' },
                { id: 'dmg',  name: 'Знамя ярости',    icon: 'buff_dmg',  price: 2000, atk: 0.08,  txt: '+8% урона' } ] },
     hike: { enabled: true, waves: 5, min: 2, max: 5, waitSec: 600, mobHpPer: 0.9, mobAtk: 1.15, waveUp: 0.05, waveHeal: 0.25, reward: 2.0, guildPts: 3, chest: 'silver',
-      boss: { hp: 1.8, atk: 1.05 }, autoShare: 0.35, autoDelay: 8, focusSec: 10, focusCd: 20, focusMul: 1.5 },
+      boss: { hp: 1.8, atk: 1.05 }, autoShare: 0.35, autoDelay: 8, focusSec: 10, focusCd: 20, focusMul: 1.5, minDmg: 0.4 },
     inactiveKickDays: 30         // 0 — никого не выводить из гильдии
   },
 
   // и в bossEvent: revive: { ..., auto: false }  — без авто-воскрешения на боссе (только кнопка «Воскресить»)
+
+  // ---------- v9c: БАЛАНС КЛАССОВ ----------
+  // Рост атаки за уровень по классам (было +2 у всех). Жрецы и паладины растут медленнее, бойцы — быстрее.
+  classGrowth: { warrior: 2.5, assassin: 2.5, mage: 2.5, archer: 2.3, paladin: 1.8, priest: 1.5 },
+  // Потолок брони: защита гасит не больше 60% удара (в походах, пати, на боссе). 0 — как раньше (броня может погасить всё).
+  armorMinDmg: 0.4,
