@@ -613,7 +613,7 @@
       ${myFight(me)}
       ${meter('HP' + hpBonusOf(me), me.hp, me.mhp, 'hp')}${me.mmp ? meter('Мана', me.mp || 0, me.mmp, 'mp') : ''}${meter('Опыт', me.xp, me.xpN, 'xp')}
       ${eqBlock}
-      ${tab === 'me' ? (INV_OBS ? '' : statHtml(me)) : ''}
+      ${tab === 'me' || document.body.classList.contains('bs-on') ? (INV_OBS ? '' : statHtml(me)) : ''} <!-- v10: на большом экране в инвентаре тоже видны атака и защита -->
       <div class="uc-status"><div class="uc-row">${ttl}${pet}</div><div class="uc-row">${bfHtml}</div></div>
       <div class="uc-day">${dayBits.join('')}</div>
       ${tab === 'me' ? questHtml(me) : ''}
@@ -631,12 +631,17 @@
   function scrollKey(el) { const p = []; while (el && el !== document.body && !el.id) { const par = el.parentElement; p.unshift(el.tagName + '.' + (typeof el.className === 'string' ? el.className.replace(/\s+/g, '.') : '') + ':' + (par ? Array.prototype.indexOf.call(par.children, el) : 0)); el = par; } return (el && el.id ? '#' + el.id : '') + '/' + p.join('/'); }
   function findByKey(k) { const parts = k.split('/'), root = parts.shift(); let el = root ? document.getElementById(root.slice(1)) : document.body; for (const s of parts) { if (!el || !s) break; const i = +s.slice(s.lastIndexOf(':') + 1); el = el.children[i]; } return el; }
   ['scroll', 'touchstart', 'touchmove', 'wheel'].forEach(ev => window.addEventListener(ev, () => { window.__scrollT = Date.now(); }, { passive: true }));
+  // v10: страница «уползала» вверх: при перерисовке картинки на миг без высоты, страница короче — браузер поджимал прокрутку.
+  // Держим высоту страницы не ниже уже показанной (по настоящей высоте содержимого до перерисовки)
+  const natH = () => { let m = 0; for (const c of document.body.children) { if (c.offsetParent === null) continue; const r = c.getBoundingClientRect(); if (r.bottom > m) m = r.bottom; } return Math.ceil(m + window.scrollY); };
   window.__keepScroll = function (fn) {
     const saved = [], wy = window.scrollY;
+    try { if (!document.getElementById('bs') || !document.body.classList.contains('bs-on')) document.body.style.minHeight = natH() + 'px'; } catch (e) {}
+    let ak = null, at = 0; try { const ae = window.scrollY > 0 && !document.body.classList.contains('bs-on') ? document.elementFromPoint(innerWidth / 2, 80) : null; if (ae && ae !== document.body) { ak = scrollKey(ae); at = ae.getBoundingClientRect().top; } } catch (e) {} // якорь: что было вверху экрана, там и останется
     try { document.querySelectorAll('body *').forEach(el => { if ((el.scrollTop > 0 || el.scrollLeft > 0) && el.id !== 'logl') saved.push([scrollKey(el), el.scrollTop, el.scrollLeft]); }); } catch (e) {}
     try { return fn(); } finally {
       saved.forEach(([k, t, l]) => { const el = findByKey(k); if (el && el.id !== 'logl') { if (el.scrollTop !== t) el.scrollTop = t; if (el.scrollLeft !== l) el.scrollLeft = l; } });
-      if (Math.abs(window.scrollY - wy) > 1 && Date.now() - (window.__scrollT || 0) > 900) window.scrollTo(window.scrollX, wy); // v9: не дёргаем страницу, пока человек листает (на телефоне кнопки «прыгали»)
+      if (Date.now() - (window.__scrollT || 0) > 900) { let done = false; try { const el = ak && findByKey(ak); if (el && el.isConnected) { const d = el.getBoundingClientRect().top - at; if (Math.abs(d) > 1) window.scrollBy(0, d); done = true; } } catch (e) {} if (!done && Math.abs(window.scrollY - wy) > 1) window.scrollTo(window.scrollX, wy); } // v9: не дёргаем страницу, пока человек листает (на телефоне кнопки «прыгали»)
       // n3: полный текст кнопки во всплывающей подсказке (если надпись обрезана — наведи мышку)
       try { document.querySelectorAll('#acts button, #sheet button, #bs .actionbar button, #bs .locbar button, #bs .sheet-body button, #bs .inv-body button, .tabs button').forEach(b => { if (b.title && !b.dataset.autot) return; const t = (b.innerText || '').replace(/\s+/g, ' ').trim(); if (t && b.title !== t) { b.title = t; b.dataset.autot = '1'; } }); } catch (e) {}
     }
