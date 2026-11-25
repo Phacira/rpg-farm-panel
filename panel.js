@@ -12,30 +12,43 @@
   let user = null, state = null, tab = 'me', ws = null, retry = 1500, imgs = {};
   const redirect = () => location.origin + location.pathname.replace(/index\.html$/, '');
 
-  // ---------- Twitch OAuth (implicit flow, scope пустой, токен только в sessionStorage) ----------
+  // ---------- Twitch OAuth (implicit flow, scope пустой) ----------
+  // v10: токен в localStorage — вход не слетает при закрытии вкладки и когда телефон выгружает браузер (раньше sessionStorage)
+  const TK = {
+    get(k) { try { return localStorage.getItem(k) || sessionStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { try { sessionStorage.setItem(k, v); } catch (x) {} } },
+    del(k) { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch (e) {} }
+  };
   function login() {
     const st = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    sessionStorage.setItem('tw_state', st);
+    TK.set('tw_state', st);
     location.href = 'https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=' + encodeURIComponent(CFG.TWITCH_CLIENT_ID) +
       '&redirect_uri=' + encodeURIComponent(redirect()) + '&scope=&state=' + encodeURIComponent(st);
   }
-  function logout() { sessionStorage.removeItem('tw_token'); user = null; if (ws) ws.close(); ws = null; state = null; render(); }
+  function logout() { TK.del('tw_token'); user = null; if (ws) ws.close(); ws = null; state = null; render(); }
   function takeHash() {
     if (!location.hash || location.hash.length < 2) return;
     const p = new URLSearchParams(location.hash.slice(1)); history.replaceState(null, '', location.pathname + location.search);
     if (p.get('error')) return msg('Вход отменён: ' + (p.get('error_description') || p.get('error')));
     const t = p.get('access_token'), st = p.get('state');
-    if (t && st && st === sessionStorage.getItem('tw_state')) sessionStorage.setItem('tw_token', t); else if (t) msg('Ошибка входа (state не совпал). Попробуйте ещё раз.');
-    sessionStorage.removeItem('tw_state');
+    if (t && st && st === TK.get('tw_state')) TK.set('tw_token', t); else if (t) msg('Ошибка входа (state не совпал). Попробуйте ещё раз.');
+    TK.del('tw_state');
   }
   async function validate() {
-    const t = sessionStorage.getItem('tw_token'); if (!t) return render();
+    const t = TK.get('tw_token'); if (!t) return render();
+    const v = await checkTok(t);
+    if (v === 'bad') { TK.del('tw_token'); msg('Вход устарел — войдите снова.'); return render(); }
+    if (!v) { msg('Twitch не отвечает — пробую ещё раз…'); render(); setTimeout(validate, 5000); return; } // v10: сбой сети или Twitch — не выкидываем, ждём
+    msg(''); user = { login: String(v.login).toLowerCase(), id: String(v.user_id) }; render(); connect();
+  }
+  // 'bad' — Twitch сказал, что токен недействителен; null — не удалось проверить (сеть/сбой); иначе ответ Twitch
+  async function checkTok(t) {
     try {
       const r = await fetch('https://id.twitch.tv/oauth2/validate', { headers: { Authorization: 'OAuth ' + t } });
-      const j = r.ok ? await r.json() : null;
-      if (!j || j.client_id !== CFG.TWITCH_CLIENT_ID || !j.login) { sessionStorage.removeItem('tw_token'); msg('Вход устарел — войдите снова.'); return render(); }
-      user = { login: String(j.login).toLowerCase(), id: String(j.user_id) }; render(); connect();
-    } catch (e) { msg('Нет связи с Twitch.'); render(); }
+      if (r.status === 401) return 'bad';
+      const j = r.ok ? await r.json() : null; if (!j) return null;
+      return (j.client_id !== CFG.TWITCH_CLIENT_ID || !j.login) ? 'bad' : j;
+    } catch (e) { return null; }
   }
   function msg(s) { const m = $('pmsg'); if (m) { m.textContent = s; m.hidden = !s; } }
 
@@ -45,15 +58,22 @@
     if (!CFG.RELAY_URL) { state = { online: false, nocfg: true }; return render(); }
     try { ws = new WebSocket(CFG.RELAY_URL.replace(/\/+$/, '') + '/viewer'); } catch (e) { return later(); }
     const me = ws;
-    ws.onopen = () => { lastMsg = Date.now(); me.send(JSON.stringify({ type: 'auth', token: sessionStorage.getItem('tw_token') })); };
+    ws.onopen = () => { lastMsg = Date.now(); me.send(JSON.stringify({ type: 'auth', token: TK.get('tw_token') })); };
     ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; }
       lastMsg = Date.now(); if (m.type === 'pong') return;
-      if (m.type === 'hello' || m.type === 'state' || m.type === 'offline') { retry = 1500; if (m.type !== 'hello') msg(''); }
+      if (m.type === 'hello' || m.type === 'state' || m.type === 'offline') { retry = 1500; recheckN = 0; if (m.type !== 'hello') msg(''); }
       if (m.type === 'cmd-res') { if (window.PanelActions) PanelActions.done(m); return; }
       if (m.type === 'state') { state = m; m._rx = Date.now(); } else if (m.type === 'offline') state = { online: false, lastAt: m.lastAt };
-      else if (m.type === 'error') { if (m.code === 'bad-token') { logout(); msg('Вход устарел — войдите снова.'); } else msg(m.code === 'too-many' ? 'Эта вкладка отключена: пульт открыт в нескольких местах сразу. Обновите страницу, чтобы вернуть связь здесь.' : 'Ошибка: ' + m.code); }
+      else if (m.type === 'error') { if (m.code === 'bad-token') { recheck(); } else msg(m.code === 'too-many' ? 'Эта вкладка отключена: пульт открыт в нескольких местах сразу. Обновите страницу, чтобы вернуть связь здесь.' : 'Ошибка: ' + m.code); }
       render(); };
     ws.onclose = e => { if (ws !== me) return; ws = null; if (user && e.code !== 4003 && e.code !== 4010) later(); };
+  }
+  // v10: ретранслятор отвечает «bad-token» и при сбое связи с Twitch — выходим, только если Twitch сам подтвердил, что вход устарел
+  let recheckN = 0;
+  async function recheck() {
+    const t = TK.get('tw_token'), v = t ? await checkTok(t) : 'bad';
+    if (v === 'bad' || ++recheckN > 6) { recheckN = 0; logout(); msg('Вход устарел — войдите снова.'); return; }
+    setTimeout(() => { if (user && !ws) connect(); }, 2500 * recheckN);
   }
   let lastMsg = Date.now(), laterT = 0;
   function later() { if (laterT) return; laterT = setTimeout(() => { laterT = 0; connect(); }, retry); retry = Math.min(8000, Math.round(retry * 1.7)); }
