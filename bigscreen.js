@@ -1107,7 +1107,7 @@
       });
     }
 
-    if (l === 'boss' && st && st.boss && st.boss.ph === 'fight' && st.boss.key) {
+    if (l === 'boss' && st && st.boss && (st.boss.ph === 'fight' || st.boss.ph === 'signup') && st.boss.key) { // v9e: босс виден и во время записи, как на стриме
       const id = st.boss.key, src = bossSrc(id), flip = !!BOSS_MIRROR[id];
       const flt = /^[a-z0-9().,\s-]*$/i.test(st.boss.flt || '') && st.boss.flt ? ' filter:' + esc(st.boss.flt) + ';' : '';
       const h = Lair ? Lair.h : (/treant/.test(id) ? 500 : 460);
