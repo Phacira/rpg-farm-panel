@@ -488,8 +488,9 @@
       title.textContent = q.d ? ('Задания · выполнено ' + q.d) : 'Задания';
       body.innerHTML = q.html;
     } else if (sheetKind === 'party') {
-      title.textContent = 'Очередь на пати-поход';
-      body.innerHTML = partyBoxHtml(ctx(), true) || '<div class="muted">пока никого</div>';
+      const cx = ctx(), GH = g9HikeOf(cx), P0 = ptyOf(cx), pq = P0 && (+P0.qn || (P0.q || []).length);
+      title.textContent = GH && !pq ? 'Сбор гильд-похода' : 'Очередь на пати-поход';
+      body.innerHTML = (pq || !GH ? (partyBoxHtml(cx, true) || '<div class="muted">пока никого</div>') : '') + (GH ? '<h3 style="margin:10px 0 4px">🏰 Гильд-поход · ' + esc(Math.min(+GH.hq, +GH.hmax || 5) + '/' + (+GH.hmax || 5)) + '</h3>' + g9HikeHtml(cx, GH) : '');
     } else {
       title.textContent = 'Ещё';
       const rows = lastMore.map(d => btnHtml(d, d._ui ? -1 : lastDefs.indexOf(d), true)).join('');
@@ -733,12 +734,20 @@
     if (!rows.length) return (forSheet ? '<div class="muted">пока никого — нажмите «Пати-поход» (нужно от ' + esc(P.mn || 2) + ' до ' + esc(sz) + ')</div>' : '<div class="muted">пока никого</div>');
     return (stt ? '<div class="ph-sub">' + esc(stt) + '</div>' : '') + '<ul class="qlist">' + rows.join('') + '</ul>' + extra;
   }
+  // v9f: сбор гильд-похода своей гильдии — тот же блок, что у пати: кто записан, сколько из скольких, таймер
+  function g9HikeOf(c) { const g9 = c && c.ref && c.ref.g9, gid = c && c.me && c.me.gid; if (!g9 || !gid) return null; const g = (g9.g || []).find(x => x.id === gid); return g && +g.hq > 0 ? g : null; }
+  function g9HikeHtml(c, G) {
+    const meL = String((c.me && c.me.n) || '').toLowerCase(), mx = +G.hmax || 5, mn = +G.hmin || 3, n = +G.hq || 0;
+    const rows = (G.hu || []).map(([dn, cls]) => '<li class="g-' + esc(c.me.gid) + (String(dn).toLowerCase() === meL ? ' me' : '') + '"><i class="gmark"></i><span class="nick">' + (String(dn).toLowerCase() === meL ? '★ ' : '') + esc(dn) + '</span>' + (CLSN[cls] ? '<small>' + esc(CLSN[cls]) + '</small>' : '') + '</li>');
+    const stt = n >= mx ? 'отряд собран — уходит' : (+G.hsec > 0 ? (n >= mn ? 'старт через ' : 'нужно ещё ' + (mn - n) + ' · сбор ') + fmtPtyLeft(+G.hsec) : 'набор идёт');
+    return '<div class="ph-sub">' + esc(stt) + '</div><ul class="qlist">' + rows.join('') + '</ul>';
+  }
   function fillParty(c) {
     const el = $('#bsParty'), chip = $('#bsPartyChip');
-    const P = ptyOf(c);
+    const P = ptyOf(c), GH = g9HikeOf(c);
     const inCamp = bsLoc === 'camp';
     const q = (P && P.q) || [], qn = +((P && P.qn) || q.length), sz = +((P && P.sz) || 3);
-    const show = !!(P && (qn > 0 || inCamp));
+    const show = !!(P && (qn > 0 || inCamp)) || !!GH;
     if (el) {
       if (!show) { el.hidden = true; el.innerHTML = ''; }
       else {
@@ -750,14 +759,20 @@
           + '<span class="pcnt">' + esc(cnt) + '</span>'
           + '<button type="button" class="fold-chev" data-bsfold="party" title="Свернуть очередь" aria-label="Свернуть очередь">▾</button>'
           + '</header>' + (partyBoxHtml(c, false) || '<div class="muted">пока никого</div>');
+        if (GH) { const gc = Math.min(+GH.hq, +GH.hmax || 5) + '/' + (+GH.hmax || 5) + (+GH.hsec > 0 ? ' · ' + fmtPtyLeft(+GH.hsec) : '');
+          const hp = '<header>🏰 Гильд-поход<span class="pcnt">' + esc(gc) + '</span></header>' + g9HikeHtml(c, GH);
+          el.innerHTML = (P && (qn > 0 || inCamp)) ? el.innerHTML + hp : hp; }
       }
     }
     const tab = document.querySelector('#bs .party-tab');
     if (tab) tab.hidden = !show;
     if (chip) {
-      const phoneShow = !!(P && qn > 0);
+      const phoneShow = !!(P && qn > 0) || !!GH;
       chip.hidden = !phoneShow;
-      if (phoneShow) {
+      if (GH && !(P && qn > 0)) {
+        chip.innerHTML = '<span>🏰 Гильд-поход</span><b>' + esc(Math.min(+GH.hq, +GH.hmax || 5) + '/' + (+GH.hmax || 5) + (+GH.hsec > 0 ? ' · ' + fmtPtyLeft(+GH.hsec) : '')) + '</b>';
+        chip.title = 'Сбор гильд-похода';
+      } else if (phoneShow) {
         const extra = qn > sz ? ' +' + (qn - sz) : '';
         const left = (!P.lane && P.left > 0) ? ' · ' + fmtPtyLeft(P.left) : (P.lane ? ' · тропа' : '');
         chip.innerHTML = '<span>⚔ Пати</span><b>' + esc(Math.min(qn, sz) + '/' + sz + extra + left) + '</b>';
