@@ -1,0 +1,68 @@
+/* Бета нового вида пульта (по одобренным макетам): спокойные тёмные панели, Rubik, SVG-иконки, ровная сетка, точки «новое» */
+body.beta, body.beta #bs, body.beta #bs button, body.beta .panel, body.beta .sheet { font-family: Rubik, system-ui, sans-serif; }
+.bi { display: inline-flex; align-items: center; justify-content: center; width: 1.05em; height: 1.05em; vertical-align: -0.16em; line-height: 1; }
+.bi svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+/* панели большого экрана */
+body.beta #bs .bsp, body.beta #bs .hero-card, body.beta #bs .me, body.beta #bs .feedbox, body.beta #bs .tipchip {
+  background: rgba(22, 17, 30, .86) !important; border: 1px solid rgba(232, 184, 102, .25) !important; border-radius: 16px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .35) !important;
+}
+body.beta #bs .bsp header { border-bottom-color: rgba(232, 184, 102, .18) !important; }
+
+/* нижняя панель: одна спокойная полоса */
+body.beta #bs .locbar, body.beta #bs .actionbar {
+  background: #15111d !important; border: 1px solid #2e2540 !important; border-radius: 16px !important; box-shadow: 0 10px 28px rgba(0, 0, 0, .5) !important;
+}
+body.beta #bs .locbar { padding: 4px !important; gap: 4px !important; background: #1f1829 !important; }
+body.beta #bs .locbar button {
+  background: transparent !important; border: 0 !important; color: #cfc3dc !important; border-radius: 10px !important; width: 72px; min-width: 72px !important;
+}
+body.beta #bs .locbar button .ic { color: #cfc3dc !important; }
+body.beta #bs .locbar button.on { background: #e8b866 !important; color: #1a1322 !important; }
+body.beta #bs .locbar button.on .ic, body.beta #bs .locbar button.on .lbl { color: #1a1322 !important; font-weight: 600; }
+body.beta #bs .locbar button.on .bi { color: #1a1322 !important; }
+body.beta #bs .locbar button:not(.on):hover { background: #2a2136 !important; }
+
+/* действия: ровная сетка одинаковых кнопок */
+body.beta #bs .actionbar { display: grid !important; grid-auto-flow: column; grid-auto-columns: 76px; gap: 6px !important; padding: 6px !important; }
+body.beta #bs .actionbar button {
+  width: 76px; min-width: 0 !important; background: #1f1829 !important; border: 1px solid #2e2540 !important; border-radius: 12px !important; color: #efe6d8 !important;
+  gap: 3px; padding: 4px 4px !important;
+}
+body.beta #bs .actionbar button:hover:not(:disabled) { border-color: rgba(232, 184, 102, .5) !important; background: #251c31 !important; }
+body.beta #bs .actionbar button.hot, body.beta #bs .actionbar button.on, body.beta #bs .actionbar button.tip-hot {
+  background: #2a2016 !important; border-color: rgba(232, 184, 102, .65) !important; color: #f3d9a4 !important;
+}
+body.beta #bs .actionbar .ic { color: #e8b866 !important; font-size: 19px !important; }
+body.beta #bs .actionbar .lbl { font-weight: 500; font-size: 12px; line-height: 1.1; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.beta #bs .actionbar .sub { font-weight: 400 !important; color: #a89cb4 !important; font-size: 10px !important; max-width: 70px !important; }
+body.beta #bs.pc .actionbar { grid-auto-columns: 60px; gap: 4px !important; padding: 5px !important; }
+body.beta #bs.pc .actionbar button { width: 60px; height: 58px !important; }
+body.beta #bs.pc .actionbar .lbl { font-size: 11px; max-width: 56px; }
+body.beta #bs.pc .actionbar .sub { font-size: 8.5px !important; max-width: 56px !important; }
+body.beta #bs.pc .locbar button { width: 54px; min-width: 54px !important; height: 58px !important; }
+
+/* телефон: кнопки сеткой на всю ширину */
+body.beta #bs.phone-p .actionbar, body.beta #bs.phone-l .actionbar { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-columns: auto; }
+body.beta #bs.phone-p .actionbar button, body.beta #bs.phone-l .actionbar button { width: auto; }
+body.beta #bs.phone-p .locbar, body.beta #bs.phone-l .locbar { display: grid !important; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+body.beta #bs.phone-p .locbar button, body.beta #bs.phone-l .locbar button { width: auto; min-width: 0 !important; }
+
+/* «новое»: маленькая золотая точка, без мигания */
+body.beta .is-new { position: relative; }
+body.beta .is-new::after {
+  content: ""; position: absolute; top: 6px; right: 7px; width: 7px; height: 7px; border-radius: 50%;
+  background: #e8b866; box-shadow: 0 0 0 3px rgba(232, 184, 102, .18); pointer-events: none;
+}
+body.beta #bs .actionbar button.is-new { border-color: rgba(232, 184, 102, .45) !important; }
+
+/* полоса-метка «бета» */
+.beta-tag { position: fixed; left: 50%; top: 6px; transform: translateX(-50%); z-index: 99999; padding: 4px 12px; border-radius: 999px;
+  background: rgba(22, 17, 30, .9); border: 1px solid rgba(232, 184, 102, .4); color: #e8b866; font: 500 12px Rubik, system-ui, sans-serif; pointer-events: auto; }
+.beta-tag a { color: #cfc3dc; margin-left: 8px; }
+body.beta #bs.phone-p .actionbar button, body.beta #bs.phone-l .actionbar button { height: auto !important; min-height: 56px; padding: 6px 4px !important; }
+body.beta #bs.phone-p .actionbar .lbl, body.beta #bs.phone-l .actionbar .lbl { font-size: 12px; max-width: 100%; }
+body.beta #bs.phone-p .actionbar .sub, body.beta #bs.phone-l .actionbar .sub { max-width: 100% !important; }
+.beta-tag { transition: opacity .6s; white-space: nowrap; }
+.beta-tag.gone { opacity: 0; pointer-events: none; }
