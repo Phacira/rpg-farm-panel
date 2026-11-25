@@ -57,7 +57,8 @@
     const shop = () => (ref.eq || []).filter(i => !i[4] || (me && i[4].includes(me.cls))).map(([id, name, price, slot, , bs, stt]) => { // v7panel20 п.2: + статы вещи; v49.9: у своей вещи — Надеть / Продать
       const own = me && (me.eqOwn || []).includes(id), on = me && eqWorn(id);
       const ic = ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : ''; // v7panel21 п.1: иконка вещи на кнопке
-      if (!own) return { ic, label: name, sub: `${stt ? stt + ' · ' : ''}${price} з · ${SLOT_RU[slot] || slot}${bs > (ref.bsLv || 1) ? ' · кузница ур.' + bs : ''}`, dis: gold < price || bs > (ref.bsLv || 1), arg: id, confirm: `Купить «${name}» за ${price} золота?` };
+      const so9 = +(me && me.g9 && me.g9.so) || 0, pp = so9 ? Math.round(price * (1 - so9 / 100)) : price; // v9d: скидка гильдии недели
+      if (!own) return { ic, label: name, sub: `${stt ? stt + ' · ' : ''}${so9 ? `${price} → ${pp} з (−${so9}%)` : price + ' з'} · ${SLOT_RU[slot] || slot}${bs > (ref.bsLv || 1) ? ' · кузница ур.' + bs : ''}`, dis: gold < pp || bs > (ref.bsLv || 1), arg: id, confirm: `Купить «${name}» за ${pp} золота?` };
       const s = sellOffer(id, name, price);
       return { ic, label: name, sub: (on ? 'надето' : 'есть') + (s.can ? ` · продать за ${s.pr} з` : '') + (stt ? ' · ' + stt : ''), next: [
         { ic, label: 'Надеть', sub: on ? 'уже надето' : 'надеть на героя', dis: on, arg: id, cmd: 'экип' },
@@ -96,6 +97,8 @@
       const others = (myG.members || []).filter(([u]) => !isMeU(u)), L = [], amGm = isMeU(myG.gmu);
       const elect = G9.elect ? `итоги первых выборов в ${new Date(G9.elect).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : 'итоги — в понедельник, в начале стрима';
       L.push({ note: 1, label: `${me.gd}: ${myG.gm ? '👑 гильд-мастер — ' + myG.gm : 'гильд-мастера пока нет'}`, sub: `казна ${myG.bank} з${myG.buff ? ` · 🚩 ${myG.buff[1]} (${myG.buff[2]}) до ${fmtD(myG.buff[3])}` : ''}${mg9.medal ? ` · 🏅 у тебя медаль до ${fmtD(mg9.medal)}` : ''}` });
+      if (G9.wk) { const gn = id => ((ref.guilds || []).find(x => x[0] === id) || [0, id])[1], W = G9.win; // v9d: гильдия недели
+        L.push({ label: '🏆 Гильдия недели', sub: W ? `${gn(W[0])} — ${W[1]} очков на игрока${me.gid === W[0] ? ` · твоя! скидка ${W[2]}% в кузнице` : ''}` : 'итоги — в понедельник', next: [{ note: 1, label: 'Как это работает', lines: [['кто побеждает', 'больше всех очков за неделю на одного активного игрока'], ['очки', 'поход, босс, гильд-поход (×3)'], ['награда', `${G9.wk[1]} каждому активному`], ['и ещё', `скидка ${G9.wk[0]}% в кузнице на всю неделю`], ['сундук', 'выдаётся, когда появишься на стриме'], ['минимум', `у гильдии от ${G9.wk[2]} очков`]] }] }); }
       if (G9.gm) L.push({ label: 'Выборы гильд-мастера', pic: 'img/g9/guild_vote.png', sub: `${mg9.vote ? 'твой голос: ' + (((myG.members || []).find(([u]) => u === mg9.vote) || [0, mg9.vote])[1]) : 'ты ещё не голосовал'} · ${elect}`,
         next: [{ note: 1, label: 'Как это работает', lines: [['срок', 'неделя стримов, пн–пт'], ['итоги', elect], ['победа', `больше всех голосов, от ${G9.minVotes}`], ['не набралось', 'остаётся прошлый мастер'], ['голос', 'можно менять до итогов'], ['за себя', 'нельзя']] },
           { note: 1, label: 'Сейчас лидируют', lines: (myG.lead || []).length ? myG.lead.map(([dn, n]) => [dn, n + ' гол.']) : [['голосов пока нет', '']] }]

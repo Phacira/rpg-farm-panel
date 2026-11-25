@@ -226,7 +226,7 @@
     if (off && !prot) { h._durA = (h._durA || 0) + 1; if (h._durA >= a) { h._durA = 0; durWear(h, ['offhand']); } } // незащитная левая рука у танка (на случай чужого конфига) — по-старому
     h._durAT = (h._durAT || 0) + 1; if (h._durAT >= k) { h._durAT = 0; durWear(h, prot ? ['armor', 'offhand'] : ['armor']); } }
   const bsRepairK = () => 1 - Math.min(0.6, Math.max(0, +bEff('blacksmith', 'repair') || 0)); // v49.6: кузница ур.3/5/7/9 — ремонт дешевле
-  const durCost = (h, it) => { const D = DUR() || DUR_DEF; return Math.ceil((it.price || 0) * D.repairMul * shRepairMul(h, it) * bsRepairK() * (1 - durCur(h, it) / durMax(it, D))); };
+  const durCost = (h, it) => { const D = DUR() || DUR_DEF; return Math.ceil((it.price || 0) * D.repairMul * shRepairMul(h, it) * bsRepairK() * g9SmithK(h) * (1 - durCur(h, it) / durMax(it, D))); };
   const durPct = (h, it) => Math.round(durCur(h, it) / durMax(it) * 100);
   // v7panel42: список изношенных надетых вещей + цены (та же формула durCost, что !чинить)
   function durRepairList(h) {
@@ -332,8 +332,9 @@
       h.rpg_equip[slot] = it.id; save(); refreshUI(); return res(h, true, `надевает: ${it.name}`); 
     }
     if (bs < needBs(it)) return res(h, false, `«${it.name}» нужна кузница ур.${needBs(it)} (сейчас ${bs}) — !вклад кузница`);
-    if (h.rpg_gold < it.price) return res(h, false, `«${it.name}» стоит ${it.price} золота, у тебя ${h.rpg_gold}`);
-    h.rpg_gold -= it.price; h.rpg_eqOwn.push(it.id); 
+    const PR9 = Math.round(it.price * g9SmithK(h)); // v9d: скидка гильдии недели
+    if (h.rpg_gold < PR9) return res(h, false, `«${it.name}» стоит ${PR9} золота, у тебя ${h.rpg_gold}`);
+    h.rpg_gold -= PR9; h.rpg_eqOwn.push(it.id); 
     const slot = it.slot === 'ring1' && h.rpg_equip.ring1 ? 'ring2' : it.slot;
     h.rpg_equip[slot] = it.id; save(); refreshUI();
     log(`⚒ ${DN(h)}: покупка «${it.name}» (${eqStatTxt(it)})`, '#ffd27a'); return res(h, true, `покупает и надевает «${it.name}»: ${eqStatTxt(it)}`);
@@ -1719,7 +1720,7 @@
 
   // ===================== ГИЛЬДИИ, НЕДЕЛЬНЫЕ ОЧКИ, ТРОФЕЙ =====================
   function weekKey() { const d = new Date(); const day = (d.getDay() + 6) % 7; d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - day); return d.toISOString().slice(0, 10); }
-  function weekTick() { const k = weekKey(); if (S.weekKey !== k) { S.weekKey = k; S.weekly = {}; } }
+  function weekTick() { const k = weekKey(); if (S.weekKey !== k) { if (S.weekKey && typeof g9WeekEnd === 'function') g9WeekEnd(S.weekKey); S.weekKey = k; S.weekly = {}; } } // v9d: перед обнулением — гильдия недели
   function addGuildPoints(gid, n, h) { if (!gid) return; weekTick(); S.weekly[gid] = (S.weekly[gid] || 0) + n; S.guildScore[gid] = (S.guildScore[gid] || 0) + n; if (h) { if (h.rpg_wk !== S.weekKey) { h.rpg_wk = S.weekKey; h.rpg_wkPts = 0; } h.rpg_wkPts += n; } }
   const trophyActive = () => S.trophy && S.trophy.until > Date.now();
   const trophyBonus = h => (trophyActive() && h.rpg_guild === S.trophy.guild ? C.trophy.goldXpBonus : 0) + underdogBonus(h) + g9Medal(h); // v9: + медаль от ГМ
@@ -1827,13 +1828,14 @@
                { id: 'xp', name: 'Знамя мудрости', icon: 'buff_xp', price: 1500, xp: 0.15, txt: '+15% опыта' },
                { id: 'hp', name: 'Знамя стойкости', icon: 'buff_hp', price: 1200, hp: 0.10, txt: '+10% здоровья' },
                { id: 'dmg', name: 'Знамя ярости', icon: 'buff_dmg', price: 2000, atk: 0.08, txt: '+8% урона' } ] },
-    hike: { enabled: true, waves: 5, min: 2, max: 5, waitSec: 600, mobHpPer: 0.9, mobAtk: 1.15, waveUp: 0.05, waveHeal: 0.25, reward: 2.0, guildPts: 3, chest: 'silver',
+    hike: { enabled: true, waves: 5, min: 3, max: 5, waitSec: 600, mobHpPer: 0.9, mobAtk: 1.15, waveUp: 0.05, waveHeal: 0.25, reward: 2.0, guildPts: 3, chest: 'silver',
       boss: { hp: 1.8, atk: 1.05, gear: 0, gearMax: 1.5 }, minDmg: 0.4, autoShare: 0.35, autoDelay: 8, focusSec: 10, focusCd: 20, focusMul: 1.5,
       bosses: [ { id: 'guild_wolf_alpha', name: 'Вожак стаи', hp: 72, atk: 14, def: 3, xp: 120, gold: 60, h: 330, mech: 'pack' },
                 { id: 'guild_goblin_chief', name: 'Гоблин-вождь', hp: 70, atk: 17, def: 2, xp: 120, gold: 60, h: 320, mech: 'totem' },
                 { id: 'guild_moss_golem', name: 'Мшистый голем', hp: 100, atk: 13, def: 5, xp: 120, gold: 60, h: 350, mech: 'skin' } ] },
+    week: { enabled: true, chest: 'silver', smithOff: 0.10, minPts: 100 }, // победитель недели (по очкам на активного): сундук каждому + скидка в кузнице на неделю
     inactiveKickDays: 30 };
-  const G9 = () => { const c = C.guildsV9 || {}; return Object.assign({}, G9DEF, c, { gm: Object.assign({}, G9DEF.gm, c.gm || {}), bank: Object.assign({}, G9DEF.bank, c.bank || {}), hike: Object.assign({}, G9DEF.hike, c.hike || {}, { boss: Object.assign({}, G9DEF.hike.boss, (c.hike || {}).boss || {}) }) }); };
+  const G9 = () => { const c = C.guildsV9 || {}; return Object.assign({}, G9DEF, c, { gm: Object.assign({}, G9DEF.gm, c.gm || {}), bank: Object.assign({}, G9DEF.bank, c.bank || {}), week: Object.assign({}, G9DEF.week, c.week || {}), hike: Object.assign({}, G9DEF.hike, c.hike || {}, { boss: Object.assign({}, G9DEF.hike.boss, (c.hike || {}).boss || {}) }) }); };
   const G9ON = () => !!(C.guildsV9 && C.guildsV9.enabled === true);
   function g9S() { const s = S.g9 = S.g9 || {}; ['votes', 'gm', 'last', 'resigned', 'bank', 'buff', 'buffWk', 'gmRew', 'dep'].forEach(k => { s[k] = s[k] || {}; }); return s; }
   const g9Name = gid => (guildById(gid) || {}).name || gid;
@@ -2024,6 +2026,24 @@
       if (M.t - (M.stomp || 0) >= 20) { M.stomp = M.t; say9('Удар по земле!', '#ffb08a'); alive().forEach(x => hurt(x, x.maxhp * 0.08, 'удар')); }
     }
   }
+  // ---- победитель недели: сундук каждому активному + скидка в кузнице ----
+  function g9WeekEnd(prevWk) { // вызывается при смене недели ДО обнуления S.weekly
+    const W = G9().week; if (!G9ON() || !W.enabled || !prevWk) return; const s = g9S(), GA = guildCounts();
+    const rows = C.guilds.map(g => ({ id: g.id, pts: +(S.weekly || {})[g.id] || 0, pa: perActive(g.id, +(S.weekly || {})[g.id] || 0, GA) })).sort((a, b) => b.pa - a.pa);
+    const top = rows[0]; if (!top || top.pts < (W.minPts || 0) || (rows[1] && rows[1].pa === top.pa)) { s.win = null; return; }
+    const members = S.order.filter(u => { const h = S.heroes[u]; return h && h.rpg_guild === top.id && heroActive(h); });
+    s.win = { gid: top.id, wk: weekKey(), pa: Math.round(top.pa), users: members, paid: {} };
+    const t = `🏆 Гильдия недели — «${g9Name(top.id)}» (${Math.round(top.pa)} очков на игрока)! Каждому — ${(C.chests[W.chest] || {}).name || 'сундук'}, всю неделю скидка ${Math.round(W.smithOff * 100)}% в кузнице`;
+    log(t, g9Col(top.id)); emitBot({ event: 'g9Week', user: '', text: t });
+  }
+  function g9Win() { const w = g9S().win; return w && w.wk === weekKey() ? w : null; }
+  function g9SmithK(h) { const w = g9Win(); return w && h && h.rpg_guild === w.gid ? 1 - (+G9().week.smithOff || 0) : 1; }
+  function g9WeekTick() { // выдаём сундук победителям, когда они на стриме
+    weekTick(); const w = g9Win(), W = G9().week; if (!w || !C.chests[W.chest]) return; let n = 0;
+    for (const u of w.users) { if (w.paid[u]) continue; const h = S.heroes[u]; if (!h || h.rpg_guild !== w.gid || Date.now() - heroSeen(h) > 15 * 60000) continue;
+      const rt = ensureRT(h); giveChest(h, W.chest, 'Гильдия недели', { x: rt.x, y: rt.y, loc: rt.loc }); w.paid[u] = Date.now(); n++; if (n >= 3) break; }
+    if (n) save();
+  }
   // ---- неактивные ----
   let G9KICK_T = 0;
   function g9KickTick() {
@@ -2032,16 +2052,18 @@
     S.order.forEach(u => { const h = S.heroes[u]; if (h && h.rpg_guild && Date.now() - heroSeen(h) > lim) { log(`${DN(h)} давно не появлялся — выходит из гильдии «${g9Name(h.rpg_guild)}»`, '#9a8a7a'); h.rpg_guild = null; h.rpg_guildJoined = 0; delete h.rpg_guildAuto; h.rpg_g9Left = 1; n++; } });
     if (n) save();
   }
-  function g9Tick() { if (!G9ON()) return; g9ElectTick(); g9HikeTick(); g9KickTick(); }
+  let G9WK_T = 0;
+  function g9Tick() { if (!G9ON()) return; g9ElectTick(); g9HikeTick(); g9KickTick(); if (Date.now() - G9WK_T > 20000) { G9WK_T = Date.now(); g9WeekTick(); } }
   function g9Snap() {
     if (!G9ON()) return null; const s = g9S(), P = G9(), e = s.elect || {};
-    return { gm: P.gm.enabled, bank: P.bank.enabled, hike: P.hike.enabled, minVotes: P.gm.minVotes, rewardGold: P.gm.rewardGold, medalDays: P.gm.medalDays, medalEvery: P.gm.medalEveryDays, maxDep: P.bank.maxPerWeek, waves: P.hike.waves, hmin: P.hike.min, hmax: P.hike.max, hwait: Math.round(P.hike.waitSec / 60), noGmMin: P.bank.noGmMin,
+    const W9 = g9Win();
+    return { win: W9 ? [W9.gid, W9.pa, Math.round((+P.week.smithOff || 0) * 100), (C.chests[P.week.chest] || {}).name || ''] : null, wk: P.week.enabled ? [Math.round((+P.week.smithOff || 0) * 100), (C.chests[P.week.chest] || {}).name || '', P.week.minPts] : null, hmin: P.hike.min, gm: P.gm.enabled, bank: P.bank.enabled, hike: P.hike.enabled, minVotes: P.gm.minVotes, rewardGold: P.gm.rewardGold, medalDays: P.gm.medalDays, medalEvery: P.gm.medalEveryDays, maxDep: P.bank.maxPerWeek, waves: P.hike.waves, hmin: P.hike.min, hmax: P.hike.max, hwait: Math.round(P.hike.waitSec / 60), noGmMin: P.bank.noGmMin,
       elect: e.first ? e.first : 0, buffs: P.bank.buffs.map(b => [b.id, b.name, b.txt, b.icon]),
       g: C.guilds.map(g => { const gm = g9Gm(g.id), bf = g9Buff(g.id), q = G9Q[g.id], L = g9Count(g.id); return { id: g.id, gm: gm ? DN(S.heroes[gm.user]) : '', gmu: gm ? gm.user : '', gv: gm ? gm.votes : 0, lead: L.slice(0, 3).map(([u, n]) => [DN(S.heroes[u]), n]), bank: +s.bank[g.id] || 0, buff: bf ? [bf.id, bf.name, bf.txt, bf.until] : null, bwk: s.buffWk[g.id] === weekKey() ? 1 : 0, prices: P.bank.buffs.map(b => g9Price(g.id, b)), hq: q ? q.users.length : 0, hleft: q ? Math.max(0, Math.ceil((q.t0 + P.hike.waitSec * 1000 - Date.now()) / 60000)) : 0, rew: s.gmRew[g.id] === weekKey() ? 1 : 0,
         members: S.order.map(u => S.heroes[u]).filter(h => h && h.rpg_guild === g.id && heroActive(h)).slice(0, 40).map(h => [h.user, DN(h), +h.rpg_medalAt && Date.now() - h.rpg_medalAt < P.gm.medalEveryDays * 864e5 ? 1 : 0]) }; }) };
   }
   function g9MeSnap(h) { if (!G9ON() || !h || !h.rpg_guild) return null; const s = g9S(), b = BATTLES.find(x => x.user === h.user && x.G && x.G.g9), M = b && b.G.mech;
-    return { vote: (s.votes[h.rpg_guild] || {})[h.user] || '', dep: g9Dep(s, h.user).amt, medal: +h.rpg_medalUntil > Date.now() ? h.rpg_medalUntil : 0, inQ: !!(G9Q[h.rpg_guild] && G9Q[h.rpg_guild].users.includes(h.user)), went: g9Went(h) ? 1 : 0,
+    return { so: Math.round((1 - g9SmithK(h)) * 100), vote: (s.votes[h.rpg_guild] || {})[h.user] || '', dep: g9Dep(s, h.user).amt, medal: +h.rpg_medalUntil > Date.now() ? h.rpg_medalUntil : 0, inQ: !!(G9Q[h.rpg_guild] && G9Q[h.rpg_guild].users.includes(h.user)), went: g9Went(h) ? 1 : 0,
       fight: M && M.sub ? [M.sub.name, Math.round(M.sub.hp / M.sub.max * 100), g9Focus(h) ? 1 : 0, Math.max(0, Math.ceil(((+h._g9fcd || 0) - Date.now()) / 1000))] : null }; }
 
   // ===================== v49: СЕЗОН 2 · ЗАТОЧКА · ПОСТРОЙКИ 10 УР. · ВАЙП =====================

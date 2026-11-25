@@ -7,8 +7,9 @@
                { id: 'xp',   name: 'Знамя мудрости',  icon: 'buff_xp',   price: 1500, xp: 0.15,   txt: '+15% опыта' },
                { id: 'hp',   name: 'Знамя стойкости', icon: 'buff_hp',   price: 1200, hp: 0.10,   txt: '+10% здоровья' },
                { id: 'dmg',  name: 'Знамя ярости',    icon: 'buff_dmg',  price: 2000, atk: 0.08,  txt: '+8% урона' } ] },
-    hike: { enabled: true, waves: 5, min: 2, max: 5, waitSec: 600, mobHpPer: 0.9, mobAtk: 1.15, waveUp: 0.05, waveHeal: 0.25, reward: 2.0, guildPts: 3, chest: 'silver',
+    hike: { enabled: true, waves: 5, min: 3, max: 5, waitSec: 600, mobHpPer: 0.9, mobAtk: 1.15, waveUp: 0.05, waveHeal: 0.25, reward: 2.0, guildPts: 3, chest: 'silver',
       boss: { hp: 1.8, atk: 1.05 }, autoShare: 0.35, autoDelay: 8, focusSec: 10, focusCd: 20, focusMul: 1.5, minDmg: 0.4 },
+    week: { enabled: true, chest: 'silver', smithOff: 0.10, minPts: 100 }, // гильдия недели (по очкам на активного): сундук каждому активному + скидка 10% в кузнице (покупка и починка) на неделю
     inactiveKickDays: 30         // 0 — никого не выводить из гильдии
   },
 
