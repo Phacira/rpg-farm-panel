@@ -239,7 +239,7 @@
   }
 
   function start() {
-    const tg = document.createElement('div'); tg.className = 'beta-tag'; tg.innerHTML = 'Бета нового вида<a href="./">обычная версия</a>'; document.body.appendChild(tg); setTimeout(() => tg.classList.add('gone'), 6000);
+    if (/\/beta\//.test(location.pathname)) { const tg = document.createElement('div'); tg.className = 'beta-tag'; tg.innerHTML = 'Бета нового вида<a href="./">обычная версия</a>'; document.body.appendChild(tg); setTimeout(() => tg.classList.add('gone'), 6000); }
     walk(document.body);
     let q = [], t = 0;
     const flush = () => { t = 0; const l = q; q = []; l.forEach(n => n.isConnected && walk(n)); markNew(document); chips(); };
