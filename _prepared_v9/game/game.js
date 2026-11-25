@@ -1830,7 +1830,7 @@
                { id: 'hp', name: 'Знамя стойкости', icon: 'buff_hp', price: 1200, hp: 0.10, txt: '+10% здоровья' },
                { id: 'dmg', name: 'Знамя ярости', icon: 'buff_dmg', price: 2000, atk: 0.08, txt: '+8% урона' } ] },
     hike: { enabled: true, waves: 5, min: 2, max: 5, waitSec: 600, mobHpPer: 0.9, mobAtk: 1.15, waveUp: 0.05, waveHeal: 0.25, reward: 2.0, guildPts: 3, chest: 'silver',
-      boss: { hp: 1.8, atk: 1.05 }, autoShare: 0.35, autoDelay: 8, focusSec: 10, focusCd: 20, focusMul: 1.5,
+      boss: { hp: 1.8, atk: 1.05, gear: 0, gearMax: 1.5 }, minDmg: 0.4, autoShare: 0.35, autoDelay: 8, focusSec: 10, focusCd: 20, focusMul: 1.5,
       bosses: [ { id: 'guild_wolf_alpha', name: 'Вожак стаи', hp: 72, atk: 14, def: 3, xp: 120, gold: 60, h: 330, mech: 'pack' },
                 { id: 'guild_goblin_chief', name: 'Гоблин-вождь', hp: 70, atk: 17, def: 2, xp: 120, gold: 60, h: 320, mech: 'totem' },
                 { id: 'guild_moss_golem', name: 'Мшистый голем', hp: 100, atk: 13, def: 5, xp: 120, gold: 60, h: 350, mech: 'skin' } ] },
@@ -1981,7 +1981,7 @@
     log(`⚔ Гильд-поход «${g9Name(gid)}»: ${went.map(u => DN(S.heroes[u])).join(', ')} — ${P.waves} волн и мини-босс!`, g9Col(gid));
     save(); refreshUI(); publishSnapSoon();
   }
-  function g9BossDef() { const P = G9().hike, L = P.only ? P.bosses.filter(b => b.id === P.only) : P.bosses; return Object.assign({ weight: 1, minLevel: 1, g9boss: true }, L[Math.floor(Math.random() * L.length)]); }
+  function g9BossDef() { const P = G9().hike, L0 = P.only ? P.bosses.filter(b => b.id.includes(P.only)) : [], L = L0.length ? L0 : P.bosses; return Object.assign({ weight: 1, minLevel: 1, g9boss: true }, L[Math.floor(Math.random() * L.length)]); }
   function g9Finish(b, h) { const P = G9().hike, gid = b.party && b.party.g9; if (!gid || h.rpg_guild !== gid) return;
     addGuildPoints(gid, (C.guildPointsPerExpedition || 1) * Math.max(0, P.guildPts - 1), h);
     if (P.chest && C.chests[P.chest]) { const rt = ensureRT(h); giveChest(h, P.chest, 'Гильд-поход', { x: rt.x, y: rt.y, loc: 'forest' }); } }
@@ -2013,7 +2013,7 @@
     // 2) механика босса
     if (M.mech === 'pack') { // Зов стаи: волки бьют самого слабого; при 50% — бешенство
       if (!M.sub && M.t - (M.cd ?? -99) >= 15) { M.sub = { name: 'Волки', hp: Math.round(m.maxhp * 0.1), max: Math.round(m.maxhp * 0.1), t0: M.t }; say9('Зов стаи!', '#ffb08a'); }
-      if (M.sub && G.turn % 4 === 0) { const w = alive().sort((a, b) => a.hp / a.maxhp - b.hp / b.maxhp)[0]; if (w) hurt(w, m.atk * 0.3, 'волки'); }
+      if (M.sub && G.turn % 2 === 0) { const w = alive().sort((a, b) => a.hp / a.maxhp - b.hp / b.maxhp)[0]; if (w) hurt(w, m.atk * (M.t - M.sub.t0 >= 10 ? 0.6 : 0.4), 'волки'); } // v9b: волки опаснее, через 10 с — сильнее
       if (!M.rage && m.hp < m.maxhp * 0.5) { M.rage = 1; m.atk = Math.round(m.atk * 1.15); say9('Бешенство!', '#ff7a5a'); }
     } else if (M.mech === 'totem') { // Огненный тотем: жжёт всех; простоял 10 с — вождь лечится
       if (!M.sub && M.t - (M.cd ?? -99) >= 18) { M.sub = { name: 'Тотем', hp: Math.round(m.maxhp * 0.1), max: Math.round(m.maxhp * 0.1), t0: M.t }; say9('Огненный тотем!', '#ffb08a'); }
@@ -3658,7 +3658,7 @@
       const pool = C.monsters.filter(m => m.minLevel <= lvMax + G.wave), d = G9LAST ? g9BossDef() : G.forceMon === 'mimic' ? mimicDef(pool) : weighted(pool); G.forceMon = null; const lv = 1 + Math.floor((Math.round(lvAvg) - 1) / 2);
       const mm = PartyCore.monFor(d, lv, bs.length, P); mm.atk = Math.round(mm.atk * mobAtkK(bs.map(b => H(b).rpg_class))); mm.hp = Math.max(1, Math.round(mm.hp * mobLvK(lvAvg, 'hpPerLevel'))); mm.atk = Math.max(1, Math.round(mm.atk * mobLvK(lvAvg, 'atkPerLevel'))); /* v49.8: mobLevelScale — средний уровень отряда */ // v7panel36: A — поверх mobAtk/mobAtk2
       if (d.mimic) { mm.hp = Math.round(mm.hp * 1.3); mm.atk = Math.round(mm.atk * 1.15); }
-      if (G.g9) { const HP9 = G9().hike, up = 1 + (HP9.waveUp || 0) * G.wave; mm.hp = Math.round(mm.hp * up * (G9LAST ? HP9.boss.hp : 1)); mm.atk = Math.round(mm.atk * (G9LAST ? HP9.boss.atk : up)); if (G9LAST) { log(`⚔ Гильд-поход «${g9Name(G.g9)}»: мини-босс — ${d.name}!`, '#ffb08a'); bs.forEach(b => say(H(b), 'Босс!')); } } // v9
+      if (G.g9) { const HP9 = G9().hike, up = 1 + (HP9.waveUp || 0) * G.wave; mm.hp = Math.round(mm.hp * up * (G9LAST ? HP9.boss.hp : 1)); mm.atk = Math.round(mm.atk * (G9LAST ? HP9.boss.atk : up)); if (G9LAST && HP9.boss.gear) { const act = bs.reduce((s, b) => s + stats(H(b)).atk, 0), base = bs.reduce((s, b) => { const h = H(b), c = clsById(h.rpg_class); return s + c.atk + (h.rpg_level - 1) * 2; }, 0), gk = Math.max(1, Math.min(HP9.boss.gearMax || 1.5, act / Math.max(1, base))); mm.hp = Math.round(mm.hp * gk); mm.atk = Math.round(mm.atk * (1 + (gk - 1) * HP9.boss.gear)); } /* v9b: мини-босс учитывает снаряжение отряда (во сколько раз урон героев выше «голого» по уровню) */ if (G9LAST) { log(`⚔ Гильд-поход «${g9Name(G.g9)}»: мини-босс — ${d.name}!`, '#ffb08a'); bs.forEach(b => say(H(b), 'Босс!')); } } // v9
       G.mon = { d, hp: mm.hp, maxhp: mm.hp, atk: mm.atk, def: mm.def, x: (G.monX || PMON_X(G.lane)) + 220, y: LANES[G.lane], hit: 0, dead: 0, born: 0, party: true };
       bs.forEach(b => { b.mon = G.mon; b.phase = 'group'; }); G.phase = 'approach'; mimicPlace(G, G.mon);
       clog(`Отряд (${bs.map(b => DN(H(b))).join(', ')}): волна ${G.wave + 1} — ${d.name} (${G.mon.hp} HP, общий)`, d.rare ? '#ff9cc4' : '#bfe0ff');
@@ -3670,7 +3670,7 @@
       const my = m.y - (m.d.h || 120) * persp(m.y) - 40, byU = {};
       if (G.turn % 2 === 0) bs.forEach(b => { const h = H(b), st = stats(h); let hl; if (h.rpg_hp > 0 && h.rpg_hp < st.maxhp * C.potionAutoHp && (hl = drinkPotion(h))) { const rt = ensureRT(h); fxText(rt.x - 60, rt.y - heroH(rt) - 40, `+${hl} зелье`, '#7dff9a', 26, 1.6, 'forest'); } });
       const ms = bs.map(b => { const h = H(b), st = stats(h); byU[h.user] = b; const hyIt = eqItem(h.rpg_equip.trinket); const hybrid = hyIt && hyIt.hybrid ? { type: hyIt.hybrid, power: (hyIt.hybridPower || 1) * ((GEARCAP() || {}).hybridMul || 1), every: hyIt.hybridEvery || 2 } : null; return { id: h.user, c: clsById(h.rpg_class), hp: h.rpg_hp, shield: h._shield || 0, maxhp: st.maxhp, atk: Math.round(st.atk * (1 + (h._rage || 0))), def: h.rpg_class === 'paladin' && (NERF('paladin') || {}).partyDefAdd ? Math.max(0, st.def + NERF('paladin').partyDefAdd) : st.def, block: equipBonus(h).block || 0, dodge: st.eq.dodge || 0, hybrid, slot: b.slot, tauntUntil: h._tauntUntil || 0, tauntCd: h._tauntCd || 0 }; }); // v7panel43: tauntUntil/Cd переживают тик (раньше ms пересобирался без них → лог «таунт!» был, а дух бил дальника)
-      const ev = PartyCore.step(G, m, ms, PCT()); if (G.g9) g9Mech(G, m, ms, ev, bs); // v9: механики мини-боссов
+      const ev = PartyCore.step(G, m, ms, G.g9 && m.d && m.d.g9boss && G9().hike.minDmg ? Object.assign({}, PCT(), { minDmg: G9().hike.minDmg }) : PCT()); if (G.g9) g9Mech(G, m, ms, ev, bs); // v9: механики мини-боссов; броня гасит не больше (1−minDmg) удара мини-босса
       ms.forEach(x => { const hh = S.heroes[x.id]; hh.rpg_hp = x.hp; if (hh._shield > 0 && !(x.shield > 0)) clog(`${DN(hh)}: щит палатки разрушен`, '#7fd0ff'); hh._shield = x.shield || 0; hh._tauntUntil = x.tauntUntil || 0; hh._tauntCd = x.tauntCd || 0; });
       const pos = u => { const rt = ensureRT(S.heroes[u]); return { rt, x: rt.x, y: rt.y - heroH(rt) - 40 }; };
       let k = 0;
