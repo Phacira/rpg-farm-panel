@@ -134,3 +134,12 @@ body.beta #bs .sheet-body .more-btn .lbl { grid-column: 2; font-weight: 600; }
 body.beta #bs .sheet-body .more-btn .sub { grid-column: 2; font-size: 11px; color: #a89cb4; font-weight: 400; display: block; }
 body.beta #bs .sheet-body .more-btn .grp { display: none; }
 body.beta #bs:not(.phone-p):not(.phone-l) .bs-off { top: 162px; }
+
+/* герои: тонкая светлая обводка силуэта и чуть больше контраста, чтобы тёмные доспехи и лица читались на тёмном фоне (у жрецов светлые одежды — им не нужно) */
+body.beta #bs .hero img:not([src*="_priest_"]) {
+  filter: drop-shadow(1px 0 0 rgba(255, 238, 205, .55)) drop-shadow(-1px 0 0 rgba(255, 238, 205, .55)) drop-shadow(0 -1px 0 rgba(255, 238, 205, .55))
+          drop-shadow(0 1px 1px rgba(0, 0, 0, .45)) brightness(1.07) contrast(1.06);
+}
+/* подписи над героями поменьше */
+body.beta #bs .hero .name { font-size: calc(18px * var(--hs, 1)); padding: 1px 6px; }
+body.beta #bs .hero .name small { font-size: .72em; opacity: .9; }

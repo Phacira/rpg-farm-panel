@@ -1002,7 +1002,7 @@
       const flip = faceRight ? false : +t[1] > 1280;
       const src = sprUrl(t), fb = sprFb(t);
       const cn = CLSN[cls] || cls || '';
-      const hs = (t._hs || 1) * (l === 'camp' || l === 'town' ? 1.25 : 1) * bigK(); // v8.6: в лагере/городе герои как в OBS (240 вместо 192) — больше деталей, не мылятся
+      const hs = (t._hs || 1) * (l === 'camp' || l === 'town' ? 1.25 : 1) * bigK() * (window.__betaHeroK ? window.__betaHeroK(l) : 1); // v8.6: в лагере/городе герои как в OBS (240 вместо 192) — больше деталей, не мылятся
       const mb = partyMb(st).find(m => String(m[0]).toLowerCase() === String(n).toLowerCase());
       const me = st && st.me;
       let hpN = t.length > 16 ? +t[15] : NaN, hpM = t.length > 16 ? +t[16] : NaN;
@@ -1028,7 +1028,7 @@
       const gtitle = GUILD_RU[g] || GUILD_RU[mb && mb[2]] || (mine && me && me.gd) || '';
       const nameHtml = '<i class="gmark" title="' + esc(gtitle ? ('Гильдия: ' + gtitle) : 'без гильдии') + '"></i>'
         + (mine ? '★ ' : '') + '<span class="nick">' + esc(n) + '</span>'
-        + '<small>' + esc(cn) + (lv != null && lv !== '' ? ' · ' + esc(lv) : '') + (gtitle ? ' · ' + esc(gtitle) : '') + '</small>';
+        + '<small>' + esc(cn) + (lv != null && lv !== '' ? ' · ' + esc(lv) : '') + (gtitle && !window.__betaShortName ? ' · ' + esc(gtitle) : '') + '</small>'; // бета: гильдию видно по цвету ника, в подписи не дублируем
       const hpHtml = (showHp ? ('<div class="hhp bar hp' + (hpPct <= 35 ? ' low' : '') + '"><i style="width:' + hpPct + '%"></i></div>') : '')
         + (showSh ? ('<div class="hsh bar sh"><i style="width:' + shPct + '%"></i></div>') : '');
       if (!it) {

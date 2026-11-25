@@ -220,6 +220,9 @@
     const inMore = new Set(more); rare = d => inMore.has(d);
     return { main: defs.filter(d => !rare(d)).concat([{ _ui: 'more', 0: '⋯', 1: 'Ещё', 4: '' }]), more };
   };
+  // герои: в людных лагере и городе чуть меньше, подпись короче — ники не налезают друг на друга
+  window.__betaHeroK = l => (l === 'camp' || l === 'town') ? 0.82 : 0.92;
+  window.__betaShortName = true;
   // 4) мини-журнал — свои события
   window.__betaFeedMine = true;
   // 3) грядка и магия прямо в карточке героя
