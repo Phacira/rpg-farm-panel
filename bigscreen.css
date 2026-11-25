@@ -538,3 +538,7 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 @keyframes bs-boss-hit{0%,100%{margin-left:0}25%{margin-left:4px}75%{margin-left:-4px}}
 #bs .mob.boss[data-atk="stomp"].batk{animation:bs-boss-stomp 1s ease-in}
 @keyframes bs-boss-stomp{0%{transform:translateY(0)}50%{transform:translateY(-34px)}66%{transform:translateY(4px)}72%{transform:translate(5px,0)}80%{transform:translate(-5px,0)}88%{transform:translate(3px,0)}100%{transform:translate(0,0)}}
+#bs .mob.boss[data-atk="slam"].batk{animation:bs-boss-slam 1.25s ease-in-out}
+@keyframes bs-boss-slam{0%{transform:rotate(0)}45%{transform:rotate(2deg)}60%{transform:rotate(-5deg)}66%{transform:rotate(-5deg) translateX(4px)}72%{transform:rotate(-5deg) translateX(-4px)}100%{transform:rotate(0)}}
+#bs .mob.boss[data-atk="dive"].batk{animation:bs-boss-dive .65s ease-in-out}
+@keyframes bs-boss-dive{0%,100%{transform:translate(0,0)}50%{transform:translate(-55px,36px)}}
