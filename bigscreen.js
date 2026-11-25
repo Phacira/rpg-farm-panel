@@ -418,16 +418,17 @@
     const isOther = d => d[7] === 'other';
     const ui = defs.filter(isUi);
     const others = defs.filter(d => !isUi(d) && isOther(d));
-    const important = defs.filter(d => !isUi(d) && !isOther(d));
+    let important = defs.filter(d => !isUi(d) && !isOther(d));
     const inBoss = bsLoc === 'boss';
-    const special = inBoss ? ui : [quest].concat(ui);
+    // v9e: у босса боевые кнопки важнее — Инвентарь/Журнал/Что нового уходят в «Ещё», удар и лечение всегда первыми
+    if (inBoss) { const pri = ['удар', 'лечить', 'босс']; important = important.slice().sort((a, b) => (pri.indexOf(a[2]) + 1 || 99) - (pri.indexOf(b[2]) + 1 || 99)); }
+    const special = inBoss ? [] : [quest].concat(ui);
     const cap = kind === 'phone-l' ? 9 : 8;
     const reserved = special.length + 1;
     const room = Math.max(1, cap - reserved);
     const shown = important.slice(0, room);
     const rest = important.slice(room).concat(others);
-    if (!inBoss) { /* quest already in special */ }
-    else rest.unshift(quest);
+    if (inBoss) rest.push(quest, ...ui);
     const main = shown.concat(special);
     if (rest.length) main.push(more);
     return { main, more: rest };
