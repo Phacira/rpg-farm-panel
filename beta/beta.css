@@ -66,3 +66,23 @@ body.beta #bs.phone-p .actionbar .lbl, body.beta #bs.phone-l .actionbar .lbl { f
 body.beta #bs.phone-p .actionbar .sub, body.beta #bs.phone-l .actionbar .sub { max-width: 100% !important; }
 .beta-tag { transition: opacity .6s; white-space: nowrap; }
 .beta-tag.gone { opacity: 0; pointer-events: none; }
+
+/* кнопки не скачут при смене локации:
+   ПК — полоса прижата влево (локации всегда на месте), общие кнопки (Инвентарь, Журнал, Что нового) идут первыми,
+   а кнопки локации начинаются всегда с одного и того же места */
+body.beta #bs.pc .bars-wrap { left: 14px; transform: none; max-width: calc(100% - 90px); }
+@media (max-width:1150px) { body.beta #bs.pc .bars-wrap { align-items: flex-start; } }
+body.beta #bs.pc .actionbar button[data-ui] { order: -1; }
+body.beta #bs.pc .actionbar button[data-ui="news"] { margin-right: 8px; }
+body.beta #bs.phone-l .bars-wrap { left: calc(6px + env(safe-area-inset-left, 0px)); transform: none; }
+body.beta #bs.phone-l .actionbar button[data-ui] { order: -1; }
+/* телефон: общие кнопки на постоянных местах — второй ряд и угол первого */
+body.beta #bs.phone-p .actionbar { grid-template-rows: auto auto; }
+body.beta #bs.phone-p .actionbar button[data-ui="quests"] { grid-row: 1; grid-column: 4; }
+body.beta #bs.phone-p .actionbar button[data-ui="inv"] { grid-row: 2; grid-column: 1; }
+body.beta #bs.phone-p .actionbar button[data-ui="log"] { grid-row: 2; grid-column: 2; }
+body.beta #bs.phone-p .actionbar button[data-ui="news"] { grid-row: 2; grid-column: 3; }
+body.beta #bs.phone-p .actionbar button[data-ui="more"] { grid-row: 2; grid-column: 4; }
+body.beta #bs.pc .bars-wrap > .bar-group[data-grp="loc"], body.beta #bs.phone-l .bars-wrap > .bar-group[data-grp="loc"] { flex-shrink: 0; }
+body.beta #bs .bars-wrap > .bar-group[data-grp="bar"] { justify-content: flex-start !important; }
+body.beta #bs .bars-wrap > .bar-group[data-grp="bar"] { align-items: flex-start !important; } body.beta #bs.pc .bars-wrap > .bar-group[data-grp="bar"] > .actionbar { max-width: 100%; }
