@@ -357,8 +357,9 @@
     return key ? 'img/h7/' + key + '.webp?v=' + (/_priest_/.test(key) ? 'h8p' : 'h8') : '';
   }
   // v8.8: на ПК сцена мелкая (≈0.45 от 2560) — герои ~115 px, детали теряются. Крупнее на 20%, когда сцена ужата сильнее 0.6.
-  let BIGK = 1, BIGK_T = 0;
-  function bigK() { if (Date.now() - BIGK_T > 1000) { BIGK_T = Date.now(); const sc = $('#bsScene'), ss = sc ? sc.getBoundingClientRect().width / 2560 : 1; BIGK = ss && ss < 0.6 && (window.devicePixelRatio || 1) < 1.5 ? 1.2 : 1; } return BIGK; }
+  // v8.8b: на ПК (мышь) герои на 20% крупнее — постоянно, без пересчёта по размеру экрана (иначе при переносе окна на другой монитор герои «прыгали»)
+  const BIGK = (window.matchMedia && matchMedia('(pointer: fine)').matches) ? 1.2 : 1;
+  function bigK() { return BIGK; }
   function sprFb(t) {
     const k6 = String(t[6] || '').replace(/_sit$/, '');
     const hair = t[7] || '';
