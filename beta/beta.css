@@ -86,3 +86,39 @@ body.beta #bs.phone-p .actionbar button[data-ui="more"] { grid-row: 2; grid-colu
 body.beta #bs.pc .bars-wrap > .bar-group[data-grp="loc"], body.beta #bs.phone-l .bars-wrap > .bar-group[data-grp="loc"] { flex-shrink: 0; }
 body.beta #bs .bars-wrap > .bar-group[data-grp="bar"] { justify-content: flex-start !important; }
 body.beta #bs .bars-wrap > .bar-group[data-grp="bar"] { align-items: flex-start !important; } body.beta #bs.pc .bars-wrap > .bar-group[data-grp="bar"] > .actionbar { max-width: 100%; }
+
+/* локации стоят намертво: всегда в самом низу слева (ПК) или в самом низу экрана (телефон), кнопки действий — над ними или справа */
+@media (max-width:1150px) { body.beta #bs.pc .bars-wrap { flex-direction: column-reverse !important; align-items: flex-start !important; } }
+body.beta #bs.phone-p .bars-wrap { flex-direction: column-reverse !important; }
+body.beta #bs.pc .bars-wrap, body.beta #bs.phone-l .bars-wrap { bottom: 14px !important; }
+
+/* приглушённые кнопки: нажимаются, но видно, что сейчас не время */
+body.beta #bs .actionbar button.soft { opacity: .5; }
+body.beta #bs .actionbar button.soft .ic { color: #a89cb4 !important; }
+/* чипы грядки и магии в карточке героя */
+body.beta #bs .b-chips { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+body.beta #bs .b-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500;
+  background: #1f1829; border: 1px solid #2e2540; color: #efe6d8; }
+body.beta #bs .b-chip.ok { border-color: rgba(143, 209, 106, .55); color: #c8f0a8; }
+body.beta #bs .b-chip.warn { border-color: rgba(255, 154, 74, .6); color: #ffc08a; }
+body.beta #bs .b-chip.mute { color: #a89cb4; }
+/* грядка теперь в карточке — отдельную плашку убираем */
+body.beta #bs #bsTips { display: none !important; }
+/* мини-журнал: компактная шапка */
+body.beta #bs .bsp.feed header { padding: 8px 12px !important; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+body.beta #bs .bsp.feed header .exp { background: none !important; border: 0 !important; padding: 0 4px !important; color: #e8b866 !important; font-size: 11px !important; height: auto !important; min-height: 0 !important; text-decoration: underline; }
+body.beta #bs .bsp.feed .head-btns { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+body.beta #bs .bsp.feed ul { padding: 4px 12px 10px !important; }
+body.beta #bs .feed li { font-size: 12px; line-height: 1.35; }
+
+/* кнопки по ширине надписи: названия целиком, без «Записат…» */
+body.beta #bs.pc .actionbar, body.beta #bs .actionbar { grid-auto-columns: auto !important; }
+body.beta #bs.pc .actionbar button, body.beta #bs .actionbar button { width: auto !important; min-width: 70px !important; padding: 4px 10px !important; }
+body.beta #bs .actionbar .lbl, body.beta #bs.pc .actionbar .lbl { max-width: none !important; overflow: visible; text-overflow: clip; font-size: 12px; }
+body.beta #bs .actionbar .sub, body.beta #bs.pc .actionbar .sub { max-width: 118px !important; font-size: 9.5px !important; }
+body.beta #bs.phone-p .actionbar button, body.beta #bs.phone-l .actionbar button { min-width: 0 !important; padding: 6px 4px !important; }
+body.beta #bs.phone-p .actionbar .lbl, body.beta #bs.phone-l .actionbar .lbl { white-space: normal; line-height: 1.15; }
+body.beta #bs.phone-p .actionbar .sub, body.beta #bs.phone-l .actionbar .sub { max-width: 100% !important; }
+body.beta #bs .actionbar button[data-ui="more"] { order: 99 !important; }
+body.beta #bs.phone-p .bars-wrap > .bar-group { width: 100%; align-items: stretch !important; }
+body.beta #bs.phone-p .actionbar { width: 100%; box-sizing: border-box; }

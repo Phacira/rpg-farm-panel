@@ -132,11 +132,109 @@
     const k = keyOf(b); if (k && NEW[k] && !seen.has(k)) { seen.add(k); saveSeen(); b.classList.remove('is-new'); }
   }, true);
 
+
+  // ---------- поведение кнопок в бете ----------
+  const meNow = () => (window.__panel && __panel.state && __panel.state.me) || null;
+  const mins = s => s >= 3600 ? Math.floor(s / 3600) + 'ч ' + Math.floor(s % 3600 / 60) + 'м' : s >= 60 ? Math.ceil(s / 60) + 'м' : Math.max(0, Math.round(s)) + 'с';
+  // 1) кнопки, которые сейчас не сработают, — приглушены и с короткой причиной (но нажимаются: бот главный, игра может отставать)
+  // 2) «Точно?» только там, где тратится что-то ценное
+  const FREE = new Set(['готовить', 'магия', 'посадить', 'собрать', 'жуки', 'отогнать', 'салат', 'обмен', 'огород', 'поход', 'урожай', 'грядка',
+    'удар', 'лечить', 'босс', 'квест', 'семена', 'да', 'нет', 'пати', 'оглушить', 'связать', 'очистить', 'замедлить', 'заслон', 'прикрыть', 'воскресить',
+    'экип', 'снять', 'титул', 'ход', 'гильдпоход', 'цель']);
+  window.__betaNoConfirm = cmd => FREE.has(String(cmd || '').toLowerCase()) && cmd !== 'снять';
+  window.__betaDefs = (D, ctx) => {
+    const me = ctx && ctx.me; if (!me) return;
+    Object.keys(D).forEach(k => (D[k] || []).forEach(d => { if (Array.isArray(d) && d[5] && window.__betaNoConfirm(d[2])) d[5] = null; }));
+    const b = me.bed, mg = me.mg, sal = me.sal, soft = (d, why) => { d._soft = 1; if (why) d[4] = why; };
+    (D.garden || []).forEach(d => {
+      if (!Array.isArray(d)) return;
+      if (b) {
+        const growing = b.st === 1 ? 'растёт' + (b.left > 0 ? ' · ' + mins(b.left) : '') : b.st === 0 ? 'грядка пустая' : '';
+        if (d[2] === 'собрать' && b.st !== 2) soft(d, growing);
+        if (d[2] === 'посадить' && b.st !== 0) soft(d, b.st === 2 ? 'сначала собрать' : 'грядка занята');
+        if (d[2] === 'посадить' && b.st === 0) d[4] = 'грядка свободна';
+        if (d[2] === 'жуки' && !b.bugs) soft(d, 'жуков нет');
+        if (d[2] === 'жуки' && b.bugs) d[4] = 'срочно!';
+        if (d[2] === 'собрать' && b.st === 2) d[4] = 'созрело!';
+      }
+      if (d[2] === 'магия' && mg && (!mg.left || mg.cd > 0 || !mg.seeds)) soft(d);
+      if (d[2] === 'салат' && sal && (!sal.left || !sal.can)) soft(d);
+    });
+    regroup(D, me);
+  };
+
+  // ---------- объединение кнопок в понятные группы ----------
+  // опция меню из обычной кнопки: та же команда, то же подменю или подтверждение
+  function asOpt(d, label, sub) {
+    const cmd = d[2], fix = L => (L || []).map(o => Object.assign({}, o, { cmd: o.cmd || cmd }, o.next ? { next: fix(o.next) } : {}));
+    const o = { label: label || d[1], sub: sub != null ? sub : (d[4] || ''), cmd, dis: !!d[6] };
+    if (typeof d[3] === 'function') o.next = fix(d[3]()); else { o.arg = d[3] || ''; o.confirm = d[5] || null; }
+    return o;
+  }
+  function group(list, pick, make) {
+    if (!list) return list;
+    const idx = [], mem = [];
+    list.forEach((d, i) => { if (Array.isArray(d) && pick(d)) { idx.push(i); mem.push(d); } });
+    if (mem.length < 2) return list;
+    const g = make(mem); const out = list.filter((d, i) => !idx.includes(i)); out.splice(idx[0], 0, g); return out;
+  }
+  const by = cmds => d => cmds.includes(d[2]);
+  function regroup(D, me) {
+    // огород: сначала то, что нажимают чаще всего (на телефоне в первый ряд попадают первые три)
+    if (D.garden) { const ORD = ['собрать', 'посадить', 'жуки', 'магия', 'готовить']; const rk = d => { const i = ORD.indexOf(Array.isArray(d) ? d[2] : ''); return i < 0 ? 99 : i; };
+      D.garden = D.garden.map((d, i) => [d, i]).sort((a, b) => (rk(a[0]) - rk(b[0])) || (a[1] - b[1])).map(x => x[0]); }
+    // огород: семена, овощи, редкое — по группам
+    D.garden = group(D.garden, d => d[2] === 'семена' || (d[2] === 'купить' && /семена/i.test(d[1])), M => ['🌰', 'Семена', '', () => M.map(d => asOpt(d, d[2] === 'семена' ? 'Взять бесплатные' : 'Купить за золото')), M[0][4] || '']);
+    D.garden = group(D.garden, by(['урожай', 'продать', 'обмен', 'салат']), M => ['🧺', 'Овощи', '', () => M.slice().sort((a, b) => ['урожай', 'продать', 'салат', 'обмен'].indexOf(a[2]) - ['урожай', 'продать', 'салат', 'обмен'].indexOf(b[2])).map(d => asOpt(d, { урожай: 'Что у меня есть', продать: 'Продать на рынке', обмен: 'Обменять 10 сорняков', салат: 'Приготовить салат' }[d[2]])), 'продать, обмен, салат']);
+    // город: задание и кузница
+    D.town = group(D.town, by(['квест', 'снять']), M => ['📜', 'Квест', '', () => M.map(d => asOpt(d, d[2] === 'квест' ? 'Взять квест' : 'Отменить квест')), M[0][4] || '']);
+    D.town = group(D.town, d => ['купить', 'чинить', 'заточка'].includes(d[2]), M => ['⚒', 'Кузница', '', () => M.map(d => asOpt(d, { купить: 'Купить / надеть / продать', чинить: 'Починить', заточка: 'Заточка' }[d[2]])), M.length > 1 ? 'вещи, починка, заточка' : M[0][4]]);
+    // лагерь: «Да/Нет» — это подтверждение выбора гильдии, им место внутри «Гильдии»
+    if (D.camp) {
+      const gd = D.camp.find(d => Array.isArray(d) && d[2] === 'гильдия'), yn = D.camp.filter(d => Array.isArray(d) && (d[2] === 'да' || d[2] === 'нет'));
+      if (gd && yn.length && typeof gd[3] === 'function') {
+        const f = gd[3]; gd[3] = () => f().concat(yn.map(d => asOpt(d, d[2] === 'да' ? 'Подтвердить вступление' : 'Отменить выбор гильдии', d[2] === 'да' ? 'если игра спросила «да/нет»' : '')));
+        D.camp = D.camp.filter(d => !yn.includes(d));
+      }
+    }
+    // лес: все походы — одна кнопка
+    if (D.forest) {
+      const hikes = D.forest.filter(d => Array.isArray(d) && (d[2] === 'поход' || d[2] === 'пати'));
+      const gd = (D.camp || []).find(d => Array.isArray(d) && d[2] === 'гильдия');
+      let gh = null; try { gh = gd && typeof gd[3] === 'function' ? gd[3]().find(o => /Гильд-поход/.test(o.label || '')) : null; } catch (e) { }
+      if (hikes.length) {
+        const opts = () => hikes.map(d => asOpt(d, d[2] === 'поход' ? 'Одиночный поход' : 'Пати-поход')).concat(gh ? [Object.assign({}, gh, { label: 'Гильд-поход' })] : []);
+        const g = ['⚔', 'Походы', '', opts, hikes[0][4] || ''];
+        const i = D.forest.indexOf(hikes[0]); D.forest = D.forest.filter(d => !hikes.includes(d)); D.forest.splice(i, 0, g);
+      }
+    }
+  }
+  // 5) ПК: редкие кнопки огорода и города — в «Ещё», чтобы всё помещалось без прокрутки
+  const RARE = new Set(['вклад', 'грядка']);
+  window.__betaPcSplit = (defs, loc) => {
+    const rare = d => !d._ui && (RARE.has(d[2]) || (d[2] === 'купить' && /семена/i.test(d[1] || '')) || d[7] === 'other');
+    const more = defs.filter(rare); if (!more.length) return { main: defs, more: [] };
+    return { main: defs.filter(d => !rare(d)).concat([{ _ui: 'more', 0: '⋯', 1: 'Ещё', 4: '' }]), more };
+  };
+  // 4) мини-журнал — свои события
+  window.__betaFeedMine = true;
+  // 3) грядка и магия прямо в карточке героя
+  function chips() {
+    const u = document.getElementById('bsUnit'), me = meNow(); if (!u) return;
+    let c = u.querySelector('.b-chips'); if (!me || (!me.bed && !me.mg)) { if (c) c.remove(); return; }
+    const b = me.bed, mg = me.mg, out = [];
+    if (b) out.push(b.bugs ? ['bug', 'жуки!', 'warn'] : b.st === 2 ? ['basket', 'созрело', 'ok'] : b.st === 1 ? ['sprout', b.left > 0 ? mins(b.left) : 'растёт', ''] : ['sprout', 'пусто', 'mute']);
+    if (mg) out.push(['star4', mg.left + '/' + mg.max + (mg.cd > 0 && mg.left ? ' · ' + mins(mg.cd) : ''), mg.left && !(mg.cd > 0) ? 'ok' : 'mute']);
+    const html = out.map(([i, t, k]) => `<span class="b-chip ${k}">${window.BetaIcon(i)}${t}</span>`).join('');
+    if (!c) { c = document.createElement('div'); c.className = 'b-chips'; u.appendChild(c); }
+    if (c.dataset.h !== html) { c.dataset.h = html; c.innerHTML = html; }
+  }
+
   function start() {
     const tg = document.createElement('div'); tg.className = 'beta-tag'; tg.innerHTML = 'Бета нового вида<a href="./">обычная версия</a>'; document.body.appendChild(tg); setTimeout(() => tg.classList.add('gone'), 6000);
     walk(document.body);
     let q = [], t = 0;
-    const flush = () => { t = 0; const l = q; q = []; l.forEach(n => n.isConnected && walk(n)); markNew(document); };
+    const flush = () => { t = 0; const l = q; q = []; l.forEach(n => n.isConnected && walk(n)); markNew(document); chips(); };
     new MutationObserver(ms => {
       for (const m of ms) {
         if (m.type === 'characterData') q.push(m.target);

@@ -192,7 +192,7 @@
     $('#bsSheet').addEventListener('click', e => { if (e.target.id === 'bsSheet') setSheet(false); });
     $('#bsLocbar').addEventListener('click', e => {
       const b = e.target.closest('button[data-loc]'); if (!b) return;
-      bsLoc = b.dataset.loc; setInv(false); setLog(false); setSheet(false); resetCam();
+      bsLoc = b.dataset.loc; setInv(false); setLog(false); setSheet(false); { const z = camZ; resetCam(); camZ = z; } // зум сохраняется между локациями, сбрасывается только положение камеры
       if (window.__panel && __panel.setTab) __panel.setTab(bsLoc); else sync();
     });
     $('#bsUnit').addEventListener('click', () => { if (on && ctx().me) setInv(true, 'Мой герой'); });
@@ -402,7 +402,7 @@
     const tab = (window.__panel && __panel.tab) || bsLoc;
     const off = dis || left;
     const tip = !off && tipCmds.has(cmd);
-    const cls = (more ? 'more-btn' : '') + (off ? ' dis' + (left ? ' bcd' : '') : '') + (tip ? ' tip-hot' : '');
+    const cls = (more ? 'more-btn' : '') + (off ? ' dis' + (left ? ' bcd' : '') : '') + (tip ? ' tip-hot' : '') + (d._soft && !off ? ' soft' : '');
     const bc = cmd ? ` data-bc="${esc(cmd)}" data-sub="${esc(sub)}" data-en="${dis ? 0 : 1}"` : '';
     const uiA = ui ? ` data-ui="${esc(ui)}"` : '';
     const subTxt = lock.text || (left ? ('⏳ откат ' + left + ' с') : sub);
@@ -439,7 +439,7 @@
     tipCmds = new Set((tips || collectTips(c)).map(x => x.cmd).filter(Boolean));
     const kind = layoutKind();
     const phone = kind === 'phone-p' || kind === 'phone-l';
-    const split = phone ? splitPhoneBar(defs, kind) : { main: defs, more: [] };
+    const split = phone ? splitPhoneBar(defs, kind) : (window.__betaPcSplit ? __betaPcSplit(defs, bsLoc) : { main: defs, more: [] }); // бета: редкие кнопки в «Ещё»
     lastMore = split.more;
     $('#bsLocbar').innerHTML = LOCS.map(l => `<button type="button" data-loc="${l[0]}"${l[0] === bsLoc ? ' class="on"' : ''}><span class="ic">${l[1]}</span><span class="lbl">${l[2]}</span></button>`).join('');
     $('#bsBar').innerHTML = split.main.map(d => btnHtml(d, d._ui ? -1 : defs.indexOf(d), false)).join('');
@@ -796,7 +796,8 @@
     const html = logRows(c, false, 5);
     const short = html.replace(/class="lg/g, 'class="x').replace(/<div class="x[^"]*">/g, '<li>').replace(/<\/div>/g, '</li>');
     // simpler:
-    const L = ((c.ref && c.ref.log) || []).slice(0, 5);
+    let L = ((c.ref && c.ref.log) || []).slice(0, 5);
+    if (window.__betaFeedMine && c.me && c.me.n) { const nm = String(c.me.n).toLowerCase(), M = ((c.ref && c.ref.log) || []).filter(e => String(e[1]).toLowerCase().includes(nm)).slice(0, 5); if (M.length) L = M; } // бета: в мини-журнале свои события
     const hm = t => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
     const lis = L.length ? L.map(e => `<li><time>${hm(e[0])}</time> ${esc(e[1])}</li>`).join('') : '<li class="muted">событий пока нет</li>';
     $('#bsFeedList').innerHTML = lis;

@@ -10,7 +10,9 @@
   let seq = 0; const pend = {}; let results = [];
   // Каждая кнопка: [иконка, подпись, команда, аргумент|функция-выбор, подсказка, подтверждение?]
   // pick(ctx) → [{label, arg, sub, confirm, dis}] — выбор аргумента в окне
-  function defs(ctx) {
+  // бета нового вида может поправить кнопки (window.__betaDefs); на обычном сайте хука нет — всё как было
+  function defs(ctx) { const D = defs0(ctx); if (window.__betaDefs) try { window.__betaDefs(D, ctx); } catch (e) { } return D; }
+  function defs0(ctx) {
     const me = ctx.me, ref = ctx.ref || {}, gold = me ? me.gold : 0;
     const eqWorn = id => !!(me && me.eqOn && Object.values(me.eqOn).includes(id)); // v49.8: надето в любом слоте
     // v7panel18: вклад — выбор «Золото» или «Материалы» (материал → количество из сумки или докупить золотом по ref.matP)
@@ -308,6 +310,7 @@
   }
   function close() { const s = document.getElementById('sheet'); s.hidden = true; s.innerHTML = ''; }
   function ask(d, arg, label, confirm, cmd) {
+    if (confirm && window.__betaNoConfirm && window.__betaNoConfirm(cmd || d[2], arg)) confirm = null; // бета: без «Точно?» на бесплатных действиях
     if (confirm) return sheet(confirm, [{ label: 'Да, выполнить', go: () => { close(); fire(cmd || d[2], arg, label); } }]);
     close(); fire(cmd || d[2], arg, label);
   }
