@@ -1254,7 +1254,7 @@
     if (aloc !== 'boss') return;
     const b = actorTween.nodes['boss']; if (!b || !b.el) return;
     if (kind === 'l') pulse(b.el, 'bhit', 180);
-    else if (kind === 'h') { const t = Date.now(); if (t - bossAtkAt > 650) { bossAtkAt = t; pulse(b.el, 'batk', 560); } }
+    else if (kind === 'h') { const t = Date.now(), og = b.el.dataset.atk === 'stomp'; if (t - bossAtkAt > (og ? 3200 : 650)) { bossAtkAt = t; pulse(b.el, 'batk', og ? 1000 : 560); } } // огр медленный и топает реже
   }
   function nearestOf(it, kind) {
     let best = null, nd = 1e9;

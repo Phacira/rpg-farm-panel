@@ -536,5 +536,5 @@ body.bs-on #bs{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:
 @keyframes bs-boss-atk{0%,100%{transform:translateX(0)}45%{transform:translateX(-60px) scale(1.03)}}
 #bs .mob.boss.bhit{filter:brightness(1.55);animation:bs-boss-hit .18s linear}
 @keyframes bs-boss-hit{0%,100%{margin-left:0}25%{margin-left:4px}75%{margin-left:-4px}}
-#bs .mob.boss[data-atk="stomp"].batk{animation:bs-boss-stomp .56s ease-in}
+#bs .mob.boss[data-atk="stomp"].batk{animation:bs-boss-stomp 1s ease-in}
 @keyframes bs-boss-stomp{0%{transform:translateY(0)}50%{transform:translateY(-34px)}66%{transform:translateY(4px)}72%{transform:translate(5px,0)}80%{transform:translate(-5px,0)}88%{transform:translate(3px,0)}100%{transform:translate(0,0)}}
