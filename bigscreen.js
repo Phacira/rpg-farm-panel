@@ -354,7 +354,7 @@
     const sit = t[5] === 'sleep', hair = t[7] || '';
     // h8: сидячие спрайты убраны — спящие тоже рисуются стоя (новый стиль)
     const key = (hair && k6 && !/_(black|blond|chestnut|red|chestnut_loose)(_beard)?$/.test(k6)) ? k6 + '_' + hair : k6; // v8.6: ключ из игры уже с волосами — не дописываем старый цвет (grey/lightbrown → нет файла → мыльная запасная картинка)
-    return key ? 'img/h7/' + key + '.webp?v=' + (/_priest_/.test(key) ? 'h8p' : 'h8') : '';
+    return key ? 'img/h7/' + key + '.webp?v=' + (/_priest_/.test(key) ? 'h8p' : /_f_assassin_|_paladin_/.test(key) ? 'h8f' : 'h8') : '';
   }
   // v8.8: на ПК сцена мелкая (≈0.45 от 2560) — герои ~115 px, детали теряются. Крупнее на 20%, когда сцена ужата сильнее 0.6.
   // v8.8b: на ПК (мышь) герои на 20% крупнее — постоянно, без пересчёта по размеру экрана (иначе при переносе окна на другой монитор герои «прыгали»)
@@ -364,7 +364,7 @@
     const k6 = String(t[6] || '').replace(/_sit$/, '');
     const hair = t[7] || '';
     const key = (hair && k6 && !/_(black|blond|chestnut|red|chestnut_loose)(_beard)?$/.test(k6)) ? k6 + '_' + hair : k6; // v8.6: ключ из игры уже с волосами — не дописываем старый цвет (grey/lightbrown → нет файла → мыльная запасная картинка)
-    return key ? 'img/h/' + (key) + '.webp?v=' + (/_priest_/.test(key) ? 'h8p' : 'h8') : (k6 ? 'img/h/' + k6 + '.webp' : '');
+    return key ? 'img/h/' + (key) + '.webp?v=' + (/_priest_/.test(key) ? 'h8p' : /_f_assassin_|_paladin_/.test(key) ? 'h8f' : 'h8') : (k6 ? 'img/h/' + k6 + '.webp' : '');
   }
 
   function bgOf(l, st) {
