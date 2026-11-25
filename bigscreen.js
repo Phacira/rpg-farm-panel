@@ -356,6 +356,9 @@
     const key = (hair && k6 && !/_(black|blond|chestnut|red|chestnut_loose)(_beard)?$/.test(k6)) ? k6 + '_' + hair : k6; // v8.6: ключ из игры уже с волосами — не дописываем старый цвет (grey/lightbrown → нет файла → мыльная запасная картинка)
     return key ? 'img/h7/' + key + '.webp?v=' + (/_priest_/.test(key) ? 'h8p' : 'h8') : '';
   }
+  // v8.8: на ПК сцена мелкая (≈0.45 от 2560) — герои ~115 px, детали теряются. Крупнее на 20%, когда сцена ужата сильнее 0.6.
+  let BIGK = 1, BIGK_T = 0;
+  function bigK() { if (Date.now() - BIGK_T > 1000) { BIGK_T = Date.now(); const sc = $('#bsScene'), ss = sc ? sc.getBoundingClientRect().width / 2560 : 1; BIGK = ss && ss < 0.6 && (window.devicePixelRatio || 1) < 1.5 ? 1.2 : 1; } return BIGK; }
   function sprFb(t) {
     const k6 = String(t[6] || '').replace(/_sit$/, '');
     const hair = t[7] || '';
@@ -981,7 +984,7 @@
       const flip = faceRight ? false : +t[1] > 1280;
       const src = sprUrl(t), fb = sprFb(t);
       const cn = CLSN[cls] || cls || '';
-      const hs = (t._hs || 1) * (l === 'camp' || l === 'town' ? 1.25 : 1); // v8.6: в лагере/городе герои как в OBS (240 вместо 192) — больше деталей, не мылятся
+      const hs = (t._hs || 1) * (l === 'camp' || l === 'town' ? 1.25 : 1) * bigK(); // v8.6: в лагере/городе герои как в OBS (240 вместо 192) — больше деталей, не мылятся
       const mb = partyMb(st).find(m => String(m[0]).toLowerCase() === String(n).toLowerCase());
       const me = st && st.me;
       let hpN = t.length > 16 ? +t[15] : NaN, hpM = t.length > 16 ? +t[16] : NaN;
@@ -1654,7 +1657,7 @@
           for (let xx = Math.floor(x0); xx < Math.ceil(x1); xx++) { const wx = Math.min(x1, xx + 1) - Math.max(x0, xx); if (wx <= 0 || xx >= sw) continue;
             const w = wx * wy, i = (yy * sw + xx) * 4, al = S[i + 3] * w; r += S[i] * al; g += S[i + 1] * al; b += S[i + 2] * al; a += al; wsum += w; } }
         const o = (y * tw + x) * 4; out[o + 3] = a / wsum; if (a > 0) { out[o] = r / a; out[o + 1] = g / a; out[o + 2] = b / a; } } }
-    const c = document.createElement('canvas'); c.width = tw; c.height = th; const g = c.getContext('2d'), D = g.createImageData(tw, th), d = D.data, AMT = 0.45;
+    const c = document.createElement('canvas'); c.width = tw; c.height = th; const g = c.getContext('2d'), D = g.createImageData(tw, th), d = D.data, AMT = 0.2; /* v8.8: мягче — без «хруста» на контурах */
     for (let y = 0; y < th; y++) for (let x = 0; x < tw; x++) { const o = (y * tw + x) * 4;
       for (let ch = 0; ch < 3; ch++) { let s2 = 0, n = 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= tw || Y >= th) continue; const q = (Y * tw + X) * 4; if (out[q + 3] < 8) continue; s2 += out[q + ch]; n++; }
         const v = n ? out[o + ch] + AMT * (out[o + ch] - s2 / n) : out[o + ch]; d[o + ch] = v < 0 ? 0 : v > 255 ? 255 : v; }
