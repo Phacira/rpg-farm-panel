@@ -1117,6 +1117,11 @@
           if (bar && hp != null) bar.style.width = Math.max(0, Math.min(100, +hp)) + '%';
           if (sp && hp != null) sp.textContent = hp + '%';
           const lab = it.el.querySelector('.mname'); if (lab) lab.textContent = nm;
+          if (it.id !== m.id) { // v9h: моб сменился (волк → крысы) — меняем картинку, а не только подпись
+            it.el.dataset.id = m.id; it.el.querySelectorAll('img').forEach(im => im.remove());
+            const tmp = document.createElement('div'); tmp.innerHTML = packHtml();
+            const first = it.el.firstChild; [...tmp.children].forEach(im => { it.el.insertBefore(im, first); bindImg(im); });
+          }
           it.id = m.id; it.owner = m.owner; it.hp = m.hp;
           moveActor(it, +m.x, +m.y, snapAll, dur);
         }
