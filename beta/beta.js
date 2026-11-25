@@ -212,8 +212,12 @@
   // 5) ПК: редкие кнопки огорода и города — в «Ещё», чтобы всё помещалось без прокрутки
   const RARE = new Set(['вклад', 'грядка']);
   window.__betaPcSplit = (defs, loc) => {
-    const rare = d => !d._ui && (RARE.has(d[2]) || (d[2] === 'купить' && /семена/i.test(d[1] || '')) || d[7] === 'other');
-    const more = defs.filter(rare); if (!more.length) return { main: defs, more: [] };
+    // «Ещё» только когда кнопок правда много; одну кнопку в «Ещё» не прячем. Кнопки чужого класса на боссе — всегда в «Ещё»
+    const own = defs.filter(d => !d._ui && d[7] !== 'other').length, crowded = own > 9;
+    let rare = d => !d._ui && (d[7] === 'other' || (crowded && RARE.has(d[2])));
+    let more = defs.filter(rare); if (more.length === 1 && more[0][7] !== 'other') more = [];
+    if (!more.length) return { main: defs, more: [] };
+    const inMore = new Set(more); rare = d => inMore.has(d);
     return { main: defs.filter(d => !rare(d)).concat([{ _ui: 'more', 0: '⋯', 1: 'Ещё', 4: '' }]), more };
   };
   // 4) мини-журнал — свои события
