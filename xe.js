@@ -30,10 +30,14 @@
   }
   setInterval(() => {
     try {
-      const P = window.__panel, me = P && P.state && P.state.me, x = me && me.xe;
+      const P = window.__panel, me = P && P.state && P.state.me, x = window.__xeMock || (me && me.xe);
       if (!x) { box.style.display = 'none'; key = ''; sent = ''; return; }
       show(x); const bar = box.querySelector('.bar'); if (bar) bar.style.width = Math.max(0, 100 - (Date.now() - t0) / (L0 * 10)) + '%';
     } catch (e) {}
   }, 300);
-  window.__xeTest = x => { window.__panel = window.__panel || { state: {} }; window.__panel.state.me = Object.assign({}, window.__panel.state.me, { xe: x }); };
+  window.__xeTest = x => { window.__xeMock = x; };
+  // демо: ?xe=1 — по кругу показывает все события (для теста вида)
+  if (/[?&]xe=1/.test(location.search)) { const D = [{ k: 'fog', u: 'Phacia', me: 0, left: 10, btn: ['встряхнуть', 'Phacia'] }, { k: 'luck', u: '', me: 1, left: 8, btn: ['рискнуть', ''] }, { k: 'flee', u: 'kioku_n', me: 0, left: 8, btn: ['удержать', 'kioku_n'] }, { k: 'weak', u: '', me: 0, left: 3, btn: ['бей', ''] }, { k: 'fork', u: '', me: 0, left: 12, btn: ['налево', 'направо'] }, { k: 'trap', u: '', me: 0, left: 6, btn: ['прыжок', ''] }];
+    let i = 0; const nx = () => { window.__xeMock = Object.assign({}, D[i++ % D.length]); setTimeout(() => { window.__xeMock = null; setTimeout(nx, 1500); }, 6000); }; setTimeout(nx, 2500);
+    const f0 = () => { if (window.PanelActions && !PanelActions.__xeWrap) { const o = PanelActions.fire; PanelActions.fire = (c, a, l) => /^(встряхнуть|удержать|рискнуть|бей|налево|направо|прыжок)$/.test(c) ? (window.__xeMock = null) : o.call(PanelActions, c, a, l); PanelActions.__xeWrap = 1; } else setTimeout(f0, 500); }; f0(); }
 })();
