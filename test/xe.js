@@ -56,10 +56,10 @@
     return head('🎯 Слабое место!', 'Попади по мишени — чем ближе к центру, тем сильнее удар') + bar(); }
   function uiTrap(x) { const A = ['←', '↑', '→', '↓'], seq = [0, 1, 2].map(() => Math.floor(Math.random() * 4)); let i = 0;
     const myKey = key, press = k => { const sp = box.querySelectorAll('.arr span'); if (!sp.length || done === key || key !== myKey) return; if (k === seq[i]) { sp[i].classList.remove('cur'); sp[i].classList.add('ok'); i++; if (sp[i]) sp[i].classList.add('cur'); if (i >= 3) finish('🦘 Перепрыгнул!', 'прыжок'); } else { sp[i] && sp[i].classList.add('bad'); finish('Споткнулся… −HP'); } };
-    const kb = e => { const m = { ArrowLeft: 0, ArrowUp: 1, ArrowRight: 2, ArrowDown: 3 }[e.key]; if (m != null) { e.preventDefault(); e.stopPropagation(); press(m); } };
+    const kb = e => { const m = { ArrowLeft: 0, ArrowUp: 1, ArrowRight: 2, ArrowDown: 3 }[e.key] ?? { KeyA: 0, KeyW: 1, KeyD: 2, KeyS: 3, Numpad4: 0, Numpad8: 1, Numpad6: 2, Numpad2: 3 }[e.code]; if (m != null) { e.preventDefault(); e.stopPropagation(); press(m); } };
     document.addEventListener('keydown', kb, true); offs.push(() => document.removeEventListener('keydown', kb, true));
-    setTimeout(() => box.querySelectorAll('.pad button').forEach((b, k) => b.onpointerdown = () => press(k)));
-    return head('🪤 Ловушка!', 'Нажми эти стрелки по порядку') + `<div class="arr">${seq.map((k, n) => `<span${n ? '' : ' class="cur"'}>${A[k]}</span>`).join('')}</div><div class="pad">${A.map(a => `<button>${a}</button>`).join('')}</div><div class="kbh">⌨ жми стрелки на клавиатуре</div>` + bar(); }
+    setTimeout(() => { box.querySelectorAll('.pad button').forEach((b, k) => b.onpointerdown = () => press(k)); const po = box.querySelector('.padon'); if (po) po.onclick = e => { e.preventDefault(); const pd = box.querySelector('.pad'); if (pd) pd.style.display = 'grid'; po.parentNode.style.display = 'none'; }; });
+    return head('🪤 Ловушка!', 'Нажми эти стрелки по порядку') + `<div class="arr">${seq.map((k, n) => `<span${n ? '' : ' class="cur"'}>${A[k]}</span>`).join('')}</div><div class="pad">${A.map(a => `<button>${a}</button>`).join('')}</div><div class="kbh">⌨ стрелки или W A S D · <a href="#" class="padon" style="color:#ffd86b">мышкой</a></div>` + bar(); }
   function uiFork(x) { const s = (x.hint ? '🔎 ' + x.hint + '<br>' : 'Один путь — тайник, другой — засада<br>') + `Голоса: ← ${x.nl || 0} · ${x.nr || 0} →`;
     setTimeout(() => box.querySelectorAll('button').forEach(b => b.onclick = () => send(b.dataset.c, '')));
     return head('🧭 Развилка', s) + `<div class="b">${(x.btn || []).map(c => `<button data-c="${c}"${x.vote === c ? ' style="outline:3px solid #ffe08a"' : ''}>${LBL[c] || c}${x.vote === c ? ' ✓' : ''}</button>`).join('')}</div>` + bar(); }
