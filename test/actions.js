@@ -236,7 +236,10 @@
           const dress = ['🎀', 'Наряд', 'наряд', () => own.length ? own.concat(xm.on ? [{ label: 'Снять украшение', arg: 'снять' }] : []) : [{ label: 'Украшений пока нет', sub: 'они бывают в новогодних коробках', dis: true }], xm.on ? DS9[xm.on] || xm.on : own.length ? 'не надето' : 'пока нет'];
           const snow = ['❄', 'Снежок', 'снежок', () => [{ label: 'В кого попадётся', sub: 'случайный герой рядом', arg: '' }].concat(near().slice(0, 30).map(n => ({ label: n, sub: 'нужно быть в одной локации', arg: n }))), xm.sb > 0 ? `лепится… ${xm.sb} с` : 'кинуть!']; if (xm.sb > 0) snow._soft = 1;
           const gift = ['🎁', 'Подарить', 'подарить', () => near().slice(0, 40).map(n => ({ label: n, sub: `коробка за ${xm.gc} з`, arg: n, confirm: `Подарить ${n} новогоднюю коробку за ${xm.gc} золота?`, dis: (me.gold || 0) < xm.gc || xm.gl <= 0 })), xm.gl > 0 ? `ещё ${xm.gl} · ${xm.gc} з` : 'на стрим всё']; if (xm.gl <= 0) gift._soft = 1;
-          return [adv, dress]; /* снежок и подарок — нажатием на героя на большом экране (wint.js) */ })(),
+          const wn0 = ref && ref.wn, hor = ['🎶', 'Хоровод', 'хоровод', () => { if (window.__hor) window.__hor.open(); return null; }, xm.hd ? `сегодня ${xm.hd}%` : 'у ёлки, под музыку'];
+          const top0 = (wn0 && wn0.top) || (/[?&]winter=1/.test(location.search) ? [['Phacia', 64], ['aascron', 51], ['meyrint', 37]] : []), mp = (wn0 && wn0.mp) || 50, my = xm.pts || 0;
+          const rate = ['🏆', 'Рейтинг ивента', '', () => [{ note: 1, label: `Твои очки: ${my}` + (my >= mp ? ' ✓' : ` из ${mp}`), lines: [[my >= mp ? 'Подарок 28.12' : 'До подарка 28.12', my >= mp ? 'будет под ёлкой ✓' : `ещё ${mp - my} очк.`, my >= mp ? 'nx' : '']].concat(top0.map((t, i) => [`${['🥇', '🥈', '🥉'][i] || (i + 1) + '.'} ${t[0]}`, `${t[1]} очк.` + (i < 3 ? ' · приз' : ''), i < 3 ? 'nx' : ''])).concat([['Как получать', 'подарок дня 5 · хоровод до 4 · подарить 3 · украсить ёлку 2 · попасть снежком 1', 'mx']]) }], my >= mp ? `${my} ✓` : `${my} из ${mp}`];
+          return [adv, dress, rate].concat((wn0 && wn0.intro) || /[?&]winter=1/.test(location.search) ? [hor] : []); /* снежок и подарок — нажатием на героя на большом экране (wint.js) */ })(),
         ...(() => { const wn = ref && ref.wn; if (!wn || !wn.intro) return []; // v12: нарядить Древня
           const full = wn.st >= 5, mine = me ? +me.wd9 || 0 : 0, d = ['🎄', 'Украсить Древня', 'украсить', '', full ? 'наряжен полностью ✨' : mine >= wn.per ? 'на этот стрим хватит' : `${wn.d}/${wn.need} · этап ${wn.st}/5 · ${wn.cost} з`];
           if (full || mine >= wn.per) d._soft = 1; return [d]; })(),
@@ -346,6 +349,7 @@
     close(); fire(cmd || d[2], arg, label);
   }
   function choose(d, opts, title) {
+    if (!opts) return; // v14: кнопка открыла своё окно (хоровод)
     sheet(title, opts.map(o => Object.assign({}, o, { go: () => o.url ? window.open(o.url, '_blank', 'noopener') : o.next ? choose(d, o.next, o.label) : ask(d, o.arg, d[1] + (o.label ? ' · ' + o.label : ''), o.confirm, o.cmd) })));
   }
   function click(i) {
