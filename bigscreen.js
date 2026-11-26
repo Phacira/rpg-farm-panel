@@ -368,7 +368,10 @@
     return key ? 'img/h/' + (key) + '.webp?v=' + (/_priest_/.test(key) ? 'h8p' : /_f_assassin_|_paladin_/.test(key) ? 'h8f' : 'h8') : (k6 ? 'img/h/' + k6 + '.webp' : '');
   }
 
+  const WINTER_BG = { camp: 1, town: 1, garden: 1, forest: 1, boss: 1, boss_queen: 1, boss_treant: 1 }; // v12: зимние фоны (img/winter/)
+  function winterOn(st) { const wn = st && st.ref && st.ref.wn; return !!(wn && wn.on); }
   function bgOf(l, st) {
+    if (winterOn(st)) { const k = l === 'boss' && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair) ? st.boss.lair : (l || 'camp'); if (WINTER_BG[k]) return 'img/winter/' + k + '.jpg?v=w1'; }
     if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=live6';
     return 'img/' + (l || 'camp') + '.jpg?v=' + (l === 'camp' || !l ? 'live1' : l === 'garden' ? 'live2' : l === 'town' ? 'live3' : l === 'forest' ? 'live4' : l === 'boss' ? 'live6' : l === 'lake' ? 'lake1' : 'bs518');
   }
@@ -1797,3 +1800,25 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();
+// v12: зима на большом экране — снег поверх сцены, без листопада и летних флагов
+(function () {
+  let cv = null, flakes = [], raf = 0, last = 0, wasOn = false;
+  function on() { const P = window.__panel, st = P && P.state, wn = st && st.ref && st.ref.wn; return !!(wn && wn.on) && document.body.classList.contains('bs-on') !== false; }
+  function ensure() { const sc = document.getElementById('bsScene'); if (!sc) return null; if (!cv || cv.parentNode !== sc) { cv = document.createElement('canvas'); cv.id = 'bsSnow'; cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5'; sc.appendChild(cv); } return cv; }
+  function tick(t) { raf = 0; const c = ensure(); if (!c || !on()) { if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height); return; }
+    if (t - last < 40) { raf = requestAnimationFrame(tick); return; } const dt = last ? Math.min(0.1, (t - last) / 1000) : 0.04; last = t;
+    const W = c.clientWidth, H = c.clientHeight; if (!W || !H) { raf = requestAnimationFrame(tick); return; } if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
+    const n = Math.round(W * H / 9000); while (flakes.length < n) flakes.push({ x: Math.random() * W, y: Math.random() * H, r: 0.8 + Math.random() * 2.2, v: 18 + Math.random() * 40, w: Math.random() * 6.28 }); flakes.length = Math.min(flakes.length, n);
+    const g = c.getContext('2d'); g.clearRect(0, 0, W, H); g.fillStyle = 'rgba(255,255,255,.85)';
+    for (const f of flakes) { f.y += f.v * dt; f.w += dt; f.x += Math.sin(f.w) * 12 * dt; if (f.y > H + 4) { f.y = -4; f.x = Math.random() * W; } if (f.x < -4) f.x = W + 4; if (f.x > W + 4) f.x = -4; g.beginPath(); g.arc(f.x, f.y, f.r, 0, 6.29); g.fill(); }
+    raf = requestAnimationFrame(tick); }
+  setInterval(() => { const o = on(); if (o !== wasOn) { wasOn = o; try { const C0 = window.CONFIG = window.CONFIG || {}; const L = C0.live = C0.live || {}; L.off = (L.off || []).filter(k => k !== 'leaves' && k !== 'flags').concat(o ? ['leaves', 'flags'] : []); } catch (e) {} }
+    if (o && !raf) raf = requestAnimationFrame(tick);
+    // Древень-ёлка в лагере (пока он в лагере: ref.wn.intro)
+    try { const P = window.__panel, wn = P && P.state && P.state.ref && P.state.ref.wn, sc = document.getElementById('bsScene'), bs = document.getElementById('bs'); let im = document.getElementById('bsTreant');
+      const show = !!(o && wn && wn.intro && sc && bs && bs.dataset.view === 'camp');
+      if (show && !im) { im = document.createElement('img'); im.id = 'bsTreant'; im.src = 'img/winter/treant.png?v=w1'; im.alt = 'Древень'; im.style.cssText = 'position:absolute;left:93.2%;top:62.5%;height:30.5%;transform:translate(-50%,-100%);pointer-events:none;z-index:3;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45))'; sc.appendChild(im); }
+      if (im) im.style.display = show ? '' : 'none';
+      if (im && wn) im.title = `Древень · наряжен ${wn.st}/5`; } catch (e) {} }, 1000);
+})();
+
