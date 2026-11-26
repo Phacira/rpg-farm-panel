@@ -1727,10 +1727,13 @@
   function reraster() { const sc = $('#bsScene'); if (!sc || !on) return; const t = sc.style.transform; if (t === camPrev && t !== camDone) { camDone = t; sc.style.willChange = 'transform'; requestAnimationFrame(() => requestAnimationFrame(() => { sc.style.willChange = 'auto'; })); } camPrev = t; }
   setInterval(() => { sharpHeroes(); reraster(); }, 700);
   // v8.6: живой фон (облака, звёзды, вечер/ночь, костёр, флаги…) — тот же модуль, что в игре (live6.js), рисуется в canvas поверх картинки фона
-  let liveRaf = 0;
+  let liveRaf = 0, liveLast = 0, liveEma = 0, liveSlow = 0; // v8.9: живой фон не чаще 30 к/с; на слабых ПК — 15 к/с, совсем слабым — выключается
   function liveKick() { if (!liveRaf) liveRaf = requestAnimationFrame(liveTick); }
-  function liveTick() {
+  function liveTick(ts) {
     liveRaf = 0;
+    const gap = liveEma > 14 ? 66 : 33; if (ts && ts - liveLast < gap - 4) { liveKick(); return; } liveLast = ts || performance.now();
+    if (liveEma > 30 && ++liveSlow > 90) { const cv0 = $('#bsLive'); if (cv0) cv0.hidden = true; const r0 = $('#bs'); if (r0) r0.classList.remove('live-on'); return; } // очень слабый ПК — оставляем статичную картинку
+    const __t0 = performance.now();
     const cv = $('#bsLive'), img = $('#bsBg'), root = $('#bs');
     const vw = (root && root.dataset.view) || bsLoc, bm = /\/(boss(?:_[a-z0-9_]+)?)\.jpg/.exec(img ? img.getAttribute('src') || '' : ''), vl = vw === 'boss' && bm ? bm[1] : vw; // v8.7: у логова — свой живой фон
     const ok = on && cv && img && window.LIVE6 && LIVE6.has(vl) && new RegExp('/' + vl + '\\.jpg').test(img.getAttribute('src') || '') && !document.hidden; // v8.6: только для показанной локации
@@ -1742,6 +1745,7 @@
     try { LIVE6.draw(g, vl, img, 0, 'img/'); } catch (e) { console.warn('live6', e); }
     if (cvT && LIVE6.drawTop) { const gt = cvT.getContext('2d'); gt.setTransform(1, 0, 0, 1, 0, 0); gt.clearRect(0, 0, cvT.width, cvT.height); gt.setTransform(k, 0, 0, k, 0, 0); try { LIVE6.drawTop(gt, vl, 'img/'); } catch (e) { console.warn('live6 top', e); } cvT.hidden = false; } // v8.7: пёсик/котик поверх героев
     cv.hidden = false; root.classList.add('live-on');
+    liveEma = liveEma * 0.9 + (performance.now() - __t0) * 0.1; if (liveEma <= 30) liveSlow = 0;
     liveKick();
   }
   document.addEventListener('visibilitychange', liveKick);
