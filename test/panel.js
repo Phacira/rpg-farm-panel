@@ -982,7 +982,7 @@
   if (mock) { mockData(); const t0 = /[?&]tab=(\w+)/.exec(location.search); if (t0) tab = t0[1]; render(); } else validate();
   window.__panel = {
     get state() { return state; }, get user() { return user; }, get tab() { return tab; },
-    setTab(t) { tab = t; render(); },
+    setTab(t) { tab = t; render(); }, login, logout, // v11: вход с большого экрана
     render, cardHtml: me => card(me), logHtml, heroPic, bossTimerText, fightsHtml, partyHtml, esc
   };
 })();

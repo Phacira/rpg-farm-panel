@@ -96,8 +96,19 @@
     const G9 = ref.g9, myG = G9 && me && me.gid ? (G9.g || []).find(x => x.id === me.gid) : null, mg9 = (me && me.g9) || {};
     const isMeU = u => me && (String(u).toLowerCase() === String(me.n || '').toLowerCase());
     const fmtD = t => new Date(t).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+    // v11: все гильдии — сводка (рейтинг недели, гильд-мастер, состав, казна, бафф)
+    const allGuilds = () => { const G = ref.guilds || [], GW = ref.gw || null, W = G9 && G9.win;
+      const rows = G.map(([id, n, col, ga, gt, , , udp], i) => { const g = G9 ? (G9.g || []).find(x => x.id === id) : null, w = GW && GW[i];
+        return { id, n, ga, gt, udp, g, wk: w ? w[0] : null, pa: w ? w[1] : null }; });
+      if (GW) rows.sort((a, b) => (b.pa || 0) - (a.pa || 0));
+      const head = { note: 1, label: GW ? 'Рейтинг недели — очки на одного активного' : 'Гильдии', sub: W ? `🏆 прошлая неделя: ${(G.find(x => x[0] === W[0]) || [0, W[0]])[1]}` : '' };
+      return [head].concat(rows.map((r, k) => ({ label: `${GW ? (k + 1) + '. ' : ''}${r.n}${me && me.gid === r.id ? ' · ваша' : ''}`,
+        sub: [r.g && r.g.gm ? '👑 ' + r.g.gm : 'без мастера', r.ga != null ? `${r.ga} активных из ${r.gt}` : '', GW ? `${r.pa} оч./чел.` : '', r.udp ? `+${r.udp}% слабой` : ''].filter(Boolean).join(' · '),
+        next: [{ note: 1, label: r.n, lines: [['гильд-мастер', r.g && r.g.gm ? r.g.gm : 'нет'], ['участники', r.ga != null ? `${r.ga} активных, всего ${r.gt}` : '—']]
+          .concat(GW ? [['очки недели', `${r.wk} (${r.pa} на активного)`]] : []).concat(r.g ? [['казна', r.g.bank + ' з'], ['бафф', r.g.buff ? `${r.g.buff[1]} (${r.g.buff[2]}) до ${fmtD(r.g.buff[3])}` : 'нет']] : []).concat(r.udp ? [['бонус слабой', `+${r.udp}% золота и опыта`]] : []) }]
+          .concat(r.g && (r.g.members || []).length ? [{ note: 1, label: 'Активные участники', lines: r.g.members.map(([u, dn, med]) => [dn + (u === r.g.gmu ? ' 👑' : ''), med ? '🏅 медаль' : '']) }] : []) }))); };
     const guildMenu = () => {
-      if (!myG) return guilds();
+      if (!myG) return [{ label: '📊 Все гильдии', sub: 'рейтинг, мастера, состав', next: allGuilds() }].concat(guilds());
       const others = (myG.members || []).filter(([u]) => !isMeU(u)), L = [], amGm = isMeU(myG.gmu);
       const elect = G9.elect ? `итоги первых выборов в ${new Date(G9.elect).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : 'итоги — в понедельник, в начале стрима';
       L.push({ note: 1, label: `${me.gd}: ${myG.gm ? '👑 гильд-мастер — ' + myG.gm : 'гильд-мастера пока нет'}`, sub: `казна ${myG.bank} з${myG.buff ? ` · 🚩 ${myG.buff[1]} (${myG.buff[2]}) до ${fmtD(myG.buff[3])}` : ''}${mg9.medal ? ` · 🏅 у тебя медаль до ${fmtD(mg9.medal)}` : ''}` });
@@ -120,6 +131,7 @@
       if (G9.hike) L.push({ label: '⚔ Гильд-поход', sub: mg9.went ? 'ты уже ходил на этом стриме' : mg9.inQ ? `ты в отряде · ${myG.hq}/${G9.hmax} · старт через ${myG.hleft} мин` : myG.hq ? `идёт сбор: ${myG.hq}/${G9.hmax}, ещё ${myG.hleft} мин` : `${G9.waves} волн и мини-босс`, dis: !!mg9.went || !!mg9.inQ,
         next: [{ note: 1, label: 'Перед записью', lines: [['отряд', `${G9.hmin}–${G9.hmax} игроков твоей гильдии`], ['сбор', `${G9.hwait} мин или пока не наберётся ${G9.hmax}`], ['сколько раз', '1 раз за стрим'], ['бой', `${G9.waves} волн, в конце мини-босс`], ['кнопка «Цель»', 'бей волков / тотем / кожу — урон ×1.5'], ['если погиб', 'часть добычи, как в пати'], ['не собрались', 'попытка не тратится'], ['награда', 'золото и опыт ×2, очки гильдии ×3, сундук']] },
           (mg9.inQ ? { label: 'Ты уже в отряде', sub: 'старт — когда соберутся все или выйдет время', dis: true } : mg9.went ? { label: 'Ты уже ходил на этом стриме', dis: true } : { label: 'Понятно, иду в гильд-поход', cmd: 'гильдпоход' })] });
+      L.push({ label: '📊 Все гильдии', sub: 'рейтинг, мастера, состав', next: allGuilds() });
       L.push({ label: '🏰 Сменить гильдию', next: guilds() });
       return L;
     };
