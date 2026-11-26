@@ -33,11 +33,11 @@
     return head('🎲 Бросок удачи', 'Останови кубик: 1 — промах, 20 — тройной урон') + '<div class="die">?</div><div class="b"><button>Стоп!</button></div>' + bar(); }
   function uiFlee(x) { if (x.me) return head('😱 Ты в панике', 'Сейчас сбежишь… если союзник не удержит') + bar();
     // как в рыбалке: зажимай — стрелка идёт вправо, отпусти — падает влево; держи её в зелёной зоне, пока не наполнится шкала
-    let a = 0.15, v = 0, hold = false, prog = 0, zc = 0.5, zt = 0.5, zT = 0, last = 0, raf = 0; const ZW = 0.15, NEED = 2.8;
+    let a = 0.15, v = 0, hold = false, prog = 0, zc = 0.5, zt = 0.5, zT = 0, last = 0, raf = 0; const ZW = 0.19, NEED = 2.4;
     const loop = t => { const cv = box.querySelector('canvas.g'); if (!cv || done === key) return; const dt = Math.min(0.05, last ? (t - last) / 1000 : 0.016); last = t;
-      v += (hold ? 1.8 : -1.5) * dt; v *= 0.9; a = Math.max(0, Math.min(1, a + v * dt * 3)); if (a <= 0 || a >= 1) v = 0;
-      zT -= dt; if (zT <= 0) { zT = 0.5 + Math.random() * 0.9; zt = 0.12 + Math.random() * 0.76; } zc += (zt - zc) * dt * 2.4;
-      const inZ = Math.abs(a - zc) < ZW / 2; prog = Math.max(0, Math.min(NEED, prog + (inZ ? dt : -dt * 0.9)));
+      v += (hold ? 1.7 : -1.4) * dt; v *= 0.9; a = Math.max(0, Math.min(1, a + v * dt * 3)); if (a <= 0 || a >= 1) v = 0;
+      zT -= dt; if (zT <= 0) { zT = 0.7 + Math.random() * 1.1; zt = 0.15 + Math.random() * 0.7; } zc += (zt - zc) * dt * 1.8;
+      const inZ = Math.abs(a - zc) < ZW / 2; prog = Math.max(0, Math.min(NEED, prog + (inZ ? dt : -dt * 0.7)));
       const g = cv.getContext('2d'), W = cv.width, H = cv.height, cx = W / 2, cy = H - 10, R = H - 22, ang = q => Math.PI + q * Math.PI;
       g.clearRect(0, 0, W, H); g.lineCap = 'round'; g.lineWidth = 16; g.strokeStyle = '#3a2e4a'; g.beginPath(); g.arc(cx, cy, R, Math.PI, 0); g.stroke();
       g.strokeStyle = inZ ? '#7dff9a' : '#4fae6a'; g.beginPath(); g.arc(cx, cy, R, ang(Math.max(0, zc - ZW / 2)), ang(Math.min(1, zc + ZW / 2))); g.stroke();
