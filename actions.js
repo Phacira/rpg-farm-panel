@@ -227,7 +227,17 @@
         const r = ['🎣', 'Рыбачить', 'рыбалка', '', sub], sl = ['💰', 'Продать рыбу', 'продать', 'рыба', nb ? bag.map(([k, n]) => `${FN[k] || k} ×${n}`).join(', ') : 'сумка пуста'];
         if (fs && fs.ph !== 'bite' && (fs.ph || fs.cd > 0 || fs.cl === 0)) r._soft = 1; if (!nb) sl._soft = 1;
         return [r, sl]; })(),
-      camp: [...(() => { const wn = ref && ref.wn; if (!wn || !wn.intro) return []; // v12: нарядить Древня
+      camp: [...(() => { const xm = me && me.xm; if (!xm) return []; // v13: зима — подарок дня, наряд, снежок, подарить
+          const DN9 = { kolpak: 'Колпак Деда Мороза', mish: 'Мишура', roga: 'Оленьи рожки', snezh: 'Снежинка-заколка', venok: 'Венок из остролиста', zvezda: 'Звезда над головой' };
+          const near = () => { const P = window.__panel, st = P && P.state, mine = String((me && me.n) || '').toLowerCase(), seen = {}, L = [];
+            Object.values((st && st.locs) || {}).forEach(arr => (arr || []).forEach(t => { const n = String(t[0]); if (!n || n.toLowerCase() === mine || seen[n.toLowerCase()]) return; seen[n.toLowerCase()] = 1; L.push(n); })); return L.sort((a, b) => a.localeCompare(b)); };
+          const adv = ['🎁', 'Подарок дня', 'подарок', '', xm.adv ? `получен · серия ${xm.st}` : `серия ${xm.st}${(xm.st + 1) % 7 === 0 ? ' · завтра легендарный!' : (xm.st + 1) % 3 === 0 ? ' · следующий редкий' : ''}`]; if (xm.adv) adv._soft = 1;
+          const own = (xm.own || []).map((id, i) => ({ label: (DN9[id] || id) + (xm.on === id ? ' ✓' : ''), sub: xm.on === id ? 'надето' : 'надеть', arg: String(i + 1), dis: xm.on === id }));
+          const dress = ['🎀', 'Наряд', 'наряд', () => own.length ? own.concat(xm.on ? [{ label: 'Снять украшение', arg: 'снять' }] : []) : [{ label: 'Украшений пока нет', sub: 'они бывают в новогодних коробках', dis: true }], xm.on ? DN9[xm.on] || xm.on : own.length ? 'не надето' : 'пока нет'];
+          const snow = ['❄', 'Снежок', 'снежок', () => [{ label: 'В кого попадётся', sub: 'случайный герой рядом', arg: '' }].concat(near().slice(0, 30).map(n => ({ label: n, sub: 'нужно быть в одной локации', arg: n }))), xm.sb > 0 ? `лепится… ${xm.sb} с` : 'кинуть!']; if (xm.sb > 0) snow._soft = 1;
+          const gift = ['🎁', 'Подарить', 'подарить', () => near().slice(0, 40).map(n => ({ label: n, sub: `коробка за ${xm.gc} з`, arg: n, confirm: `Подарить ${n} новогоднюю коробку за ${xm.gc} золота?`, dis: (me.gold || 0) < xm.gc || xm.gl <= 0 })), xm.gl > 0 ? `${xm.gl} из 3 · ${xm.gc} з` : 'на этот стрим всё']; if (xm.gl <= 0) gift._soft = 1;
+          return [adv, dress, snow, gift]; })(),
+        ...(() => { const wn = ref && ref.wn; if (!wn || !wn.intro) return []; // v12: нарядить Древня
           const full = wn.st >= 5, mine = me ? +me.wd9 || 0 : 0, d = ['🎄', 'Украсить Древня', 'украсить', '', full ? 'наряжен полностью ✨' : mine >= wn.per ? 'на этот стрим хватит' : `${wn.d}/${wn.need} · этап ${wn.st}/5 · ${wn.cost} з`];
           if (full || mine >= wn.per) d._soft = 1; return [d]; })(),
         ['🏰', 'Гильдия', 'гильдия', guildMenu, me && me.gd ? me.gd : 'выбрать'],
