@@ -11,9 +11,9 @@
 #xeBox .ring b{width:84px;height:84px;border-radius:50%;background:#2a2238;display:flex;align-items:center;justify-content:center;font-size:15px}
 #xeTgt{position:fixed;z-index:2147483001;width:84px;height:84px;margin:-42px 0 0 -42px;border-radius:50%;background:radial-gradient(circle,#ff3b2f 0 12%,#fff 13% 30%,#ff3b2f 31% 50%,#fff 51% 70%,#ff3b2f 71% 100%);box-shadow:0 0 18px rgba(255,80,60,.8);cursor:crosshair;display:none;animation:xeT 2.2s linear forwards;touch-action:none}
 @keyframes xeT{0%{transform:scale(.3)}15%{transform:scale(1)}85%{transform:scale(1)}100%{transform:scale(0)}}
-#xeBox .arr{display:flex;gap:6px;justify-content:center;margin:4px 0 8px;font-size:30px}#xeBox .arr span{width:44px;height:44px;border-radius:8px;background:#2a2238;border:1px solid #6a5a80;display:flex;align-items:center;justify-content:center}
+#xeBox .arr{display:flex;gap:10px;justify-content:center;margin:6px 0 10px;font-size:40px}#xeBox .arr span{width:62px;height:62px;border-radius:12px;background:#3a2c18;border:2px solid #e8b860;color:#ffe08a;display:flex;align-items:center;justify-content:center}#xeBox .arr span.cur{box-shadow:0 0 0 3px #fff,0 0 16px #ffd86b;animation:xeP .6s ease-in-out infinite alternate}@keyframes xeP{to{transform:scale(1.08)}}
 #xeBox .arr span.ok{background:#2f6b3a;border-color:#7dff9a}#xeBox .arr span.bad{background:#7a2626}
-#xeBox .pad{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}`;
+#xeBox .pad{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}#xeBox .pad button{background:#2a2238;border-color:#5a4c6e;color:#cfc4e0;min-height:44px;font-size:20px}#xeBox .kbh{font-size:12px;opacity:.7;margin-top:4px}@media (hover:hover) and (pointer:fine){#xeBox .pad{display:none}}@media not ((hover:hover) and (pointer:fine)){#xeBox .kbh{display:none}}`;
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
   const box = document.createElement('div'); box.id = 'xeBox'; document.body.appendChild(box);
   const tgt = document.createElement('div'); tgt.id = 'xeTgt'; document.body.appendChild(tgt);
@@ -55,11 +55,11 @@
       timers.push(setTimeout(() => { if (done !== key) finish('Мимо — мишень исчезла'); }, 2200)); }, 350);
     return head('🎯 Слабое место!', 'Попади по мишени — чем ближе к центру, тем сильнее удар') + bar(); }
   function uiTrap(x) { const A = ['←', '↑', '→', '↓'], seq = [0, 1, 2].map(() => Math.floor(Math.random() * 4)); let i = 0;
-    const myKey = key, press = k => { const sp = box.querySelectorAll('.arr span'); if (!sp.length || done === key || key !== myKey) return; if (k === seq[i]) { sp[i].classList.add('ok'); i++; if (i >= 3) finish('🦘 Перепрыгнул!', 'прыжок'); } else { sp[i] && sp[i].classList.add('bad'); finish('Споткнулся… −HP'); } };
+    const myKey = key, press = k => { const sp = box.querySelectorAll('.arr span'); if (!sp.length || done === key || key !== myKey) return; if (k === seq[i]) { sp[i].classList.remove('cur'); sp[i].classList.add('ok'); i++; if (sp[i]) sp[i].classList.add('cur'); if (i >= 3) finish('🦘 Перепрыгнул!', 'прыжок'); } else { sp[i] && sp[i].classList.add('bad'); finish('Споткнулся… −HP'); } };
     const kb = e => { const m = { ArrowLeft: 0, ArrowUp: 1, ArrowRight: 2, ArrowDown: 3 }[e.key]; if (m != null) { e.preventDefault(); e.stopPropagation(); press(m); } };
     document.addEventListener('keydown', kb, true); offs.push(() => document.removeEventListener('keydown', kb, true));
     setTimeout(() => box.querySelectorAll('.pad button').forEach((b, k) => b.onpointerdown = () => press(k)));
-    return head('🪤 Ловушка!', 'Повтори стрелки, чтобы перепрыгнуть') + `<div class="arr">${seq.map(k => `<span>${A[k]}</span>`).join('')}</div><div class="pad">${A.map(a => `<button>${a}</button>`).join('')}</div>` + bar(); }
+    return head('🪤 Ловушка!', 'Нажми эти стрелки по порядку') + `<div class="arr">${seq.map((k, n) => `<span${n ? '' : ' class="cur"'}>${A[k]}</span>`).join('')}</div><div class="pad">${A.map(a => `<button>${a}</button>`).join('')}</div><div class="kbh">⌨ жми стрелки на клавиатуре</div>` + bar(); }
   function uiFork(x) { const s = (x.hint ? '🔎 ' + x.hint + '<br>' : 'Один путь — тайник, другой — засада<br>') + `Голоса: ← ${x.nl || 0} · ${x.nr || 0} →`;
     setTimeout(() => box.querySelectorAll('button').forEach(b => b.onclick = () => send(b.dataset.c, '')));
     return head('🧭 Развилка', s) + `<div class="b">${(x.btn || []).map(c => `<button data-c="${c}"${x.vote === c ? ' style="outline:3px solid #ffe08a"' : ''}>${LBL[c] || c}${x.vote === c ? ' ✓' : ''}</button>`).join('')}</div>` + bar(); }
