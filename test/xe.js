@@ -33,11 +33,11 @@
     return head('🎲 Бросок удачи', 'Останови кубик: 1 — промах, 20 — тройной урон') + '<div class="die">?</div><div class="b"><button>Стоп!</button></div>' + bar(); }
   function uiFlee(x) { if (x.me) return head('😱 Ты в панике', 'Сейчас сбежишь… если союзник не удержит') + bar();
     // как в рыбалке: зажимай — стрелка идёт вправо, отпусти — падает влево; держи её в зелёной зоне, пока не наполнится шкала
-    let a = 0.15, v = 0, hold = false, prog = 0, zc = 0.5, zt = 0.5, zT = 0, last = 0, raf = 0; const ZW = 0.22, NEED = 2.2;
+    let a = 0.15, v = 0, hold = false, prog = 0, zc = 0.5, zt = 0.5, zT = 0, last = 0, raf = 0; const ZW = 0.15, NEED = 2.8;
     const loop = t => { const cv = box.querySelector('canvas.g'); if (!cv || done === key) return; const dt = Math.min(0.05, last ? (t - last) / 1000 : 0.016); last = t;
-      v += (hold ? 1.6 : -1.3) * dt; v *= 0.9; a = Math.max(0, Math.min(1, a + v * dt * 3)); if (a <= 0 || a >= 1) v = 0;
-      zT -= dt; if (zT <= 0) { zT = 0.8 + Math.random() * 1.2; zt = 0.2 + Math.random() * 0.6; } zc += (zt - zc) * dt * 1.5;
-      const inZ = Math.abs(a - zc) < ZW / 2; prog = Math.max(0, Math.min(NEED, prog + (inZ ? dt : -dt * 0.6)));
+      v += (hold ? 1.8 : -1.5) * dt; v *= 0.9; a = Math.max(0, Math.min(1, a + v * dt * 3)); if (a <= 0 || a >= 1) v = 0;
+      zT -= dt; if (zT <= 0) { zT = 0.5 + Math.random() * 0.9; zt = 0.12 + Math.random() * 0.76; } zc += (zt - zc) * dt * 2.4;
+      const inZ = Math.abs(a - zc) < ZW / 2; prog = Math.max(0, Math.min(NEED, prog + (inZ ? dt : -dt * 0.9)));
       const g = cv.getContext('2d'), W = cv.width, H = cv.height, cx = W / 2, cy = H - 10, R = H - 22, ang = q => Math.PI + q * Math.PI;
       g.clearRect(0, 0, W, H); g.lineCap = 'round'; g.lineWidth = 16; g.strokeStyle = '#3a2e4a'; g.beginPath(); g.arc(cx, cy, R, Math.PI, 0); g.stroke();
       g.strokeStyle = inZ ? '#7dff9a' : '#4fae6a'; g.beginPath(); g.arc(cx, cy, R, ang(Math.max(0, zc - ZW / 2)), ang(Math.min(1, zc + ZW / 2))); g.stroke();
@@ -46,7 +46,7 @@
       if (prog >= NEED) { finish('Удержал!', 'удержать', x.u); return; } raf = requestAnimationFrame(loop); };
     setTimeout(() => { const cv = box.querySelector('canvas.g'), b = box.querySelector('button'); if (!cv) return; const dn = e => { e.preventDefault(); hold = true; }, up = () => { hold = false; };
       [cv, b].forEach(el => { el.onpointerdown = dn; el.onpointerup = up; el.onpointerleave = up; el.onpointercancel = up; });
-      const kd = e => { if (e.code === 'Space') { e.preventDefault(); hold = true; } }, ku = e => { if (e.code === 'Space') hold = false; }; addEventListener('keydown', kd); addEventListener('keyup', ku); offs.push(() => { removeEventListener('keydown', kd); removeEventListener('keyup', ku); });
+      const kd = e => { if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); hold = true; } }, ku = e => { if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); hold = false; } }; document.addEventListener('keydown', kd, true); document.addEventListener('keyup', ku, true); try { document.activeElement && document.activeElement.blur && document.activeElement.blur(); } catch (e) {} offs.push(() => { document.removeEventListener('keydown', kd, true); document.removeEventListener('keyup', ku, true); });
       raf = requestAnimationFrame(loop); offs.push(() => cancelAnimationFrame(raf)); });
     return head('😱 Паника!', `${x.u} хочет сбежать — зажимай и держи стрелку в зелёной зоне`) + '<canvas class="g" width="260" height="140"></canvas><div class="b"><button>Держать (или пробел)</button></div>' + bar(); }
   function uiWeak(x) { setTimeout(() => { const W = innerWidth, H = innerHeight, px = 60 + Math.random() * (W - 120), py = H * 0.45 + Math.random() * (H * 0.45 - 60);
@@ -56,8 +56,8 @@
     return head('🎯 Слабое место!', 'Попади по мишени — чем ближе к центру, тем сильнее удар') + bar(); }
   function uiTrap(x) { const A = ['←', '↑', '→', '↓'], seq = [0, 1, 2].map(() => Math.floor(Math.random() * 4)); let i = 0;
     const myKey = key, press = k => { const sp = box.querySelectorAll('.arr span'); if (!sp.length || done === key || key !== myKey) return; if (k === seq[i]) { sp[i].classList.add('ok'); i++; if (i >= 3) finish('🦘 Перепрыгнул!', 'прыжок'); } else { sp[i] && sp[i].classList.add('bad'); finish('Споткнулся… −HP'); } };
-    const kb = e => { const m = { ArrowLeft: 0, ArrowUp: 1, ArrowRight: 2, ArrowDown: 3 }[e.key]; if (m != null) { e.preventDefault(); press(m); } };
-    addEventListener('keydown', kb); offs.push(() => removeEventListener('keydown', kb));
+    const kb = e => { const m = { ArrowLeft: 0, ArrowUp: 1, ArrowRight: 2, ArrowDown: 3 }[e.key]; if (m != null) { e.preventDefault(); e.stopPropagation(); press(m); } };
+    document.addEventListener('keydown', kb, true); offs.push(() => document.removeEventListener('keydown', kb, true));
     setTimeout(() => box.querySelectorAll('.pad button').forEach((b, k) => b.onpointerdown = () => press(k)));
     return head('🪤 Ловушка!', 'Повтори стрелки, чтобы перепрыгнуть') + `<div class="arr">${seq.map(k => `<span>${A[k]}</span>`).join('')}</div><div class="pad">${A.map(a => `<button>${a}</button>`).join('')}</div>` + bar(); }
   function uiFork(x) { const s = (x.hint ? '🔎 ' + x.hint + '<br>' : 'Один путь — тайник, другой — засада<br>') + `Голоса: ← ${x.nl || 0} · ${x.nr || 0} →`;
