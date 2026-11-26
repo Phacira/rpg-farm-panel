@@ -1,9 +1,9 @@
 // v11: события похода — всплывающая плашка с кнопкой (туман, бросок удачи, паника, слабое место, развилка, ловушка)
 (function () {
-  const css = `#xeBox{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);z-index:9000;min-width:260px;max-width:92vw;background:rgba(28,22,40,.96);border:2px solid #e8b860;border-radius:14px;padding:10px 14px;color:#fff;font:600 15px/1.3 system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.55);text-align:center;display:none;animation:xeIn .2s ease-out}
+  const css = `#xeBox{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:2147483000;min-width:260px;max-width:92vw;background:rgba(28,22,40,.96);border:2px solid #e8b860;border-radius:14px;padding:10px 14px;color:#fff;font:600 15px/1.3 system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.55);text-align:center;display:none;animation:xeIn .2s ease-out}
 #xeBox .t{font-size:16px;margin-bottom:4px}#xeBox .s{font-weight:400;font-size:13px;opacity:.85;margin-bottom:8px}
 #xeBox .b{display:flex;gap:8px;justify-content:center}#xeBox button{flex:1;min-height:48px;border-radius:10px;border:1px solid #c99b4a;background:linear-gradient(#7a4b22,#5a3416);color:#fff;font:700 16px system-ui,sans-serif;cursor:pointer}
-#xeBox .bar{height:4px;background:#e8b860;border-radius:2px;margin-top:8px;transition:width .3s linear}@keyframes xeIn{from{opacity:0;transform:translate(-50%,20px)}}`;
+#xeBox .bar{height:4px;background:#e8b860;border-radius:2px;margin-top:8px;transition:width .3s linear}@keyframes xeIn{from{opacity:0;transform:translate(-50%,-20px)}}`;
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
   const box = document.createElement('div'); box.id = 'xeBox'; document.body.appendChild(box);
   const TXT = {
