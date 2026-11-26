@@ -3,7 +3,7 @@
   const css = `#xeBox{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:2147483000;min-width:260px;max-width:92vw;background:rgba(28,22,40,.96);border:2px solid #e8b860;border-radius:14px;padding:10px 14px;color:#fff;font:600 15px/1.3 system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.55);text-align:center;display:none;animation:xeIn .2s ease-out}
 #xeBox .t{font-size:16px;margin-bottom:4px}#xeBox .s{font-weight:400;font-size:13px;opacity:.85;margin-bottom:8px}
 #xeBox .b{display:flex;gap:8px;justify-content:center}#xeBox button{flex:1;min-height:48px;border-radius:10px;border:1px solid #c99b4a;background:linear-gradient(#7a4b22,#5a3416);color:#fff;font:700 16px system-ui,sans-serif;cursor:pointer}
-#xeBox .bar{height:4px;background:#e8b860;border-radius:2px;margin-top:8px;transition:width .3s linear}@keyframes xeIn{from{opacity:0;transform:translate(-50%,-20px)}}`;
+#xeBox .bar{height:4px;background:#e8b860;border-radius:2px;margin-top:8px;transform-origin:left;animation:xeBar linear forwards}@keyframes xeBar{from{transform:scaleX(var(--f,1))}to{transform:scaleX(0)}}@keyframes xeIn{from{opacity:0;transform:translate(-50%,-20px)}}`;
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
   const box = document.createElement('div'); box.id = 'xeBox'; document.body.appendChild(box);
   const TXT = {
@@ -24,7 +24,7 @@
     const [t, s] = TXT[x.k] ? TXT[x.k](x) : [x.n, ''];
     let btns = '';
     if (x.btn) { const B = x.k === 'fork' ? x.btn.map(c => [c, '']) : [[x.btn[0], x.btn[1]]]; btns = B.map(([c, a]) => `<button data-c="${c}" data-a="${a}"${x.vote === c ? ' style="outline:3px solid #ffe08a"' : ''}>${LBL[c] || c}${x.vote === c ? ' ✓' : ''}</button>`).join(''); }
-    box.innerHTML = `<div class="t">${t}</div><div class="s">${s}</div><div class="b">${btns}</div><div class="bar" style="width:100%"></div>`;
+    box.innerHTML = `<div class="t">${t}</div><div class="s">${s}</div><div class="b">${btns}</div><div class="bar" style="animation-duration:${Math.max(.1, L0 - (Date.now() - t0) / 1000)}s;--f:${Math.max(0, 1 - (Date.now() - t0) / 1000 / L0)}"></div>`;
     box.querySelectorAll('button').forEach(b => b.onclick = () => fire(b.dataset.c, b.dataset.a));
     box.style.display = 'block';
   }
@@ -32,7 +32,7 @@
     try {
       const P = window.__panel, me = P && P.state && P.state.me, x = window.__xeMock || (me && me.xe);
       if (!x) { box.style.display = 'none'; key = ''; sent = ''; return; }
-      show(x); const bar = box.querySelector('.bar'); if (bar) bar.style.width = Math.max(0, 100 - (Date.now() - t0) / (L0 * 10)) + '%';
+      show(x);
     } catch (e) {}
   }, 300);
   window.__xeTest = x => { window.__xeMock = x; };

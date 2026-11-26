@@ -3,7 +3,7 @@
 // Время суток общее для всех (по часам): CONFIG.live.cycleMin — длина круга «закат → ночь → закат» в минутах.
 // Выключить всё: CONFIG.live = { enabled: false }. Выключить эффект: CONFIG.live.off = ['birds', 'leaves', ...]
 (function () {
-  const W = 2560, H = 1440, SK = 1, SKY_H = 620; // небо — полоса сверху в полном разрешении (облака чёткие) // небо считается в половинном разрешении — дёшево, облака мягкие
+  const W = 2560, H = 1440, SK = 1, SKY_H = 620, SKR = 0.5; // небо — полоса сверху в полном разрешении (облака чёткие) // небо считается в половинном разрешении — дёшево, облака мягкие
   const LOC = {
     camp: {
       sky: 'camp_sky.png', // маска неба: PNG с прозрачностью (небо непрозрачное), 1280×720
@@ -90,11 +90,11 @@
     s.eyes = []; s.nextEyes = rnd(2, 5); s.drops = []; s.motes = []; s.mist = [];
     if (L.mist) for (let i = 0; i < 7; i++) s.mist.push({ x: rnd(-400, W), y: rnd(L.mist[0], L.mist[1]), r: rnd(260, 480), v: rnd(10, 26) * (Math.random() < .5 ? 1 : -1), a: rnd(.5, 1) });
     if (!L.sky) { s.ready = true; } else {
-    s.sky = mk(sw, sh); s.mask = mk(sw, sh);
+    s.sky = mk(Math.round(sw * SKR), Math.round(sh * SKR)); s.mask = mk(Math.round(sw * SKR), Math.round(sh * SKR)); // v8.9: небо в половинном разрешении — в OBS вдвое-вчетверо дешевле
     const im = new Image();
     im.onerror = () => console.warn('live6: нет маски неба', base + L.sky);
     im.onload = () => {
-      s.mask.getContext('2d').drawImage(im, 0, 0, im.width, im.height * SKY_H / H, 0, 0, sw, sh); // без getImageData: в OBS (file://) чтение пикселей картинки запрещено
+      s.mask.getContext('2d').drawImage(im, 0, 0, im.width, im.height * SKY_H / H, 0, 0, s.mask.width, s.mask.height); // без getImageData: в OBS (file://) чтение пикселей картинки запрещено
       s.stars = (L.stars || []).map(([x, y, r, p, f]) => ({ x: x * 2, y: y * 2, r: r * 1.6, p, f }));
       s.ready = true;
     };
@@ -109,8 +109,8 @@
   }
 
   function skyLayer(s, dt, nk, L) {
-    const g = s.sky.getContext('2d'), sw = s.sky.width, sh = s.sky.height;
-    g.clearRect(0, 0, sw, sh);
+    const g = s.sky.getContext('2d'), sw = W, sh = SKY_H;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, s.sky.width, s.sky.height); g.setTransform(SKR, 0, 0, SKR, 0, 0);
     if (on('daynight')) { g.fillStyle = `rgba(18,10,40,${0.45 * nk})`; g.fillRect(0, 0, sw, sh); }
     if (on('stars')) { g.fillStyle = '#fff7e0'; s.stars.forEach(t => { const tw = 0.55 + 0.45 * Math.sin(T * t.f + t.p); g.globalAlpha = Math.min(1, (0.35 + 0.65 * nk) * tw); g.beginPath(); g.arc(t.x, t.y, t.r, 0, 7); g.fill(); }); g.globalAlpha = 1; }
     if (on('shoot')) {
@@ -120,7 +120,7 @@
     if (on('clouds')) { s.clouds.forEach(c => { c.x += c.v * dt; if (c.x > sw + 10) { c.x = -c.s.width - rnd(0, 400); c.y = rnd(20, 260); c.v = rnd(6, 14); c.s = s.sprites[Math.floor(Math.random() * s.sprites.length)]; } g.globalAlpha = c.a * (1 - 0.25 * nk); g.drawImage(c.s, Math.round(c.x), Math.round(c.y)); }); g.globalAlpha = 1; }
     if (L.birds && on('birds')) { s.nextBirds -= dt; if (s.nextBirds <= 0 && !s.birds.length) { const n = 3 + Math.floor(Math.random() * 4), y = rnd(60, 200), dir = Math.random() < .5 ? 1 : -1; for (let i = 0; i < n; i++) s.birds.push({ x: dir > 0 ? -60 - i * 31 : W + 60 + i * 31, y: y + (i % 2) * 14 + i * 4, v: dir * rnd(100, 130), p: rnd(0, 6) }); s.nextBirds = rnd(20, 40); }
       g.save(); g.strokeStyle = 'rgba(25,15,30,.85)'; g.lineWidth = 3; s.birds = s.birds.filter(b => { b.x += b.v * dt; const f = Math.sin(T * 9 + b.p) * 6; g.beginPath(); g.moveTo(b.x - 10, b.y - f); g.quadraticCurveTo(b.x - 4, b.y - 3, b.x, b.y); g.quadraticCurveTo(b.x + 4, b.y - 3, b.x + 10, b.y - f); g.stroke(); return b.x > -120 && b.x < W + 120; }); g.restore(); } // v8.7: птицы — в слое неба, за домами
-    g.globalCompositeOperation = 'destination-in'; g.drawImage(s.mask, 0, 0); g.globalCompositeOperation = 'source-over';
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'destination-in'; g.drawImage(s.mask, 0, 0); g.globalCompositeOperation = 'source-over';
   }
 
   // ctx — в координатах мира 2560×1440 (масштаб уже выставлен). bg — картинка фона (для флагов). base — папка, где лежит <loc>_sky.png
@@ -130,7 +130,7 @@
     const s = init(loc, base || 'assets/bg/'); if (!s || !s.ready) return;
     const now = performance.now(); if (s.last == null) s.last = now; dt = Math.min(0.1, Math.max(0, (now - s.last) / 1000)); s.last = now; T = now / 1000;
     const nk = nightK();
-    if (L.sky) { skyLayer(s, dt, nk, L);
+    if (L.sky) { const sn = now - (s.skyAt || 0); if (!s.skyAt || sn > 45) { skyLayer(s, Math.min(0.2, s.skyAt ? sn / 1000 : dt), nk, L); s.skyAt = now; } // v8.9: небо перерисовывается ~22 раза в секунду (облака и звёзды медленные)
     ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(s.sky, 0, 0, W, SKY_H); ctx.restore(); }
     if (on('flags') && L.flags && s.atlas) {
       const sc = Math.abs(ctx.getTransform().a) || 1, step = Math.max(1, 1 / sc), A = s.atlas;
