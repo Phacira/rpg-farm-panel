@@ -11,19 +11,19 @@
     luck: () => ['🎲 Бросок удачи', 'Удар ×2.2 или промах — рискнёшь?'],
     flee: x => x.me ? ['😱 Ты в панике', 'Сейчас сбежишь из похода… если не удержат'] : ['😱 Паника!', `${x.u} хочет сбежать — удержи!`],
     weak: () => ['🎯 Слабое место!', 'Успей ударить — урон ×2'],
-    fork: () => ['🧭 Развилка', 'Один путь — тайник, другой — засада'],
+    fork: x => ['🧭 Развилка', (x.hint ? '🔎 ' + x.hint + '<br>' : 'Один путь — тайник, другой — засада<br>') + `Голоса: ← ${x.nl || 0} · ${x.nr || 0} →`],
     trap: () => ['🪤 Ловушка!', 'Прыгай, иначе поранишься']
   };
-  const LBL = { встряхнуть: 'Встряхнуть', удержать: 'Удержать', рискнуть: 'Рискнуть', бей: 'Бей!', налево: '← Налево', направо: 'Направо →', прыжок: 'Прыжок!' };
+  const LBL = { встряхнуть: 'Встряхнуть', удержать: 'Удержать', рискнуть: 'Рискнуть', бей: 'Бей!', налево: '← Налево', направо: 'Направо →', прыжок: 'Прыжок!', разведка: '🔎 Разведка' };
   let key = '', t0 = 0, L0 = 1, sent = '';
-  function fire(cmd, arg) { sent = key; box.style.display = 'none'; try { if (window.PanelActions) PanelActions.fire(cmd, arg || '', LBL[cmd] || cmd); } catch (e) {} }
+  function fire(cmd, arg) { const fork = /^(налево|направо|разведка)$/.test(cmd); if (!fork) { sent = key; box.style.display = 'none'; } try { if (window.PanelActions) PanelActions.fire(cmd, arg || '', LBL[cmd] || cmd); } catch (e) {} }
   function show(x) {
-    const k = x.k + ':' + x.u + ':' + (x.btn ? x.btn.join() : '');
+    const k = x.k + ':' + x.u + ':' + (x.btn ? x.btn.join() : '') + ':' + (x.vote || '') + (x.nl || 0) + (x.nr || 0) + (x.hint || '');
     if (k === key && box.style.display !== 'none') return;
-    if (k === sent) return; key = k; t0 = Date.now(); L0 = Math.max(1, x.left);
+    if (k === sent) return; const same = key.split(':')[0] === x.k && x.k === 'fork'; key = k; if (!same) { t0 = Date.now(); L0 = Math.max(1, x.left); }
     const [t, s] = TXT[x.k] ? TXT[x.k](x) : [x.n, ''];
     let btns = '';
-    if (x.btn) { const B = x.k === 'fork' ? x.btn.map(c => [c, '']) : [[x.btn[0], x.btn[1]]]; btns = B.map(([c, a]) => `<button data-c="${c}" data-a="${a}">${LBL[c] || c}</button>`).join(''); }
+    if (x.btn) { const B = x.k === 'fork' ? x.btn.map(c => [c, '']) : [[x.btn[0], x.btn[1]]]; btns = B.map(([c, a]) => `<button data-c="${c}" data-a="${a}"${x.vote === c ? ' style="outline:3px solid #ffe08a"' : ''}>${LBL[c] || c}${x.vote === c ? ' ✓' : ''}</button>`).join(''); }
     box.innerHTML = `<div class="t">${t}</div><div class="s">${s}</div><div class="b">${btns}</div><div class="bar" style="width:100%"></div>`;
     box.querySelectorAll('button').forEach(b => b.onclick = () => fire(b.dataset.c, b.dataset.a));
     box.style.display = 'block';
@@ -37,7 +37,7 @@
   }, 300);
   window.__xeTest = x => { window.__xeMock = x; };
   // демо: ?xe=1 — по кругу показывает все события (для теста вида)
-  if (/[?&]xe=1/.test(location.search)) { const D = [{ k: 'fog', u: 'Phacia', me: 0, left: 10, btn: ['встряхнуть', 'Phacia'] }, { k: 'luck', u: '', me: 1, left: 8, btn: ['рискнуть', ''] }, { k: 'flee', u: 'kioku_n', me: 0, left: 8, btn: ['удержать', 'kioku_n'] }, { k: 'weak', u: '', me: 0, left: 3, btn: ['бей', ''] }, { k: 'fork', u: '', me: 0, left: 12, btn: ['налево', 'направо'] }, { k: 'trap', u: '', me: 0, left: 6, btn: ['прыжок', ''] }];
+  if (/[?&]xe=1/.test(location.search)) { const D = [{ k: 'fog', u: 'Phacia', me: 0, left: 10, btn: ['встряхнуть', 'Phacia'] }, { k: 'luck', u: '', me: 1, left: 8, btn: ['рискнуть', ''] }, { k: 'flee', u: 'kioku_n', me: 0, left: 8, btn: ['удержать', 'kioku_n'] }, { k: 'weak', u: '', me: 0, left: 3, btn: ['бей', ''] }, { k: 'fork', u: '', me: 0, left: 12, btn: ['налево', 'направо', 'разведка'], nl: 1, nr: 0, hint: '' }, { k: 'trap', u: '', me: 0, left: 6, btn: ['прыжок', ''] }];
     let i = 0; const nx = () => { window.__xeMock = Object.assign({}, D[i++ % D.length]); setTimeout(() => { window.__xeMock = null; setTimeout(nx, 1500); }, 6000); }; setTimeout(nx, 2500);
-    const f0 = () => { if (window.PanelActions && !PanelActions.__xeWrap) { const o = PanelActions.fire; PanelActions.fire = (c, a, l) => /^(встряхнуть|удержать|рискнуть|бей|налево|направо|прыжок)$/.test(c) ? (window.__xeMock = null) : o.call(PanelActions, c, a, l); PanelActions.__xeWrap = 1; } else setTimeout(f0, 500); }; f0(); }
+    const f0 = () => { if (window.PanelActions && !PanelActions.__xeWrap) { const o = PanelActions.fire; PanelActions.fire = (c, a, l) => { const M = window.__xeMock; if (M && M.k === 'fork') { if (c === 'разведка') { M.hint = 'Вы: «справа следы засады»'; M.btn = ['налево', 'направо']; } else { if (M.vote === 'налево') M.nl--; if (M.vote === 'направо') M.nr--; M.vote = c; if (c === 'налево') M.nl++; else M.nr++; } return; } if (/^(встряхнуть|удержать|рискнуть|бей|прыжок)$/.test(c)) window.__xeMock = null; else o.call(PanelActions, c, a, l); }; PanelActions.__xeWrap = 1; } else setTimeout(f0, 500); }; f0(); }
 })();
