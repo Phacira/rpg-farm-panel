@@ -7,7 +7,7 @@
 @keyframes xeBar{from{transform:scaleX(var(--f,1))}to{transform:scaleX(0)}}@keyframes xeIn{from{opacity:0;transform:translate(-50%,-20px)}}
 #xeBox .meter{height:12px;border-radius:6px;background:#2a2238;border:1px solid #6a5a80;overflow:hidden;margin:6px 0}#xeBox .meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,#8fd8ff,#c9b3ff);transition:width .08s}
 #xeBox .die{font:800 54px/1 system-ui,sans-serif;margin:4px 0 8px;color:#ffd86b;text-shadow:0 0 12px rgba(255,200,80,.5)}
-#xeBox .ring{width:110px;height:110px;margin:4px auto 6px;border-radius:50%;background:conic-gradient(#ff9c7a var(--p,0%),#3a2e4a 0);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:none}
+#xeBox canvas.g{display:block;margin:2px auto 4px;touch-action:none;cursor:pointer}#xeBox .ring{width:110px;height:110px;margin:4px auto 6px;border-radius:50%;background:conic-gradient(#ff9c7a var(--p,0%),#3a2e4a 0);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:none}
 #xeBox .ring b{width:84px;height:84px;border-radius:50%;background:#2a2238;display:flex;align-items:center;justify-content:center;font-size:15px}
 #xeTgt{position:fixed;z-index:2147483001;width:84px;height:84px;margin:-42px 0 0 -42px;border-radius:50%;background:radial-gradient(circle,#ff3b2f 0 12%,#fff 13% 30%,#ff3b2f 31% 50%,#fff 51% 70%,#ff3b2f 71% 100%);box-shadow:0 0 18px rgba(255,80,60,.8);cursor:crosshair;display:none;animation:xeT 2.2s linear forwards;touch-action:none}
 @keyframes xeT{0%{transform:scale(.3)}15%{transform:scale(1)}85%{transform:scale(1)}100%{transform:scale(0)}}
@@ -18,8 +18,8 @@
   const box = document.createElement('div'); box.id = 'xeBox'; document.body.appendChild(box);
   const tgt = document.createElement('div'); tgt.id = 'xeTgt'; document.body.appendChild(tgt);
   const LBL = { встряхнуть: 'Встряхнуть', удержать: 'Удержать', рискнуть: 'Кубик', бей: 'Бей!', налево: '← Налево', направо: 'Направо →', прыжок: 'Прыжок!', разведка: '🔎 Разведка' };
-  let key = '', t0 = 0, L0 = 1, done = '', timers = [];
-  const clearT = () => { timers.forEach(t => { clearInterval(t); clearTimeout(t); }); timers = []; tgt.style.display = 'none'; };
+  let key = '', t0 = 0, L0 = 1, done = '', timers = [], offs = [];
+  const clearT = () => { timers.forEach(t => { clearInterval(t); clearTimeout(t); }); timers = []; offs.forEach(f => { try { f(); } catch (e) {} }); offs = []; tgt.style.display = 'none'; };
   function send(cmd, arg) { try { if (window.PanelActions) PanelActions.fire(cmd, arg == null ? '' : String(arg), LBL[cmd] || cmd); } catch (e) {} }
   function finish(msg, cmd, arg) { done = key; clearT(); if (cmd) send(cmd, arg); box.innerHTML = `<div class="t">${msg}</div>`; timers.push(setTimeout(() => { if (done === key) box.style.display = 'none'; }, 1400)); }
   const bar = () => `<div class="bar" style="animation-duration:${Math.max(.1, L0 - (Date.now() - t0) / 1000)}s;--f:${Math.max(0, 1 - (Date.now() - t0) / 1000 / L0)}"></div>`;
@@ -32,19 +32,32 @@
     setTimeout(() => { const b = box.querySelector('button'); if (b) b.onpointerdown = () => { stop = true; const r = v === 1 ? 'промах…' : v >= 20 ? 'КРИТ ×3!' : v >= 15 ? 'удар ×2' : v >= 8 ? 'удар ×1.3' : 'слабый удар'; finish(`🎲 ${v} — ${r}`, 'рискнуть', v); }; });
     return head('🎲 Бросок удачи', 'Останови кубик: 1 — промах, 20 — тройной урон') + '<div class="die">?</div><div class="b"><button>Стоп!</button></div>' + bar(); }
   function uiFlee(x) { if (x.me) return head('😱 Ты в панике', 'Сейчас сбежишь… если союзник не удержит') + bar();
-    const NEED = 2000; let h0 = 0, raf = 0;
-    const tick = () => { const r = box.querySelector('.ring'); if (!r || !h0) return; const p = Math.min(1, (Date.now() - h0) / NEED); r.style.setProperty('--p', p * 100 + '%'); if (p >= 1) { h0 = 0; finish('Удержал!', 'удержать', x.u); return; } raf = requestAnimationFrame(tick); };
-    setTimeout(() => { const r = box.querySelector('.ring'); if (!r) return; r.onpointerdown = e => { e.preventDefault(); h0 = Date.now(); tick(); }; const up = () => { if (h0) { h0 = 0; cancelAnimationFrame(raf); r.style.setProperty('--p', '0%'); } }; r.onpointerup = up; r.onpointerleave = up; r.onpointercancel = up; });
-    return head('😱 Паника!', `${x.u} хочет сбежать — зажми и держи 2 секунды`) + '<div class="ring"><b>Держать</b></div>' + bar(); }
+    // как в рыбалке: зажимай — стрелка идёт вправо, отпусти — падает влево; держи её в зелёной зоне, пока не наполнится шкала
+    let a = 0.15, v = 0, hold = false, prog = 0, zc = 0.5, zt = 0.5, zT = 0, last = 0, raf = 0; const ZW = 0.22, NEED = 2.2;
+    const loop = t => { const cv = box.querySelector('canvas.g'); if (!cv || done === key) return; const dt = Math.min(0.05, last ? (t - last) / 1000 : 0.016); last = t;
+      v += (hold ? 1.6 : -1.3) * dt; v *= 0.9; a = Math.max(0, Math.min(1, a + v * dt * 3)); if (a <= 0 || a >= 1) v = 0;
+      zT -= dt; if (zT <= 0) { zT = 0.8 + Math.random() * 1.2; zt = 0.2 + Math.random() * 0.6; } zc += (zt - zc) * dt * 1.5;
+      const inZ = Math.abs(a - zc) < ZW / 2; prog = Math.max(0, Math.min(NEED, prog + (inZ ? dt : -dt * 0.6)));
+      const g = cv.getContext('2d'), W = cv.width, H = cv.height, cx = W / 2, cy = H - 10, R = H - 22, ang = q => Math.PI + q * Math.PI;
+      g.clearRect(0, 0, W, H); g.lineCap = 'round'; g.lineWidth = 16; g.strokeStyle = '#3a2e4a'; g.beginPath(); g.arc(cx, cy, R, Math.PI, 0); g.stroke();
+      g.strokeStyle = inZ ? '#7dff9a' : '#4fae6a'; g.beginPath(); g.arc(cx, cy, R, ang(Math.max(0, zc - ZW / 2)), ang(Math.min(1, zc + ZW / 2))); g.stroke();
+      g.lineWidth = 6; g.strokeStyle = '#ffd86b'; g.beginPath(); g.arc(cx, cy, R + 14, Math.PI, Math.PI + Math.PI * prog / NEED); g.stroke();
+      g.lineWidth = 4; g.strokeStyle = '#fff'; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(ang(a)) * (R + 6), cy + Math.sin(ang(a)) * (R + 6)); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(cx, cy, 6, 0, 7); g.fill();
+      if (prog >= NEED) { finish('Удержал!', 'удержать', x.u); return; } raf = requestAnimationFrame(loop); };
+    setTimeout(() => { const cv = box.querySelector('canvas.g'), b = box.querySelector('button'); if (!cv) return; const dn = e => { e.preventDefault(); hold = true; }, up = () => { hold = false; };
+      [cv, b].forEach(el => { el.onpointerdown = dn; el.onpointerup = up; el.onpointerleave = up; el.onpointercancel = up; });
+      const kd = e => { if (e.code === 'Space') { e.preventDefault(); hold = true; } }, ku = e => { if (e.code === 'Space') hold = false; }; addEventListener('keydown', kd); addEventListener('keyup', ku); offs.push(() => { removeEventListener('keydown', kd); removeEventListener('keyup', ku); });
+      raf = requestAnimationFrame(loop); offs.push(() => cancelAnimationFrame(raf)); });
+    return head('😱 Паника!', `${x.u} хочет сбежать — зажимай и держи стрелку в зелёной зоне`) + '<canvas class="g" width="260" height="140"></canvas><div class="b"><button>Держать (или пробел)</button></div>' + bar(); }
   function uiWeak(x) { setTimeout(() => { const W = innerWidth, H = innerHeight, px = 60 + Math.random() * (W - 120), py = H * 0.45 + Math.random() * (H * 0.45 - 60);
       tgt.style.left = px + 'px'; tgt.style.top = py + 'px'; tgt.style.display = 'block'; tgt.style.animation = 'none'; void tgt.offsetWidth; tgt.style.animation = '';
       tgt.onpointerdown = e => { const d = Math.hypot(e.clientX - px, e.clientY - py), acc = Math.max(0, 1 - d / 42); finish(acc > 0.8 ? '🎯 В яблочко!' : acc > 0.4 ? '🎯 Попал!' : '🎯 Задел', 'бей', Math.round(acc * 100)); };
       timers.push(setTimeout(() => { if (done !== key) finish('Мимо — мишень исчезла'); }, 2200)); }, 350);
     return head('🎯 Слабое место!', 'Попади по мишени — чем ближе к центру, тем сильнее удар') + bar(); }
   function uiTrap(x) { const A = ['←', '↑', '→', '↓'], seq = [0, 1, 2].map(() => Math.floor(Math.random() * 4)); let i = 0;
-    const press = k => { const sp = box.querySelectorAll('.arr span'); if (!sp.length || done === key) return; if (k === seq[i]) { sp[i].classList.add('ok'); i++; if (i >= 3) finish('🦘 Перепрыгнул!', 'прыжок'); } else { sp[i] && sp[i].classList.add('bad'); finish('Споткнулся… −HP'); } };
+    const myKey = key, press = k => { const sp = box.querySelectorAll('.arr span'); if (!sp.length || done === key || key !== myKey) return; if (k === seq[i]) { sp[i].classList.add('ok'); i++; if (i >= 3) finish('🦘 Перепрыгнул!', 'прыжок'); } else { sp[i] && sp[i].classList.add('bad'); finish('Споткнулся… −HP'); } };
     const kb = e => { const m = { ArrowLeft: 0, ArrowUp: 1, ArrowRight: 2, ArrowDown: 3 }[e.key]; if (m != null) { e.preventDefault(); press(m); } };
-    addEventListener('keydown', kb); timers.push(setTimeout(() => removeEventListener('keydown', kb), 15000));
+    addEventListener('keydown', kb); offs.push(() => removeEventListener('keydown', kb));
     setTimeout(() => box.querySelectorAll('.pad button').forEach((b, k) => b.onpointerdown = () => press(k)));
     return head('🪤 Ловушка!', 'Повтори стрелки, чтобы перепрыгнуть') + `<div class="arr">${seq.map(k => `<span>${A[k]}</span>`).join('')}</div><div class="pad">${A.map(a => `<button>${a}</button>`).join('')}</div>` + bar(); }
   function uiFork(x) { const s = (x.hint ? '🔎 ' + x.hint + '<br>' : 'Один путь — тайник, другой — засада<br>') + `Голоса: ← ${x.nl || 0} · ${x.nr || 0} →`;
