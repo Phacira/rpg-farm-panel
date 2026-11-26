@@ -28,7 +28,7 @@
   function uiFog(x) { if (x.me) return head('😵 Ты в тумане', 'Жди, пока союзник тебя встряхнёт') + bar();
     let n = 0; const N = 6; setTimeout(() => { const b = box.querySelector('button'), m = box.querySelector('.meter i'); if (b) b.onpointerdown = () => { n++; m.style.width = n / N * 100 + '%'; box.style.transform = `translateX(calc(-50% + ${n % 2 ? 6 : -6}px))`; setTimeout(() => box.style.transform = 'translateX(-50%)', 60); if (n >= N) finish('Очнулся!', 'встряхнуть', x.u); }; });
     return head('😵 Туман в голове', `${x.u} не может бить — тряси! Жми быстро ${N} раз`) + '<div class="meter"><i></i></div><div class="b"><button>Трясти!</button></div>' + bar(); }
-  function uiLuck(x) { let v = 1, stop = false; timers.push(setInterval(() => { if (stop) return; v = 1 + Math.floor(Math.random() * 20); const d = box.querySelector('.die'); if (d) d.textContent = v; }, 70));
+  function uiLuck(x) { let v = 1, stop = false; timers.push(setInterval(() => { if (stop) return; v = v % 20 + 1; const d = box.querySelector('.die'); if (d) d.textContent = v; }, 55));
     setTimeout(() => { const b = box.querySelector('button'); if (b) b.onpointerdown = () => { stop = true; const r = v === 1 ? 'промах…' : v >= 20 ? 'КРИТ ×3!' : v >= 15 ? 'удар ×2' : v >= 8 ? 'удар ×1.3' : 'слабый удар'; finish(`🎲 ${v} — ${r}`, 'рискнуть', v); }; });
     return head('🎲 Бросок удачи', 'Останови кубик: 1 — промах, 20 — тройной урон') + '<div class="die">?</div><div class="b"><button>Стоп!</button></div>' + bar(); }
   function uiFlee(x) { if (x.me) return head('😱 Ты в панике', 'Сейчас сбежишь… если союзник не удержит') + bar();
