@@ -80,6 +80,23 @@
     const same = key.split(':').slice(0, 2).join(':') === base; key = k; if (!same) { t0 = Date.now(); L0 = Math.max(1, x.left); done = ''; ding(); }
     clearT(); box.innerHTML = (UI[x.k] || (() => head(x.n || '', '')))(x); box.style.display = 'block';
   }
+  // 27.11: звук в момент старта пати- и гильд-похода (был в очереди → ушёл в поход), чтобы успеть вернуться на вкладку
+  function horn() {
+    try { if (localStorage.getItem('rpgXeSound') === '0') return; } catch (e) {}
+    try { if (navigator.vibrate) navigator.vibrate([150, 80, 150, 80, 250]); } catch (e) {}
+    try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume();
+      const t = AC.currentTime; [[523, 0], [659, 0.16], [784, 0.32], [1047, 0.5]].forEach(([f, d]) => { const o = AC.createOscillator(), g = AC.createGain(); o.type = 'square'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t + d); g.gain.exponentialRampToValueAtTime(0.12, t + d + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + d + (d >= 0.5 ? 0.6 : 0.2)); o.connect(g).connect(AC.destination); o.start(t + d); o.stop(t + d + 0.7); }); } catch (e) {}
+    if (document.hidden) { const t0 = document.title; let n = 0; const iv = setInterval(() => { document.title = n++ % 2 ? t0 : '⚔ ПОХОД НАЧАЛСЯ!'; if (n > 20 || !document.hidden) { clearInterval(iv); document.title = t0; } }, 700); }
+  }
+  let wasQ = 0, wasExp = false;
+  setInterval(() => {
+    try { const P = window.__panel, me = P && P.state && P.state.me; if (!me) return;
+      const q = !!(me.pty || (me.g9 && me.g9.inQ)), ex = me.mode === 'exp' || me.st === 'exp';
+      if (q) wasQ = Date.now();
+      if (ex && !wasExp && Date.now() - wasQ < 20000) horn();
+      wasExp = ex; } catch (e) {}
+  }, 500);
   setInterval(() => {
     try {
       const P = window.__panel, me = P && P.state && P.state.me, x = window.__xeMock || (me && me.xe);
