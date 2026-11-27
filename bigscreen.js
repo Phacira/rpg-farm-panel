@@ -767,7 +767,9 @@
           + '<span class="pcnt">' + esc(cnt) + '</span>'
           + '<button type="button" class="fold-chev" data-bsfold="party" title="Свернуть очередь" aria-label="Свернуть очередь">▾</button>'
           + '</header>' + (partyBoxHtml(c, false) || '<div class="muted">пока никого</div>');
-        if (GH) { const gc = Math.min(+GH.hq, +GH.hmax || 5) + '/' + (+GH.hmax || 5) + (+GH.hsec > 0 ? ' · ' + fmtPtyLeft(+GH.hsec) : '');
+        const PH = window.__panel && window.__panel.partyHtml ? window.__panel.partyHtml() : ''; // 27.11: как в обычном пульте — портреты и пустые места
+        if (PH) { const hd = GH && !qn ? '🏰 Гильд-поход' : '⚔ Очередь на пати-поход'; el.innerHTML = '<header>' + hd + (qn ? '<span class="pcnt">' + esc(cnt) + '</span>' : '') + '<button type="button" class="fold-chev" data-bsfold="party" title="Свернуть" aria-label="Свернуть">▾</button></header><div class="bsPtyFull">' + PH.replace(/<h2>[\s\S]*?<\/h2>/, '') + '</div>'; }
+        else if (GH) { const gc = Math.min(+GH.hq, +GH.hmax || 5) + '/' + (+GH.hmax || 5) + (+GH.hsec > 0 ? ' · ' + fmtPtyLeft(+GH.hsec) : '');
           const hp = '<header>🏰 Гильд-поход<span class="pcnt">' + esc(gc) + '</span></header>' + g9HikeHtml(c, GH);
           el.innerHTML = (P && (qn > 0 || inCamp)) ? el.innerHTML + hp : hp; }
       }

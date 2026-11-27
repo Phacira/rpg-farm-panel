@@ -151,3 +151,12 @@ body.beta #bs.phone-p .actionbar button[data-ui="quests"], body.beta #bs.phone-p
 body.beta #bs .actionbar button[data-ui="quests"] { order: 50; } body.beta #bs .actionbar button[data-ui="inv"] { order: 51; } body.beta #bs .actionbar button[data-ui="log"] { order: 52; } body.beta #bs .actionbar button[data-ui="news"] { order: 53; } body.beta #bs .actionbar button[data-ui="more"] { order: 54; }
 body.beta #bs .actionbar .sub, body.beta #bs.pc .actionbar .sub, body.beta #bs.phone-p .actionbar .sub, body.beta #bs.phone-l .actionbar .sub { white-space: normal !important; overflow: hidden !important; text-overflow: ellipsis !important; display: -webkit-box !important; -webkit-line-clamp: 2; -webkit-box-orient: vertical; max-width: 100% !important; line-height: 1.15 !important; text-align: center; overflow-wrap: anywhere; }
 body.beta #bs .actionbar button { min-width: 0; overflow: hidden; }
+
+/* 27.11: блок «Пати» как в обычном пульте внутри большого экрана */
+#bs .bsPtyFull .pty{background:none;border:0;padding:0;margin:0}
+#bs .bsPtyFull .pgrp{margin:6px 0 2px}
+#bs .bsPtyFull .ph{font-size:12px;line-height:1.25;opacity:.9;margin-bottom:4px}
+#bs .bsPtyFull .fteam{display:flex;flex-wrap:wrap;gap:6px}
+#bs .bsPtyFull .pm{display:flex;flex-direction:column;align-items:center;width:54px}
+#bs .bsPtyFull .pm em{font-style:normal;font-size:10.5px;max-width:54px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bs .bsPtyFull .pme{font-size:12px;color:#ffd86b;margin-bottom:2px}
