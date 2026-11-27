@@ -354,7 +354,8 @@
   function ask(d, arg, label, confirm, cmd) {
     if (confirm && window.__betaNoConfirm && window.__betaNoConfirm(cmd || d[2], arg)) confirm = null; // бета: без «Точно?» на бесплатных действиях
     if (confirm) return sheet(confirm, [{ label: 'Да, выполнить', go: () => { close(); fire(cmd || d[2], arg, label); } }]);
-    close(); fire(cmd || d[2], arg, label);
+    const c = cmd || d[2], cb = c === 'подарок' ? (m => sheet(m.ok ? '🎁 Подарок дня' : 'Подарок дня', [{ note: 1, label: m.ok ? 'Что внутри:' : 'Не получилось', sub: m.msg || '' }])) : null; // 27.11: что выпало — окном, а не мелкой строкой
+    close(); fire(c, arg, label, cb);
   }
   function choose(d, opts, title) {
     if (!opts) return; // v14: кнопка открыла своё окно (хоровод)
