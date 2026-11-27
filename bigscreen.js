@@ -557,7 +557,10 @@
     const me = c.me, el = $('#bsUnit');
     if (!el) return;
     if (!me) {
-      if (unitBuilt !== 'none') { el.innerHTML = '<div class="unit-main"><div class="unit-top"><b>Нет героя</b></div><div class="unit-sub">Сначала вступите в игру</div></div>'; unitBuilt = 'none'; }
+      const logged = !!(window.__panel && __panel.user), uk = logged ? 'none' : 'login'; // v11: не вошёл — кнопка входа прямо на большом экране
+      if (unitBuilt !== uk) { el.innerHTML = logged ? '<div class="unit-main"><div class="unit-top"><b>Нет героя</b></div><div class="unit-sub">Сначала вступите в игру</div></div>'
+        : '<div class="unit-main"><button type="button" class="bs-login" style="width:100%;min-height:40px;border-radius:10px;border:0;background:#9146ff;color:#fff;font:700 15px Rubik,system-ui,sans-serif;cursor:pointer">Войти через Twitch</button><div class="unit-sub" style="margin-top:4px">чтобы найти своего героя и играть кнопками</div></div>';
+        const lb = el.querySelector('.bs-login'); if (lb) lb.onclick = () => { try { __panel.login(); } catch (e) {} }; unitBuilt = uk; }
       return;
     }
     const hp = +me.hp || 0, mhp = +me.mhp || 1, xp = +me.xp || 0, xpN = +me.xpN || 1;
