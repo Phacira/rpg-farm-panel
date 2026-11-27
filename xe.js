@@ -85,24 +85,23 @@
   const SND = { on: 1, vol: 0.6 }; try { Object.assign(SND, JSON.parse(localStorage.getItem('rpgHorn') || '{}')); if (localStorage.getItem('rpgXeSound') === '0') SND.on = 0; } catch (e) {}
   const sndSave = () => { try { localStorage.setItem('rpgHorn', JSON.stringify(SND)); } catch (e) {} };
   (function () {
-    const st = document.createElement('style'); st.textContent = `#hornBtn{position:fixed;left:54px;overflow:visible;bottom:10px;z-index:30;width:38px;height:38px;border-radius:50%;border:1.5px solid #c99b4a;background:rgba(40,26,16,.85);color:#ffd86b;font:18px system-ui;cursor:pointer;opacity:.75;padding:0}#hornBtn:hover{opacity:1}#bsUnit #hornBtn{position:absolute;width:28px;height:28px;font-size:17px;line-height:28px;display:flex;align-items:center;justify-content:center;opacity:.9;z-index:3;border:0;background:none;box-shadow:none}#hornBtn{overflow:visible}#hornBtn.new::after{content:'';position:absolute;top:6px;right:4px;width:8px;height:8px;border-radius:50%;background:#ff4d4d;box-shadow:0 0 6px #ff4d4d;animation:hornDot 1.2s ease-in-out infinite}@keyframes hornDot{50%{opacity:.25;transform:scale(.8)}}body.bs-on #hornPop{z-index:2147483001}#hornBtn.off{filter:grayscale(1);opacity:.5}
-#hornPop{position:fixed;left:54px;bottom:54px;z-index:31;background:rgba(30,20,12,.96);border:1px solid #c99b4a;border-radius:10px;padding:10px 12px;color:#f3e3c2;font:500 13px Rubik,system-ui,sans-serif;width:230px;display:none}
+    const st = document.createElement('style'); st.textContent = `#hornBtn{position:fixed;right:12px;top:12px;z-index:2147483000;width:34px;height:34px;border:0;background:none;box-shadow:none;color:#ffd86b;font:20px system-ui;cursor:pointer;opacity:.85;padding:0;overflow:visible;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}#hornBtn:hover{opacity:1}#hornBtn.off{filter:grayscale(1) drop-shadow(0 1px 2px rgba(0,0,0,.8));opacity:.5}
+#hornBtn.new::after{content:'';position:absolute;top:5px;right:6px;width:8px;height:8px;border-radius:50%;background:#ff4d4d;box-shadow:0 0 6px #ff4d4d;animation:hornDot 1.2s ease-in-out infinite}@keyframes hornDot{50%{opacity:.25;transform:scale(.8)}}
+#hornPop{position:fixed;right:12px;top:50px;z-index:2147483001;background:rgba(30,20,12,.96);border:1px solid #c99b4a;border-radius:10px;padding:10px 12px;color:#f3e3c2;font:500 13px Rubik,system-ui,sans-serif;width:230px;display:none}
 #hornPop b{color:#ffd86b}#hornPop label{display:flex;gap:8px;align-items:center;margin:6px 0;cursor:pointer}#hornPop input[type=range]{width:100%;accent-color:#ffd86b}#hornPop button{margin-top:6px;width:100%;min-height:32px;border-radius:8px;border:1px solid #c99b4a;background:linear-gradient(#7a4b22,#5a3416);color:#fff;font:600 13px Rubik,system-ui;cursor:pointer}`;
     document.head.appendChild(st);
     const b = document.createElement('button'); b.id = 'hornBtn'; b.title = 'Сигнал о начале похода'; b.textContent = '🔔';
     const pp = document.createElement('div'); pp.id = 'hornPop';
     pp.innerHTML = '<b>Сигнал похода</b><div style="opacity:.75;font-size:12px;margin-top:2px">звучит, когда твой пати- или гильд-поход стартует</div><label><input type="checkbox" data-k="on"> включён</label><div>Громкость</div><input type="range" min="0" max="100" data-k="vol"><button data-k="test">▶ Проверить</button>';
     const sync = () => { pp.querySelector('[data-k=on]').checked = !!SND.on; pp.querySelector('[data-k=vol]').value = Math.round(SND.vol * 100); b.classList.toggle('off', !SND.on); };
-    try { if (!localStorage.getItem('rpgHornSeen')) b.classList.add('new'); } catch (e) {}
-    b.onclick = e => { e.stopPropagation(); b.classList.remove('new'); try { localStorage.setItem('rpgHornSeen', '1'); } catch (er) {} const on = pp.style.display !== 'block'; pp.style.display = on ? 'block' : 'none'; sync();
-      if (on) { const r = b.getBoundingClientRect(); if (b.parentElement !== document.body) { pp.style.left = Math.round(r.left) + 'px'; pp.style.top = Math.round(r.bottom + 6) + 'px'; pp.style.bottom = 'auto'; } else { pp.style.left = ''; pp.style.top = ''; pp.style.bottom = ''; } } };
-    // 27.11: на большом экране — под аватаркой героя слева сверху
-    setInterval(() => { const port = document.body.classList.contains('bs-on') && document.querySelector('#bsUnit .port'), uf = port && port.parentElement;
-      if (port) { if (b.parentElement !== uf) uf.appendChild(b); b.style.left = Math.round(port.offsetLeft + (port.offsetWidth - 28) / 2) + 'px'; b.style.top = Math.round(port.offsetTop + port.offsetHeight + 6) + 'px'; b.style.bottom = 'auto'; }
-      else if (b.parentElement !== document.body && document.body) { document.body.appendChild(b); b.style.left = b.style.top = b.style.bottom = ''; } }, 400);
+    try { if (!localStorage.getItem('rpgHornSeen2')) b.classList.add('new'); } catch (e) {}
+    const seen = () => { b.classList.remove('new'); try { localStorage.setItem('rpgHornSeen2', '1'); } catch (er) {} };
+    b.onclick = e => { e.stopPropagation(); const on = pp.style.display !== 'block'; pp.style.display = on ? 'block' : 'none'; sync(); if (on) { const r = b.getBoundingClientRect(); pp.style.top = Math.round(r.bottom + 6) + 'px'; } };
+    // 27.11: всегда справа сверху; на большом экране — под кнопкой «Обычный пульт», если она справа
+    setInterval(() => { let top = 12; if (document.body.classList.contains('bs-on')) { const ex = [...document.querySelectorAll('#bs button, #bs a')].find(x => /Обычный пульт/.test(x.textContent)); if (ex) { const r = ex.getBoundingClientRect(); if (r.width && r.left > innerWidth * 0.5) top = Math.round(r.bottom + 6); } } let right = 12; const qp = document.body.classList.contains('bs-on') && document.getElementById('bsQuests'); if (qp) { const r = qp.getBoundingClientRect(); if (r.width && r.top < top + 40 && r.right > innerWidth - 60) right = Math.round(innerWidth - r.left + 8); } b.style.top = top + 'px'; b.style.right = right + 'px'; pp.style.right = right + 'px'; }, 400);
     pp.onclick = e => e.stopPropagation();
-    pp.addEventListener('input', e => { const k = e.target.dataset.k; if (k === 'on') SND.on = e.target.checked ? 1 : 0; if (k === 'vol') SND.vol = e.target.value / 100; sndSave(); sync(); });
-    pp.querySelector('[data-k=test]').onclick = () => { const o = SND.on; SND.on = 1; horn(true); SND.on = o; };
+    pp.addEventListener('input', e => { seen(); const k = e.target.dataset.k; if (k === 'on') SND.on = e.target.checked ? 1 : 0; if (k === 'vol') SND.vol = e.target.value / 100; sndSave(); sync(); });
+    pp.querySelector('[data-k=test]').onclick = () => { seen(); const o = SND.on; SND.on = 1; horn(true); SND.on = o; };
     document.addEventListener('click', () => { pp.style.display = 'none'; });
     const add = () => { document.body.append(b, pp); sync(); }; if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
   })();
