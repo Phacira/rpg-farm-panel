@@ -482,6 +482,7 @@
     ov.hidden = false;
     fillSheet();
   }
+  document.addEventListener('click', e => { const b = e.target && e.target.closest && e.target.closest('[data-join]'); if (!b || b.disabled) return; b.disabled = true; b.textContent = '…'; try { if (window.PanelActions) PanelActions.fire('пати', '', 'Пати-поход', () => setTimeout(fillSheet, 800)); } catch (er) {} });
   function fillSheet() {
     const title = $('#bsSheetTitle'), body = $('#bsSheetBody'); if (!title || !body) return;
     if (sheetKind === 'quests') {
@@ -491,7 +492,8 @@
     } else if (sheetKind === 'party') {
       const cx = ctx(), GH = g9HikeOf(cx), P0 = ptyOf(cx), pq = P0 && (+P0.qn || (P0.q || []).length);
       title.textContent = GH && !pq ? 'Сбор гильд-похода' : 'Очередь на пати-поход';
-      body.innerHTML = (pq || !GH ? (partyBoxHtml(cx, true) || '<div class="muted">пока никого</div>') : '') + (GH ? '<h3 style="margin:10px 0 4px">🏰 Гильд-поход · ' + esc(Math.min(+GH.hq, +GH.hmax || 5) + '/' + (+GH.hmax || 5)) + '</h3>' + g9HikeHtml(cx, GH) : '');
+      const inQ = !!(cx.me && cx.me.pty), joinBtn = cx.me ? '<button class="bsJoin" data-join="1"' + (inQ ? ' disabled' : '') + ' style="width:100%;min-height:46px;margin:2px 0 10px;border-radius:10px;border:1px solid #c99b4a;background:' + (inQ ? '#3a2e44' : 'linear-gradient(#7a4b22,#5a3416)') + ';color:#fff;font:700 16px Rubik,system-ui,sans-serif;cursor:pointer">' + (inQ ? '✓ Ты в очереди' : '⚔ Присоединиться к пати-походу') + '</button>' : ''; // 27.11: вступить прямо из окна очереди
+      body.innerHTML = joinBtn + (pq || !GH ? (partyBoxHtml(cx, true) || '<div class="muted">пока никого</div>') : '') + (GH ? '<h3 style="margin:10px 0 4px">🏰 Гильд-поход · ' + esc(Math.min(+GH.hq, +GH.hmax || 5) + '/' + (+GH.hmax || 5)) + '</h3>' + g9HikeHtml(cx, GH) : '');
     } else {
       title.textContent = 'Ещё';
       const rows = lastMore.map(d => btnHtml(d, d._ui ? -1 : lastDefs.indexOf(d), true)).join('');
