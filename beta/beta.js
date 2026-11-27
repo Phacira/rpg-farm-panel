@@ -66,10 +66,11 @@
     bowl: ['<path d="M3 10h14c0 4-3 6-7 6s-7-2-7-6zM7 7c1-2 2-2 3-1s2 1 3-1"/>', '#8fd16a'],
     chart: ['<path d="M4 16V9M10 16V4M16 16v-5M3 17h14"/>', ''],
     save: ['<path d="M4 3h10l3 3v11H4zM7 3v4h6V3M7 17v-5h6v5"/>', ''],
-    sword: ['<path d="M15 3l2 2-9 9-2-2zM5 13l2 2M3 17l3-3M4 12l4 4"/>', '']
+    sword: ['<path d="M15 3l2 2-9 9-2-2zM5 13l2 2M3 17l3-3M4 12l4 4"/>', ''],
+    rod: ['<path d="M4 17L15 3M15 3v9M15 12a2 2 0 1 0 0 4"/>', '#7fc4e0']
   };
   const MAP = {
-    '🏘': 'town', '🏠': 'town', '🌱': 'sprout', '🔥': 'fire', '🌲': 'tree', '👹': 'boss', '👾': 'boss', '🎒': 'bag', '📜': 'scroll', '🆕': 'news',
+    '🎣': 'rod', '🏘': 'town', '🏠': 'town', '🌱': 'sprout', '🔥': 'fire', '🌲': 'tree', '👹': 'boss', '👾': 'boss', '🎒': 'bag', '📜': 'scroll', '🆕': 'news',
     '📋': 'list', '⚒': 'hammer', '🔨': 'hammer', '🔧': 'wrench', '🏗': 'build', '💰': 'coin', '🪙': 'coin', '🍲': 'pot', '⚔': 'swords',
     '🗡': 'sword', '🏰': 'castle', '🏛': 'castle', '🧪': 'flask', '✨': 'star4', '✦': 'star4', '💫': 'star4', '🏆': 'trophy', '🥇': 'medal', '🥈': 'medal',
     '🥉': 'medal', '🏅': 'medal', '🎖': 'medal', '🍀': 'clover', '🛡': 'shield', '🎯': 'target', '🪵': 'log', '🪨': 'rock', '🎲': 'dice',
@@ -112,7 +113,7 @@
   }
 
   // «Новое»: точка на кнопках с недавними изменениями (список ведём вручную), пока на кнопку не нажмут или не выйдет срок
-  const NEW = { 'гильдия': '2026-12-09', 'готовить': '2026-12-09', 'ui:news': '' }; // ключ — команда кнопки (data-bc) или ui:…
+  const NEW = { 'гильдия': '2026-12-09', 'готовить': '2026-12-09', 'рыбалка': '2026-12-20', 'ui:news': '' }; // ключ — команда кнопки (data-bc) или ui:…
   const SEEN_K = 'beta_seen_v2';
   let seen; try { seen = new Set(JSON.parse(localStorage.getItem(SEEN_K) || '[]')); } catch (e) { seen = new Set(); }
   const saveSeen = () => { try { localStorage.setItem(SEEN_K, JSON.stringify([...seen])); } catch (e) { } };

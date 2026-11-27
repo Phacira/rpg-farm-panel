@@ -1,8 +1,9 @@
 /* Большой экран пульта — opt-in (кнопка «Большой экран» / ?big=1). Обычный вид по умолчанию. Кэш bs526. */
 (function () {
   const W = 2560, H = 1440, KEY = 'rpgPanel.bigscreen', SEE_KEY = 'rpgPanel.bsSeen';
-  const LOCS = [['town', '🏘', 'Город'], ['garden', '🌱', 'Огород'], ['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс']];
-  const LOCN = { camp: 'Лагерь', forest: 'Лес', boss: 'Босс', garden: 'Огород', town: 'Город' };
+  const LOCS = [['town', '🏘', 'Город'], ['garden', '🌱', 'Огород'], ['lake', '🎣', 'Озеро'], ['camp', '🔥', 'Лагерь'], ['forest', '🌲', 'Лес'], ['boss', '👹', 'Босс']];
+  const hasLoc = l => l !== 'lake' || !!(window.__panel && window.__panel.state && window.__panel.state.locs && window.__panel.state.locs.lake); // v11: озеро — только если оно есть в игре
+  const LOCN = { camp: 'Лагерь', forest: 'Лес', boss: 'Босс', garden: 'Огород', town: 'Город', lake: 'Озеро' };
   const CLSN = { warrior: 'Воин', archer: 'Лучник', mage: 'Маг', priest: 'Жрец', paladin: 'Паладин', assassin: 'Ассасин' };
   const MOB_RU = { wolf: 'Волк', goblin: 'Гоблин', slime: 'Слизень', rat: 'Стая крыс', tree_spirit: 'Дух дерева', mimic: 'Мимик', ogre_boss: 'Огр', queen_boss: 'Королева-Матка', treant_king_boss: 'Король Трентов' };
   const MOB_H = { slime: 100, goblin: 150, wolf: 130, rat: 64, tree_spirit: 170, mimic: 120 };
@@ -367,9 +368,13 @@
     return key ? 'img/h/' + (key) + '.webp?v=' + (/_priest_/.test(key) ? 'h8p' : /_f_assassin_|_paladin_/.test(key) ? 'h8f' : 'h8') : (k6 ? 'img/h/' + k6 + '.webp' : '');
   }
 
+  const WINTER_BG = { camp: 1, town: 1, garden: 1, forest: 1, boss: 1, boss_queen: 1, boss_treant: 1 }; // v12: зимние фоны (img/winter/)
+  const WFORCE = /[?&]winter=1/.test(location.search); // тест: ?winter=1 — зимний вид без зимы в игре
+  function winterOn(st) { const wn = st && st.ref && st.ref.wn; return WFORCE || !!(wn && wn.on); }
   function bgOf(l, st) {
+    if (winterOn(st)) { const k = l === 'boss' && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair) ? st.boss.lair : (l || 'camp'); if (WINTER_BG[k]) return 'img/winter/' + k + '.jpg?v=w1'; }
     if (l === 'boss' && st && st.boss && st.boss.lair && /^boss_[a-z0-9_]{1,24}$/.test(st.boss.lair)) return 'img/' + st.boss.lair + '.jpg?v=live6';
-    return 'img/' + (l || 'camp') + '.jpg?v=' + (l === 'camp' || !l ? 'live1' : l === 'garden' ? 'live2' : l === 'town' ? 'live3' : l === 'forest' ? 'live4' : l === 'boss' ? 'live6' : 'bs518');
+    return 'img/' + (l || 'camp') + '.jpg?v=' + (l === 'camp' || !l ? 'live1' : l === 'garden' ? 'live2' : l === 'town' ? 'live3' : l === 'forest' ? 'live4' : l === 'boss' ? 'live6' : l === 'lake' ? 'lake1' : 'bs518');
   }
 
   let lastDefs = [], lastMore = [], sheetKind = '', tipCmds = new Set();
@@ -390,7 +395,9 @@
       { _ui: 'news', 0: '🆕', 1: 'Что нового', 4: window.RPGNews && RPGNews.unseen() ? '● новое' : '' } // v8.5
     ]);
     // normalize array-like
-    return list.map(d => Array.isArray(d) ? d : Object.assign([d[0], d[1], d._ui, '', d[4]], d));
+    const out = list.map(d => Array.isArray(d) ? d : Object.assign([d[0], d[1], d._ui, '', d[4]], d));
+    const xi = out.findIndex(d => d[1] === 'Новый год'); if (xi > 0) out.unshift(out.splice(xi, 1)[0]); // 27.11: новогодняя кнопка всегда первая и на виду
+    return out;
   }
 
   function btnHtml(d, i, more) {
@@ -419,7 +426,7 @@
     const isOther = d => d[7] === 'other';
     const ui = defs.filter(isUi);
     const others = defs.filter(d => !isUi(d) && isOther(d));
-    let important = defs.filter(d => !isUi(d) && !isOther(d));
+    let important = defs.filter(d => !isUi(d) && !isOther(d)); { const xi = important.findIndex(d => d[1] === 'Новый год'); if (xi > 0) important.unshift(important.splice(xi, 1)[0]); }
     const inBoss = bsLoc === 'boss';
     // v9e: у босса боевые кнопки важнее — Инвентарь/Журнал/Что нового уходят в «Ещё», удар и лечение всегда первыми
     if (inBoss) { const pri = ['удар', 'лечить', 'босс']; important = important.slice().sort((a, b) => (pri.indexOf(a[2]) + 1 || 99) - (pri.indexOf(b[2]) + 1 || 99)); }
@@ -442,7 +449,7 @@
     const phone = kind === 'phone-p' || kind === 'phone-l';
     const split = phone ? splitPhoneBar(defs, kind) : (window.__betaPcSplit ? __betaPcSplit(defs, bsLoc) : { main: defs, more: [] }); // бета: редкие кнопки в «Ещё»
     lastMore = split.more;
-    $('#bsLocbar').innerHTML = LOCS.map(l => `<button type="button" data-loc="${l[0]}"${l[0] === bsLoc ? ' class="on"' : ''}><span class="ic">${l[1]}</span><span class="lbl">${l[2]}</span></button>`).join('');
+    $('#bsLocbar').innerHTML = LOCS.filter(l => hasLoc(l[0])).map(l => `<button type="button" data-loc="${l[0]}"${l[0] === bsLoc ? ' class="on"' : ''}><span class="ic">${l[1]}</span><span class="lbl">${l[2]}</span></button>`).join('');
     $('#bsBar').innerHTML = split.main.map(d => btnHtml(d, d._ui ? -1 : defs.indexOf(d), false)).join('');
     if (sheetKind) fillSheet();
   }
@@ -957,7 +964,24 @@
     const e = u * u * (3 - 2 * u);
     return { x: it.from.x + (it.x - it.from.x) * e, y: it.from.y + (it.y - it.from.y) * e };
   }
+  // 27.11: хоровод на сайте — танцующие идут по кругу вокруг Древня плавно (локально), пёсик с ними
+  const RING = { x: 1290, y: 1110, rx: 520, ry: 150, list: [], t0: performance.now() };
+  function ringNames() { try { const P = window.__panel, wn = P && P.state && P.state.ref && P.state.ref.wn, bs = document.getElementById('bs');
+      if (!bs || bs.dataset.view !== 'town') return [];
+      const ov = document.getElementById('horOv'), open = ov && ov.style.display === 'block';
+      if (window.__horDemo) return Object.keys(actorTween.nodes).filter(k => actorTween.nodes[k].kind === 'hero').map(k => actorTween.nodes[k].el.dataset.n.toLowerCase());
+      const out = ((wn && wn.dn) || []).map(x => String(x).toLowerCase()); if (open && +((wn && wn.dc) || 0) > 0) { const me = document.querySelector('#bsActors .hero.me'); if (me && !out.includes(me.dataset.n.toLowerCase())) out.push(me.dataset.n.toLowerCase()); }
+      return out; } catch (e) { return []; } }
+  function ringPos(i, n) { const a = (performance.now() - RING.t0) / 1000 * 0.32 + i * Math.PI * 2 / n; return { x: RING.x + RING.rx * Math.cos(a), y: RING.y + RING.ry * Math.sin(a), flip: Math.sin(a) < 0 }; }
+  function ringTick() { requestAnimationFrame(ringTick); const L = ringNames(); RING.list = RING.list.filter(n => L.includes(n)); L.forEach(n => { if (!RING.list.includes(n)) RING.list.push(n); });
+    const n = Math.max(RING.list.length + 1, 6);
+    const trD = document.getElementById('bsTreantD'); window.__danceDog = RING.list.length ? () => { const q = ringPos(RING.list.length, n); q.behind = q.y < 1085; return q; } : trD && trD.style.display !== 'none' ? () => ({ idle: 1, behind: 1 }) : null; // Древень на площади — пёсик за ним
+    if (!RING.list.length && !RING.was) return; RING.was = RING.list.length > 0;
+    for (const k in actorTween.nodes) { const it = actorTween.nodes[k]; if (it.kind === 'hero') applyActorPos(it); } }
+  requestAnimationFrame(ringTick);
   function applyActorPos(it) {
+    const ri = it.kind === 'hero' && RING.list.length ? RING.list.indexOf(String(it.el.dataset.n).toLowerCase()) : -1;
+    if (ri >= 0) { const q = ringPos(ri, Math.max(RING.list.length + 1, 6)), bob = Math.abs(Math.sin(performance.now() / 1000 * 7 + ri)) * 8; it.el.style.left = q.x + 'px'; it.el.style.top = (q.y - bob) + 'px'; it.el.style.zIndex = Math.round(q.y); it.el.classList.add('walk'); it.el.classList.toggle('flip', q.flip); return; }
     const p = actorNow(it);
     it.el.style.left = p.x + 'px';
     it.el.style.top = p.y + 'px';
@@ -989,6 +1013,16 @@
     if (!actorTween.raf) actorTween.raf = requestAnimationFrame(tickActors);
   }
 
+  // 27.11: ауры героев (как в игре); «чужие ауры» можно скрыть в настройках (колокольчик)
+  const AURA9 = { fire: ['fire', 460, 461], frost: ['frost', 474, 451], leaf: ['leaf', 503, 545], moondust: ['moon', 489, 372], gold: ['gold', 496, 355], shadow: ['shadow', 454, 331], xmas: ['xmas', 498, 429] }, AURA_RY = { fire: 356, frost: 360, leaf: 461, moondust: 249, gold: 255, shadow: 182, xmas: 305 };
+  function auraSet(el, id, mine) { let d = el.querySelector(':scope > .aura9'); let others = true; try { others = localStorage.getItem('rpgAuraOthers') !== '0'; } catch (e) {}
+    const A = id && AURA9[id], show = !!(A && (mine || others));
+    if (!show) { if (d) d.remove(); return; }
+    if (!d) { d = document.createElement('div'); d.className = 'aura9'; const sh = el.querySelector(':scope > .shadow'); el.insertBefore(d, sh ? sh.nextSibling : el.firstChild); }
+    if (d.dataset.id === id) return; d.dataset.id = id; const k = 192 * 1.35 / A[1], w = 520 * k, h = A[2] * k, b = (A[2] - AURA_RY[id]) * k;
+    d.style.cssText = `position:absolute;left:0;bottom:calc(${-b.toFixed(1)}px * var(--hs,1));width:calc(${w.toFixed(1)}px * var(--hs,1));height:calc(${h.toFixed(1)}px * var(--hs,1));transform:translateX(-50%);background:url(img/auras/${A[0]}.png?v=3) center/100% 100% no-repeat;pointer-events:none;animation:aura9 2.6s ease-in-out infinite`; }
+  { const st9 = document.createElement('style'); st9.textContent = '@keyframes aura9{50%{opacity:.82;transform:translateX(-50%) scale(1.03,.97)}}'; document.head.appendChild(st9); }
+  window.__auraRefresh = () => { document.querySelectorAll('#bsActors .aura9').forEach(d => { d.dataset.id = ''; }); try { if (window.__panel && __panel.render) __panel.render(); } catch (e) {} };
   function fillActors(c) {
     const box = $('#bsActors'), st = c.state, l = bsLoc;
     if (!box) return;
@@ -1084,6 +1118,7 @@
         it.hp = isFinite(hpN) ? hpN : null; it.mhp = isFinite(hpM) ? hpM : null; it.sh = isFinite(shN) ? shN : null;
         moveActor(it, +t[1], +t[2], snapAll, dur);
       }
+      auraSet(it.el, t.length > 19 ? t[19] : '', mine);
     }
 
     if (l === 'forest') {
@@ -1754,7 +1789,7 @@
     if (!img.complete || !img.naturalWidth) { cv.hidden = true; if (cvT) cvT.hidden = true; root.classList.remove('live-on'); setTimeout(liveKick, 120); return; } // v8.7: пока грузится новая локация — не держим на экране старый живой фон
     const g = cv.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(img, 0, 0, cv.width, cv.height);
     const k = cv.width / 2560; g.setTransform(k, 0, 0, k, 0, 0);
-    try { LIVE6.draw(g, vl, img, 0, 'img/'); } catch (e) { console.warn('live6', e); }
+    try { LIVE6.draw(g, vl, img, 0, 'img/'); if (LIVE6.drawDogBehind) LIVE6.drawDogBehind(g, vl); } catch (e) { console.warn('live6', e); } // 27.11: пёсик за Древнем — в нижнем слое
     if (cvT && LIVE6.drawTop) { const gt = cvT.getContext('2d'); gt.setTransform(1, 0, 0, 1, 0, 0); gt.clearRect(0, 0, cvT.width, cvT.height); gt.setTransform(k, 0, 0, k, 0, 0); try { LIVE6.drawTop(gt, vl, 'img/'); } catch (e) { console.warn('live6 top', e); } cvT.hidden = false; } // v8.7: пёсик/котик поверх героев
     cv.hidden = false; root.classList.add('live-on');
     liveEma = liveEma * 0.9 + (performance.now() - __t0) * 0.1; if (liveEma <= 30) liveSlow = 0;
@@ -1805,3 +1840,33 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();
+// v12: зима на большом экране — снег поверх сцены, без листопада и летних флагов
+(function () {
+  let cv = null, flakes = [], raf = 0, last = 0, wasOn = false;
+  const WF = /[?&]winter=1/.test(location.search); function on() { const P = window.__panel, st = P && P.state, wn = st && st.ref && st.ref.wn; return WF || !!(wn && wn.on); }
+  function ensure() { const sc = document.getElementById('bsScene'); if (!sc) return null; if (!cv || cv.parentNode !== sc) { cv = document.createElement('canvas'); cv.id = 'bsSnow'; cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5'; sc.appendChild(cv); } return cv; }
+  function tick(t) { raf = 0; const c = ensure(); if (!c || !on()) { if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height); return; }
+    if (t - last < 40) { raf = requestAnimationFrame(tick); return; } const dt = last ? Math.min(0.1, (t - last) / 1000) : 0.04; last = t;
+    const W = c.clientWidth, H = c.clientHeight; if (!W || !H) { raf = requestAnimationFrame(tick); return; } if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
+    const n = Math.round(W * H / 9000); while (flakes.length < n) flakes.push({ x: Math.random() * W, y: Math.random() * H, r: 0.8 + Math.random() * 2.2, v: 18 + Math.random() * 40, w: Math.random() * 6.28 }); flakes.length = Math.min(flakes.length, n);
+    const g = c.getContext('2d'); g.clearRect(0, 0, W, H); g.fillStyle = 'rgba(255,255,255,.85)';
+    for (const f of flakes) { f.y += f.v * dt; f.w += dt; f.x += Math.sin(f.w) * 12 * dt; if (f.y > H + 4) { f.y = -4; f.x = Math.random() * W; } if (f.x < -4) f.x = W + 4; if (f.x > W + 4) f.x = -4; g.beginPath(); g.arc(f.x, f.y, f.r, 0, 6.29); g.fill(); }
+    raf = requestAnimationFrame(tick); }
+  setInterval(() => { const o = on(); if (o !== wasOn) { wasOn = o; try { const C0 = window.CONFIG = window.CONFIG || {}; const L = C0.live = C0.live || {}; L.off = (L.off || []).filter(k => k !== 'leaves' && k !== 'flags').concat(o ? ['leaves', 'flags'] : []); } catch (e) {} }
+    if (o && !raf) raf = requestAnimationFrame(tick);
+    // Древень-ёлка в лагере (пока он в лагере: ref.wn.intro)
+    try { const P = window.__panel, wn = P && P.state && P.state.ref && P.state.ref.wn, sc = document.getElementById('bsScene'), bs = document.getElementById('bs'); let im = document.getElementById('bsTreant');
+      const dance = !!(o && ((wn && +wn.dc > 0) || window.__horDemo)); // 27.11: хоровод — Древень на городской площади
+      const show = !!(o && (WF || (wn && wn.intro)) && sc && bs && bs.dataset.view === 'camp' && !dance);
+      let im2 = document.getElementById('bsTreantD'); const showD = !!(dance && sc && bs && bs.dataset.view === 'town');
+      if (showD && !im2) { im2 = document.createElement('img'); im2.id = 'bsTreantD'; im2.src = 'img/winter/treant_happy.png?v=2'; im2.alt = 'Древень'; im2.style.cssText = 'position:absolute;left:1290px;top:1084px;height:484px;transform:translate(-50%,-100%);pointer-events:none;z-index:1085;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45));animation:bsTrBob 1.6s ease-in-out infinite'; if (!document.getElementById('bsTrBobCss')) { const st = document.createElement('style'); st.id = 'bsTrBobCss'; st.textContent = '@keyframes bsTrBob{50%{transform:translate(-50%,-100%) translateY(-6px) rotate(1.5deg)}}'; document.head.appendChild(st); } (document.getElementById('bsActors') || sc).appendChild(im2); } // 27.11: в слое героев — кто сзади круга, уходит за Древня
+      if (im2) im2.style.display = showD ? '' : 'none';
+      if (show && !im) { im = document.createElement('img'); im.id = 'bsTreant'; im.src = 'img/winter/treant.png?v=w1'; im.alt = 'Древень'; im.style.cssText = 'position:absolute;left:93.2%;top:62.5%;height:30.5%;transform:translate(-50%,-100%);pointer-events:none;z-index:3;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45))'; sc.appendChild(im); }
+      if (im) im.style.display = show ? '' : 'none';
+      { const stg = Math.max(0, Math.min(5, +(wn && wn.st) || 0)); // 27.11: Древень по этапам украшения — отдельные картинки (Grok)
+        if (im) { const u = stg ? `img/winter/treant_s${stg}.png?v=2` : 'img/winter/treant.png?v=w1'; if (im.dataset.u !== u) { im.dataset.u = u; im.src = u; } }
+        if (im2) { const u2 = `img/winter/treant_h${stg}.png?v=2`; if (im2.dataset.u !== u2) { im2.dataset.u = u2; im2.src = u2; } } }
+      if (im && wn) im.title = `Древень · наряжен ${wn.st}/5`; } catch (e) {} }, 1000);
+})();
+
+(function () { const st = document.createElement('style'); st.textContent = '#bs.phone-p .actionbar button .sub{white-space:normal!important;display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.1;padding:0 2px;text-overflow:clip!important;max-width:100%!important;text-align:center}#bs.phone-p .actionbar button .lbl{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'; document.head.appendChild(st); })(); // 27.11: подписи на телефоне в 2 строки, не вылезают за кнопку
