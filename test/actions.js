@@ -213,22 +213,8 @@
     const sharpBtn = () => shp || shr.cost ? [['✨', 'Заточка', 'заточка', sharpen, shp ? `✦${shp.s} 🍀${shp.l}` : 'обновите игру']] : [];
     const px494 = +(ref && ref.px) >= 494; // v49.4: игра понимает «снять квест» и «купить семена N»
     const hairBtn = hairOk ? ['💈', 'Парикмахер', 'парикмахер', hair, `${ref.hairPrice || 250} з`] : ['💈', 'Парикмахер', 'парикмахер', '', HAIR_OFF_TEXT, null, true];
-    return {
-      town: [['📜', 'Задание', 'квест', quests, me && me.rw && me.rw.quest > 0 ? `осталось: ${me.rw.quest}` : 'квесты кончились'],
-        ['✖', 'Отменить квест', 'снять', 'квест', !px494 ? 'обновите игру до v49.4' : me && me.q ? 'квест сгорит' : 'нет квеста', me && me.q ? 'Отменить квест? Он сгорит.' : null, !px494 || !(me && me.q)], // v49.4: relay не знает «отмена» — шлём «снять квест» (понимает game.js v49.4)
-        ['⚒', 'Кузница', 'купить', shop, 'купить / надеть / продать'], ...(me && me.dr && me.dr.i && me.dr.i.length ? [['🔧', 'Починить', 'чинить', repair, 'у кузницы · ' + me.dr.t + ' з']] : []), ...sharpBtn(), hairBtn,
-        ['🏗', 'Вклад', 'вклад', () => bldPick('town'), 'в постройку города'], ['💰', 'Продать', 'продать', () => crops, 'овощи на рынке']],
-      garden: [['🚶', 'На огород', 'огород', '', 'к своей грядке'], ['🌰', 'Семена', 'семена', '', '3 в день'], (px494 ? ['💰', 'Купить семена', 'купить', () => [1, 3, 5].map(k => ({ label: k + ' шт.', sub: k * 150 + ' з', arg: 'семена ' + k, confirm: `Купить ${k} шт. семян за ${k * 150} золота?` })), '150 з/шт'] : ['💰', 'Купить семена', 'купить', '', 'обновите игру до v49.4', null, true]), ['🌱', 'Посадить', 'посадить', '', ''],
-        ['⏳', 'Грядка', 'грядка', '', 'сколько ждать'], ['🐞', 'Жуки', 'жуки', '', 'отогнать'], ['🧺', 'Собрать', 'собрать', '', 'урожай'],
-        ['✨', 'Магия', 'магия', '', magicSub], ['🔁', 'Обмен', 'обмен', '', '10 сорняков → овощ', 'Обменять 10 сорняков на овощ?'], ['🥗', 'Салат', 'салат', '', saladSub, saladAsk], ['📦', 'Урожай', 'урожай', '', 'что у меня есть'],
-        ['🍲', 'Готовить', 'готовить', recipes, me && me.ccd > 0 ? `КД ${Math.floor(me.ccd / 60)}:${String(me.ccd % 60).padStart(2, '0')}` : 'можно'], ['💰', 'Продать', 'продать', () => crops, 'овощи'], ['🏗', 'Вклад', 'вклад', () => bldPick('garden'), 'в сарай']],
-      lake: (() => { const fs = me && me.fs, FN = { karas: 'карась', okun: 'окунь', yorsh: 'ёрш', shuka: 'щука', som: 'сом', karp: 'нов. карп', boot: 'сапог', hook: 'крючок' }; // v11: рыбалка
-        const sub = !fs ? 'на озеро с удочкой' : fs.ph === 'bite' ? 'КЛЮЁТ! жми' : fs.ph === 'pull' ? 'тянем…' : fs.ph === 'wait' || fs.ph === 'go' ? 'ждём поклёвку…' : fs.cl === 0 ? 'на этот стрим всё' : fs.cd > 0 ? `через ${Math.floor(fs.cd / 60)}:${String(fs.cd % 60).padStart(2, '0')} · ещё ${fs.cl}` : `ур. ${fs.lv} · забросов ${fs.cl} из ${fs.cm || 5}`;
-        const bag = fs && fs.bag ? Object.entries(fs.bag) : [], nb = bag.reduce((s, x) => s + x[1], 0);
-        const r = ['🎣', 'Рыбачить', 'рыбалка', '', sub], sl = ['💰', 'Продать рыбу', 'продать', 'рыба', nb ? bag.map(([k, n]) => `${FN[k] || k} ×${n}`).join(', ') : 'сумка пуста'];
-        if (fs && fs.ph !== 'bite' && (fs.ph || fs.cd > 0 || fs.cl === 0)) r._soft = 1; if (!nb) sl._soft = 1;
-        return [r, sl]; })(),
-      camp: [...(() => { const xm = me && (me.xm || (/[?&]winter=1/.test(location.search) ? { adv: 0, st: 0, own: [], on: '', gl: 3, gc: 40, sb: 0 } : null)); if (!xm) return []; // v13: зима — подарок дня, наряд, снежок, подарить
+    // 27.11: все новогодние активности — одной кнопкой «🎄 Новый год» в каждой локации (на телефоне не уезжают в «ещё»)
+    const xmasBtn = () => { const W = (() => { const xm = me && (me.xm || (/[?&]winter=1/.test(location.search) ? { adv: 0, st: 0, own: [], on: '', gl: 3, gc: 40, sb: 0 } : null)); if (!xm) return []; // v13: зима — подарок дня, наряд, снежок, подарить
           const DS9 = { kolpak: 'колпак', mish: 'мишура', roga: 'рожки', snezh: 'снежинка', venok: 'венок', zvezda: 'звезда' }, DN9 = { kolpak: 'Колпак Деда Мороза', mish: 'Мишура', roga: 'Оленьи рожки', snezh: 'Снежинка-заколка', venok: 'Венок из остролиста', zvezda: 'Звезда над головой' };
           const near = () => { const P = window.__panel, st = P && P.state, mine = String((me && me.n) || '').toLowerCase(), seen = {}, L = [];
             Object.values((st && st.locs) || {}).forEach(arr => (arr || []).forEach(t => { const n = String(t[0]); if (!n || n.toLowerCase() === mine || seen[n.toLowerCase()]) return; seen[n.toLowerCase()] = 1; L.push(n); })); return L.sort((a, b) => a.localeCompare(b)); };
@@ -240,13 +226,34 @@
           const wn0 = ref && ref.wn, hor = ['🎶', 'Хоровод', 'хоровод', () => { if (window.__hor) window.__hor.open(); return null; }, xm.hd ? `сегодня ${xm.hd}%` : 'у ёлки, под музыку'];
           const top0 = (wn0 && wn0.top) || (/[?&]winter=1/.test(location.search) ? [['Phacia', 64], ['aascron', 51], ['meyrint', 37]] : []), mp = (wn0 && wn0.mp) || 50, my = xm.pts || 0;
           const rate = ['🏆', 'Рейтинг ивента', '', () => [{ note: 1, label: `Твои очки: ${my}` + (my >= mp ? ' ✓' : ` из ${mp}`), lines: [[my >= mp ? 'Подарок 28.12' : 'До подарка 28.12', my >= mp ? 'будет под ёлкой ✓' : `ещё ${mp - my} очк.`, my >= mp ? 'nx' : '']].concat(top0.map((t, i) => [`${['🥇', '🥈', '🥉'][i] || (i + 1) + '.'} ${t[0]}`, `${t[1]} очк.` + (i < 3 ? ' · приз' : ''), i < 3 ? 'nx' : ''])).concat([['Как получать', 'подарок дня 5 · хоровод до 4 · подарить 3 · украсить ёлку 2 · снежки до 3', 'mx']]) }], my >= mp ? `${my} ✓` : `${my} из ${mp}`];
-          return [adv, dress, rate].concat((wn0 && wn0.intro) || /[?&]winter=1/.test(location.search) ? [hor] : []); /* снежок и подарок — нажатием на героя на большом экране (wint.js) */ })(),
-        ...(() => { const wn = ref && ref.wn; if (!wn || !wn.intro) return []; // v12: нарядить Древня
+          const horOn = (wn0 && wn0.intro) || /[?&]winter=1/.test(location.search);
+          const deco = (() => { const wn = ref && ref.wn; if (!wn || !wn.intro) return []; // v12: нарядить Древня
           const full = wn.st >= 5, mine = me ? +me.wd9 || 0 : 0, d = ['🎄', 'Украсить Древня', 'украсить', '', full ? 'наряжен полностью ✨' : mine >= wn.per ? 'на этот стрим хватит' : `${wn.d}/${wn.need} · этап ${wn.st}/5 · ${wn.cost} з`];
-          if (full || mine >= wn.per) d._soft = 1; return [d]; })(),
+          if (full || mine >= wn.per) d._soft = 1; return [d]; })()[0];
+          const it = (b, extra) => Object.assign({ label: b[0] + ' ' + b[1], sub: b[4] || '', cmd: b[2], arg: typeof b[3] === 'string' ? b[3] : '' }, typeof b[3] === 'function' ? { next: b[3]().map(o => Object.assign({ cmd: b[2] }, o)) } : {}, b._soft ? { soft: 1 } : {}, extra || {});
+          const L = [it(adv)]; if (horOn) L.push({ label: '🎶 Хоровод', sub: hor[4], fn: () => { if (window.__hor) window.__hor.open(); } }); if (deco) L.push(it(deco));
+          L.push(it(snow), it(gift), it(dress), { label: '🏆 Рейтинг ивента', sub: `твои очки: ${my}`, next: rate[3]() });
+          return { L, sub: xm.adv ? (xm.hd ? `хоровод ${xm.hd}%` : 'хоровод, ёлка, снежки') : 'подарок дня ждёт!' }; })();
+      if (!W || Array.isArray(W)) return []; return [['🎄', 'Новый год', 'подарок', () => W.L, W.sub]]; };
+    return {
+      town: [...xmasBtn(), ['📜', 'Задание', 'квест', quests, me && me.rw && me.rw.quest > 0 ? `осталось: ${me.rw.quest}` : 'квесты кончились'],
+        ['✖', 'Отменить квест', 'снять', 'квест', !px494 ? 'обновите игру до v49.4' : me && me.q ? 'квест сгорит' : 'нет квеста', me && me.q ? 'Отменить квест? Он сгорит.' : null, !px494 || !(me && me.q)], // v49.4: relay не знает «отмена» — шлём «снять квест» (понимает game.js v49.4)
+        ['⚒', 'Кузница', 'купить', shop, 'купить / надеть / продать'], ...(me && me.dr && me.dr.i && me.dr.i.length ? [['🔧', 'Починить', 'чинить', repair, 'у кузницы · ' + me.dr.t + ' з']] : []), ...sharpBtn(), hairBtn,
+        ['🏗', 'Вклад', 'вклад', () => bldPick('town'), 'в постройку города'], ['💰', 'Продать', 'продать', () => crops, 'овощи на рынке']],
+      garden: [...xmasBtn(), ['🚶', 'На огород', 'огород', '', 'к своей грядке'], ['🌰', 'Семена', 'семена', '', '3 в день'], (px494 ? ['💰', 'Купить семена', 'купить', () => [1, 3, 5].map(k => ({ label: k + ' шт.', sub: k * 150 + ' з', arg: 'семена ' + k, confirm: `Купить ${k} шт. семян за ${k * 150} золота?` })), '150 з/шт'] : ['💰', 'Купить семена', 'купить', '', 'обновите игру до v49.4', null, true]), ['🌱', 'Посадить', 'посадить', '', ''],
+        ['⏳', 'Грядка', 'грядка', '', 'сколько ждать'], ['🐞', 'Жуки', 'жуки', '', 'отогнать'], ['🧺', 'Собрать', 'собрать', '', 'урожай'],
+        ['✨', 'Магия', 'магия', '', magicSub], ['🔁', 'Обмен', 'обмен', '', '10 сорняков → овощ', 'Обменять 10 сорняков на овощ?'], ['🥗', 'Салат', 'салат', '', saladSub, saladAsk], ['📦', 'Урожай', 'урожай', '', 'что у меня есть'],
+        ['🍲', 'Готовить', 'готовить', recipes, me && me.ccd > 0 ? `КД ${Math.floor(me.ccd / 60)}:${String(me.ccd % 60).padStart(2, '0')}` : 'можно'], ['💰', 'Продать', 'продать', () => crops, 'овощи'], ['🏗', 'Вклад', 'вклад', () => bldPick('garden'), 'в сарай']],
+      lake: (() => { const fs = me && me.fs, FN = { karas: 'карась', okun: 'окунь', yorsh: 'ёрш', shuka: 'щука', som: 'сом', karp: 'нов. карп', boot: 'сапог', hook: 'крючок' }; // v11: рыбалка
+        const sub = !fs ? 'на озеро с удочкой' : fs.ph === 'bite' ? 'КЛЮЁТ! жми' : fs.ph === 'pull' ? 'тянем…' : fs.ph === 'wait' || fs.ph === 'go' ? 'ждём поклёвку…' : fs.cl === 0 ? 'на этот стрим всё' : fs.cd > 0 ? `через ${Math.floor(fs.cd / 60)}:${String(fs.cd % 60).padStart(2, '0')} · ещё ${fs.cl}` : `ур. ${fs.lv} · забросов ${fs.cl} из ${fs.cm || 5}`;
+        const bag = fs && fs.bag ? Object.entries(fs.bag) : [], nb = bag.reduce((s, x) => s + x[1], 0);
+        const r = ['🎣', 'Рыбачить', 'рыбалка', '', sub], sl = ['💰', 'Продать рыбу', 'продать', 'рыба', nb ? bag.map(([k, n]) => `${FN[k] || k} ×${n}`).join(', ') : 'сумка пуста'];
+        if (fs && fs.ph !== 'bite' && (fs.ph || fs.cd > 0 || fs.cl === 0)) r._soft = 1; if (!nb) sl._soft = 1;
+        return [...xmasBtn(), r, sl]; })(),
+      camp: [...xmasBtn(),
         ['🏰', 'Гильдия', 'гильдия', guildMenu, me && me.gd ? me.gd : 'выбрать'],
         ['✔', 'Да', 'да', '', 'подтвердить гильдию'], ['✖', 'Нет', 'нет', '', 'отменить выбор'], ['🏗', 'Вклад', 'вклад', () => bldPick('camp'), 'костёр, палатка']],
-      forest: [...g9FocusBtn, ['⚔', 'В поход', 'поход', '', hike], ...(me ? [turnBtn] : []), ['🛡', 'Пати-поход', 'пати', '', me && me.pty ? 'вы в очереди' : 'вместе с другими']],
+      forest: [...xmasBtn(), ...g9FocusBtn, ['⚔', 'В поход', 'поход', '', hike], ...(me ? [turnBtn] : []), ['🛡', 'Пати-поход', 'пати', '', me && me.pty ? 'вы в очереди' : 'вместе с другими']],
       boss: bossOrder(me, [['☠', 'Записаться', 'босс', '', 'в отряд на босса'], ['👊', 'Удар', 'удар', '', 'раз в 60 с'], ['💚', 'Лечить', 'лечить', '', 'раз в 30 с'],
         ['💫', 'Оглушить', 'оглушить', '', 'красный каст'], ['🕸', 'Связать', 'связать', '', 'жёлтый каст'], ['🔮', 'Очистить', 'очистить', '', 'фиолетовый каст'],
         ['🐌', 'Замедлить', 'замедлить', '', 'замедлить каст'], ['🛡', 'Заслон', 'заслон', '', 'щит отряду'], ['🎯', 'Прикрыть', 'прикрыть', '', 'принять удар Метки'], ['✝', 'Воскресить', 'воскресить', '', 'поднять союзника']]),
@@ -351,7 +358,7 @@
   }
   function choose(d, opts, title) {
     if (!opts) return; // v14: кнопка открыла своё окно (хоровод)
-    sheet(title, opts.map(o => Object.assign({}, o, { go: () => o.url ? window.open(o.url, '_blank', 'noopener') : o.next ? choose(d, o.next, o.label) : ask(d, o.arg, d[1] + (o.label ? ' · ' + o.label : ''), o.confirm, o.cmd) })));
+    sheet(title, opts.map(o => Object.assign({}, o, { go: () => o.fn ? (close(), o.fn()) : o.url ? window.open(o.url, '_blank', 'noopener') : o.next ? choose(d, o.next, o.label) : ask(d, o.arg, d[1] + (o.label ? ' · ' + o.label : ''), o.confirm, o.cmd) })));
   }
   function click(i) {
     const d = curList[i]; if (!d || d[6]) return; if (bossLeft(d[2])) return; // v7panel10: выключенная кнопка команду не шлёт

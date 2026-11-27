@@ -395,7 +395,9 @@
       { _ui: 'news', 0: '🆕', 1: 'Что нового', 4: window.RPGNews && RPGNews.unseen() ? '● новое' : '' } // v8.5
     ]);
     // normalize array-like
-    return list.map(d => Array.isArray(d) ? d : Object.assign([d[0], d[1], d._ui, '', d[4]], d));
+    const out = list.map(d => Array.isArray(d) ? d : Object.assign([d[0], d[1], d._ui, '', d[4]], d));
+    const xi = out.findIndex(d => d[1] === 'Новый год'); if (xi > 0) out.unshift(out.splice(xi, 1)[0]); // 27.11: новогодняя кнопка всегда первая и на виду
+    return out;
   }
 
   function btnHtml(d, i, more) {
@@ -424,7 +426,7 @@
     const isOther = d => d[7] === 'other';
     const ui = defs.filter(isUi);
     const others = defs.filter(d => !isUi(d) && isOther(d));
-    let important = defs.filter(d => !isUi(d) && !isOther(d));
+    let important = defs.filter(d => !isUi(d) && !isOther(d)); { const xi = important.findIndex(d => d[1] === 'Новый год'); if (xi > 0) important.unshift(important.splice(xi, 1)[0]); }
     const inBoss = bsLoc === 'boss';
     // v9e: у босса боевые кнопки важнее — Инвентарь/Журнал/Что нового уходят в «Ещё», удар и лечение всегда первыми
     if (inBoss) { const pri = ['удар', 'лечить', 'босс']; important = important.slice().sort((a, b) => (pri.indexOf(a[2]) + 1 || 99) - (pri.indexOf(b[2]) + 1 || 99)); }
@@ -1844,3 +1846,4 @@
       if (im && wn) im.title = `Древень · наряжен ${wn.st}/5`; } catch (e) {} }, 1000);
 })();
 
+(function () { const st = document.createElement('style'); st.textContent = '#bs.phone-p .actionbar button .sub{white-space:normal!important;display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.1;padding:0 2px;text-overflow:clip!important;max-width:100%!important;text-align:center}#bs.phone-p .actionbar button .lbl{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'; document.head.appendChild(st); })(); // 27.11: подписи на телефоне в 2 строки, не вылезают за кнопку
