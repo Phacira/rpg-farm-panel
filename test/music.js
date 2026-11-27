@@ -1,6 +1,6 @@
 // v15: фоновая музыка сайта — вкл/выкл, громкость, выбор мелодии; всё запоминается. По умолчанию — тихий эмбиент.
 (function () {
-  const TR = [{ id: 'amb', name: 'Зимний эмбиент', f: 'test/audio/bg_ambient.mp3?v=1' }, { id: 'sil', name: '«Тихая ночь» (Ф. Грубер)', f: 'test/audio/bg_silent.mp3?v=1' }];
+  const TR = [{ id: 'amb', name: 'Зимний эмбиент', f: 'test/audio/bg_ambient.mp3?v=1' }, { id: 'sil', name: '«Тихая ночь» (Ф. Грубер), фортепиано', f: 'test/audio/bg_silent2.mp3?v=1', cr: '«Silent Night» — Kevin MacLeod (incompetech.com), CC BY 3.0' }];
   const K = 'rpgMusic'; let C = { on: 1, vol: 0.25, tr: 'amb' };
   try { Object.assign(C, JSON.parse(localStorage.getItem(K) || '{}')); } catch (e) {}
   const save = () => { try { localStorage.setItem(K, JSON.stringify(C)); } catch (e) {} };
@@ -16,7 +16,7 @@
   document.head.appendChild(st);
   const btn = document.createElement('button'); btn.id = 'musBtn'; btn.title = 'Музыка'; btn.textContent = '♪';
   const pop = document.createElement('div'); pop.id = 'musPop';
-  pop.innerHTML = `<b>Музыка</b><label><input type="checkbox" data-k="on"> играть</label><div>Громкость</div><input type="range" min="0" max="100" data-k="vol">` + TR.map(t => `<label><input type="radio" name="musTr" value="${t.id}"> ${t.name}</label>`).join('');
+  pop.innerHTML = `<b>Музыка</b><label><input type="checkbox" data-k="on"> играть</label><div>Громкость</div><input type="range" min="0" max="100" data-k="vol">` + TR.map(t => `<label><input type="radio" name="musTr" value="${t.id}"> ${t.name}</label>`).join('') + TR.filter(t => t.cr).map(t => `<div style="font-size:10px;opacity:.55;margin-top:6px">♪ ${t.cr}</div>`).join('');
   document.body.append(btn, pop);
   const sync = () => { pop.querySelector('[data-k=on]').checked = !!C.on; pop.querySelector('[data-k=vol]').value = Math.round(C.vol * 100); pop.querySelectorAll('[name=musTr]').forEach(r => r.checked = r.value === C.tr); };
   btn.onclick = e => { e.stopPropagation(); started = true; const on = pop.style.display !== 'block'; pop.style.display = on ? 'block' : 'none'; sync(); apply();
