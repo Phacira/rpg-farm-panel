@@ -193,14 +193,14 @@
     const s = init(loc, base || 'assets/bg/'); if (!s || !s.ready) return;
     const now = performance.now(); if (s.lastTop == null) s.lastTop = now; const dt = Math.min(0.1, Math.max(0, (now - s.lastTop) / 1000)); s.lastTop = now; T = now / 1000;
     const nk = nightK();
-    if (L.dog && s.dog && on('dog')) { const DD = loc === 'town' && window.__danceDog ? window.__danceDog() : null; /* v16: в хоровод — пёсик танцует со всеми */
+    if (L.dog && s.dog && on('dog')) { const DD0 = loc === 'town' && window.__danceDog ? window.__danceDog() : null, DD = DD0 && !DD0.idle ? DD0 : null; // idle: Древень на площади, пёсик дома — просто за ним /* v16: в хоровод — пёсик танцует со всеми */
       if (DD) { if (!s.dogDX) { s.dogDX = L.dog.x; s.dogDY = L.dog.y; } const k = Math.min(1, dt * 3); s.dogDX += (DD.x - s.dogDX) * k; s.dogDY += (DD.y - s.dogDY) * k; s.dogHappy = Math.max(s.dogHappy, 0.5); }
       else if (s.dogDX) { const k = Math.min(1, dt * 2); s.dogDX += (L.dog.x - s.dogDX) * k; s.dogDY += (L.dog.y - s.dogDY) * k; if (Math.hypot(L.dog.x - s.dogDX, L.dog.y - s.dogDY) < 2) s.dogDX = 0; }
       const P = s.dogDX ? Object.assign({}, L.dog, { x: s.dogDX, y: s.dogDY - (DD ? Math.abs(Math.sin(T * 7)) * 10 : 0) }) : L.dog, sw = s.dog.width / 2, sh = s.dog.height, w = P.w, h = w * sh / sw, x0 = P.x - w / 2, y0 = P.y - h;
       if (petQ[loc]) { s.dogHappy = 4; s.dogSay = 1.2; petQ[loc] = 0; s.hearts = 1.6; }
       s.dogHappy = Math.max(0, s.dogHappy - dt); s.dogBark -= dt; if (s.dogBark <= 0) { s.dogSay = 1; s.dogBark = rnd(14, 30); }
       const happy = s.dogHappy > 0, wag = Math.sin(T * (happy ? 16 : 5)) * (happy ? 0.32 : 0.14), bob = s.dogSay > 0 ? Math.abs(Math.sin(T * 14)) * 3 : 0;
-      s.dogFr = { P, sw, sh, w, h, x0, y0, bob, wag, nk, flip: !!(DD && DD.flip), behind: !!(DD && DD.behind) }; if (!s.dogFr.behind) dogPaint(ctx, s); // 27.11: за Древнем — рисуется в общем слое (LIVE6.drawDogBehind)
+      s.dogFr = { P, sw, sh, w, h, x0, y0, bob, wag, nk, flip: !!(DD && DD.flip), behind: !!(DD0 && DD0.behind) }; if (!s.dogFr.behind) dogPaint(ctx, s); // 27.11: за Древнем — рисуется в общем слое (LIVE6.drawDogBehind)
       if (s.dogSay > 0) { s.dogSay -= dt; const a = Math.min(1, s.dogSay * 3); ctx.save(); ctx.globalAlpha = a; ctx.font = 'bold 26px sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#1e120a'; ctx.fillStyle = '#fff3d0'; ctx.strokeText('Гав!', x0 + w * 0.2, y0 - 6); ctx.fillText('Гав!', x0 + w * 0.2, y0 - 6); ctx.restore(); }
       if (s.hearts > 0) { s.hearts -= dt; for (let i = 0; i < 3; i++) { const k = ((1.6 - s.hearts) / 1.6 + i * 0.25) % 1; ctx.save(); ctx.globalAlpha = 1 - k; ctx.fillStyle = '#ff7aa8'; ctx.font = '24px sans-serif'; ctx.fillText('♥', x0 + w * (0.3 + 0.2 * i), y0 - 10 - k * 50); ctx.restore(); } }
     }

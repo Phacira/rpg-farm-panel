@@ -966,7 +966,7 @@
   function ringPos(i, n) { const a = (performance.now() - RING.t0) / 1000 * 0.32 + i * Math.PI * 2 / n; return { x: RING.x + RING.rx * Math.cos(a), y: RING.y + RING.ry * Math.sin(a), flip: Math.sin(a) < 0 }; }
   function ringTick() { requestAnimationFrame(ringTick); const L = ringNames(); RING.list = RING.list.filter(n => L.includes(n)); L.forEach(n => { if (!RING.list.includes(n)) RING.list.push(n); });
     const n = Math.max(RING.list.length + 1, 6);
-    window.__danceDog = RING.list.length ? () => { const q = ringPos(RING.list.length, n); q.behind = q.y < 1085; return q; } : null;
+    const trD = document.getElementById('bsTreantD'); window.__danceDog = RING.list.length ? () => { const q = ringPos(RING.list.length, n); q.behind = q.y < 1085; return q; } : trD && trD.style.display !== 'none' ? () => ({ idle: 1, behind: 1 }) : null; // Древень на площади — пёсик за ним
     if (!RING.list.length && !RING.was) return; RING.was = RING.list.length > 0;
     for (const k in actorTween.nodes) { const it = actorTween.nodes[k]; if (it.kind === 'hero') applyActorPos(it); } }
   requestAnimationFrame(ringTick);
