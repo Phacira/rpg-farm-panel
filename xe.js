@@ -81,21 +81,40 @@
     clearT(); box.innerHTML = (UI[x.k] || (() => head(x.n || '', '')))(x); box.style.display = 'block';
   }
   // 27.11: звук в момент старта пати- и гильд-похода (был в очереди → ушёл в поход), чтобы успеть вернуться на вкладку
-  function horn() {
-    try { if (localStorage.getItem('rpgXeSound') === '0') return; } catch (e) {}
+  // 27.11: настройка сигнала похода — кнопка 🔔 слева внизу: вкл/выкл, громкость, «проверить»; запоминается
+  const SND = { on: 1, vol: 0.6 }; try { Object.assign(SND, JSON.parse(localStorage.getItem('rpgHorn') || '{}')); if (localStorage.getItem('rpgXeSound') === '0') SND.on = 0; } catch (e) {}
+  const sndSave = () => { try { localStorage.setItem('rpgHorn', JSON.stringify(SND)); } catch (e) {} };
+  (function () {
+    const st = document.createElement('style'); st.textContent = `#hornBtn{position:fixed;left:54px;bottom:10px;z-index:30;width:38px;height:38px;border-radius:50%;border:1.5px solid #c99b4a;background:rgba(40,26,16,.85);color:#ffd86b;font:18px system-ui;cursor:pointer;opacity:.75;padding:0}#hornBtn:hover{opacity:1}body.bs-on #hornBtn{left:auto;right:12px;bottom:auto;top:62px;z-index:2147483000}body.bs-on #hornPop{left:auto;right:12px;bottom:auto;top:106px;z-index:2147483001}#hornBtn.off{filter:grayscale(1);opacity:.5}
+#hornPop{position:fixed;left:54px;bottom:54px;z-index:31;background:rgba(30,20,12,.96);border:1px solid #c99b4a;border-radius:10px;padding:10px 12px;color:#f3e3c2;font:500 13px Rubik,system-ui,sans-serif;width:230px;display:none}
+#hornPop b{color:#ffd86b}#hornPop label{display:flex;gap:8px;align-items:center;margin:6px 0;cursor:pointer}#hornPop input[type=range]{width:100%;accent-color:#ffd86b}#hornPop button{margin-top:6px;width:100%;min-height:32px;border-radius:8px;border:1px solid #c99b4a;background:linear-gradient(#7a4b22,#5a3416);color:#fff;font:600 13px Rubik,system-ui;cursor:pointer}`;
+    document.head.appendChild(st);
+    const b = document.createElement('button'); b.id = 'hornBtn'; b.title = 'Сигнал о начале похода'; b.textContent = '🔔';
+    const pp = document.createElement('div'); pp.id = 'hornPop';
+    pp.innerHTML = '<b>Сигнал похода</b><div style="opacity:.75;font-size:12px;margin-top:2px">звучит, когда твой пати- или гильд-поход стартует</div><label><input type="checkbox" data-k="on"> включён</label><div>Громкость</div><input type="range" min="0" max="100" data-k="vol"><button data-k="test">▶ Проверить</button>';
+    const sync = () => { pp.querySelector('[data-k=on]').checked = !!SND.on; pp.querySelector('[data-k=vol]').value = Math.round(SND.vol * 100); b.classList.toggle('off', !SND.on); };
+    b.onclick = e => { e.stopPropagation(); pp.style.display = pp.style.display === 'block' ? 'none' : 'block'; sync(); };
+    pp.onclick = e => e.stopPropagation();
+    pp.addEventListener('input', e => { const k = e.target.dataset.k; if (k === 'on') SND.on = e.target.checked ? 1 : 0; if (k === 'vol') SND.vol = e.target.value / 100; sndSave(); sync(); });
+    pp.querySelector('[data-k=test]').onclick = () => { const o = SND.on; SND.on = 1; horn(true); SND.on = o; };
+    document.addEventListener('click', () => { pp.style.display = 'none'; });
+    const add = () => { document.body.append(b, pp); sync(); }; if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
+  })();
+  function horn(test) {
+    if (!SND.on) return;
     try { if (navigator.vibrate) navigator.vibrate([150, 80, 150, 80, 250]); } catch (e) {}
     try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume();
-      const t = AC.currentTime; // 27.11: глубокий военный горн (как в LoL): низкая нота D2, затем квинта A2, мягкий подъезд и раскрытие фильтра
-      [[73.4, 0, 1.9, 0.16], [110, 0.4, 1.5, 0.1]].forEach(([f, d, len, vol]) => {
+      const t = AC.currentTime; // 27.11: негромкий охотничий рожок на старт похода
+      [[196, 0, 0.32, 0.1], [196, 0.36, 0.22, 0.09], [294, 0.6, 1.0, 0.11]].forEach(([f, d, len, vol0]) => { const vol = vol0 * SND.vol * 1.6; // охотничий рожок: соль–соль–ре, мягко и бодро
         const g = AC.createGain(), f1 = AC.createBiquadFilter(), f2 = AC.createBiquadFilter(), T = t + d;
-        [f1, f2].forEach(F => { F.type = 'lowpass'; F.Q.value = 0.5; F.frequency.setValueAtTime(300, T); F.frequency.linearRampToValueAtTime(900, T + 0.4); });
-        g.gain.setValueAtTime(0.0001, T); g.gain.linearRampToValueAtTime(vol, T + 0.25); g.gain.setValueAtTime(vol, T + len - 0.45); g.gain.linearRampToValueAtTime(0.0001, T + len);
+        [f1, f2].forEach(F => { F.type = 'lowpass'; F.Q.value = 0.5; F.frequency.setValueAtTime(700, T); F.frequency.linearRampToValueAtTime(1500, T + 0.12); });
+        g.gain.setValueAtTime(0.0001, T); g.gain.linearRampToValueAtTime(vol, T + 0.05); g.gain.setValueAtTime(vol, T + len * 0.6); g.gain.linearRampToValueAtTime(0.0001, T + len);
         f1.connect(f2).connect(g).connect(AC.destination);
         const lfo = AC.createOscillator(), lg = AC.createGain(); lfo.frequency.value = 5; lg.gain.value = f * 0.004; lfo.connect(lg);
-        [0, 5].forEach(dt => { const o = AC.createOscillator(); o.type = 'sawtooth'; o.detune.value = dt; o.frequency.setValueAtTime(f * 0.93, T); o.frequency.linearRampToValueAtTime(f, T + 0.18); lg.connect(o.frequency); o.connect(f1); o.start(T); o.stop(T + len + 0.05); });
+        [0, 5].forEach(dt => { const o = AC.createOscillator(); o.type = 'sawtooth'; o.detune.value = dt; o.frequency.setValueAtTime(f * 0.98, T); o.frequency.linearRampToValueAtTime(f, T + 0.06); lg.connect(o.frequency); o.connect(f1); o.start(T); o.stop(T + len + 0.05); });
         lfo.start(T); lfo.stop(T + len + 0.05);
       }); } catch (e) {}
-    if (document.hidden) { const t0 = document.title; let n = 0; const iv = setInterval(() => { document.title = n++ % 2 ? t0 : '⚔ ПОХОД НАЧАЛСЯ!'; if (n > 20 || !document.hidden) { clearInterval(iv); document.title = t0; } }, 700); }
+    if (!test && document.hidden) { const t0 = document.title; let n = 0; const iv = setInterval(() => { document.title = n++ % 2 ? t0 : '⚔ ПОХОД НАЧАЛСЯ!'; if (n > 20 || !document.hidden) { clearInterval(iv); document.title = t0; } }, 700); }
   }
   let wasQ = 0, wasExp = false;
   setInterval(() => {
