@@ -21,7 +21,7 @@
   let G = null, raf = 0;
   function close() { stop(); ov.style.display = 'none'; ov.innerHTML = ''; }
   function stop() { try { window.__music && window.__music.pause(false); } catch (e) {} if (G) { try { G.au.pause(); } catch (e) {} document.removeEventListener('keydown', G.kd, true); } G = null; cancelAnimationFrame(raf); }
-  function menu() { stop(); ov.innerHTML = `<button class="x" title="Закрыть">✕</button><div class="menu"><h2>🎄 Хоровод у Древня</h2><div class="hint">Жми стрелки (или W A S D), когда они долетают до линии. На телефоне — касайся дорожек.<br>Награда — раз за стрим, за лучший результат. Звук включи!</div>
+  function menu() { stop(); ov.innerHTML = `<button class="x" title="Закрыть">✕</button><div class="menu"><h2>🎄 Хоровод у Древня</h2><div class="hint">Жми стрелки (или W A S D), когда они долетают до линии. На телефоне — касайся дорожек.<br>Твой герой уже идёт на городскую площадь — в хоровод вокруг Древня.<br>Очки ивента — раз за стрим, за лучший результат. Звук включи!</div>
       <div class="modes">${MODES.map(m => `<button data-m="${m.id}">${m.name}<small>${m.sub}</small></button>`).join('')}</div></div>`;
     ov.querySelector('.x').onclick = close; ov.querySelectorAll('.modes button').forEach(b => b.onclick = () => start(+b.dataset.m)); }
   function start(id) {
@@ -65,5 +65,5 @@
     ov.querySelector('[data-a=again]').onclick = () => start(M.id); ov.querySelector('[data-a=menu]').onclick = menu; ov.querySelector('[data-a=x]').onclick = close;
     try { if (window.PanelActions && !/[?&]mock=1/.test(location.search)) PanelActions.fire('хоровод', M.id + ':' + pct, 'Хоровод'); } catch (e) {}
   }
-  window.__hor = { open() { ov.style.display = 'block'; menu(); }, close };
+  window.__hor = { open() { ov.style.display = 'block'; menu(); try { if (window.PanelActions && !/[?&]mock=1/.test(location.search)) PanelActions.fire('хоровод', 'старт', 'Хоровод'); } catch (e) {} /* v16: герой идёт на площадь в хоровод */ }, close };
 })();
