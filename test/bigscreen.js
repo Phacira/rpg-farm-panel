@@ -1832,6 +1832,14 @@
     const g = c.getContext('2d'); g.clearRect(0, 0, W, H); g.fillStyle = 'rgba(255,255,255,.85)';
     for (const f of flakes) { f.y += f.v * dt; f.w += dt; f.x += Math.sin(f.w) * 12 * dt; if (f.y > H + 4) { f.y = -4; f.x = Math.random() * W; } if (f.x < -4) f.x = W + 4; if (f.x > W + 4) f.x = -4; g.beginPath(); g.arc(f.x, f.y, f.r, 0, 6.29); g.fill(); }
     raf = requestAnimationFrame(tick); }
+  const TR_GARL = [[0.16, 0.20], [0.28, 0.26], [0.40, 0.23], [0.55, 0.27], [0.68, 0.23], [0.82, 0.18]], TR_BALLS = [[0.22, 0.16, '#e0403a'], [0.40, 0.08, '#f2c14e'], [0.62, 0.12, '#4aa8e8'], [0.78, 0.20, '#e0403a'], [0.30, 0.25, '#f2c14e'], [0.70, 0.26, '#b06ae8']];
+  function treantDeco(cv, st) { const g = cv.getContext('2d'), W0 = cv.width, H0 = cv.height, k = H0 / 440, tm = performance.now() / 1000, pt = ([a, b]) => [a * W0, b * H0]; g.clearRect(0, 0, W0, H0);
+    if (st >= 3) { g.strokeStyle = 'rgba(220,230,255,.85)'; g.lineWidth = 4 * k; g.beginPath(); TR_GARL.forEach((p, i) => { const [x, y] = pt([p[0], p[1] + 0.03]), zz = (i % 2 ? 6 : -6) * k; if (!i) g.moveTo(x, y + zz); else g.lineTo(x, y + zz); }); g.stroke(); }
+    if (st >= 1) { g.strokeStyle = '#3a2a18'; g.lineWidth = 2 * k; g.beginPath(); TR_GARL.forEach((p, i) => { const [x, y] = pt(p); if (!i) g.moveTo(x, y); else g.lineTo(x, y); }); g.stroke();
+      const cols = ['#ff5a5a', '#ffd24a', '#5ad1ff', '#7cff7a']; for (let i = 0; i < 18; i++) { const t = i / 17, seg = t * (TR_GARL.length - 1), q = Math.min(TR_GARL.length - 2, Math.floor(seg)), f = seg - q, [a1, b1] = pt(TR_GARL[q]), [a2, b2] = pt(TR_GARL[q + 1]);
+        g.globalAlpha = st >= 5 ? 0.55 + 0.45 * Math.sin(tm * 4 + i * 1.7) : 0.9; g.fillStyle = cols[i % 4]; g.beginPath(); g.arc(a1 + (a2 - a1) * f, b1 + (b2 - b1) * f + 4 * k, 5 * k, 0, 7); g.fill(); } g.globalAlpha = 1; }
+    if (st >= 2) TR_BALLS.forEach(b => { const [a, c] = pt(b); g.fillStyle = b[2]; g.beginPath(); g.arc(a, c, 11 * k, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.arc(a - 3 * k, c - 3 * k, 3.5 * k, 0, 7); g.fill(); });
+    if (st >= 4) { const [a, c] = pt([0.5, 0.0]); g.save(); g.translate(a, c + 6 * k + 26 * k); g.fillStyle = '#ffd24a'; g.shadowColor = '#ffe27a'; g.shadowBlur = 18; g.beginPath(); for (let i = 0; i < 10; i++) { const r = (i % 2 ? 11 : 26) * k, an = -Math.PI / 2 + i * Math.PI / 5; g.lineTo(Math.cos(an) * r, Math.sin(an) * r); } g.closePath(); g.fill(); g.restore(); } }
   setInterval(() => { const o = on(); if (o !== wasOn) { wasOn = o; try { const C0 = window.CONFIG = window.CONFIG || {}; const L = C0.live = C0.live || {}; L.off = (L.off || []).filter(k => k !== 'leaves' && k !== 'flags').concat(o ? ['leaves', 'flags'] : []); } catch (e) {} }
     if (o && !raf) raf = requestAnimationFrame(tick);
     // Древень-ёлка в лагере (пока он в лагере: ref.wn.intro)
@@ -1843,6 +1851,9 @@
       if (im2) im2.style.display = showD ? '' : 'none';
       if (show && !im) { im = document.createElement('img'); im.id = 'bsTreant'; im.src = 'img/winter/treant.png?v=w1'; im.alt = 'Древень'; im.style.cssText = 'position:absolute;left:93.2%;top:62.5%;height:30.5%;transform:translate(-50%,-100%);pointer-events:none;z-index:3;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45))'; sc.appendChild(im); }
       if (im) im.style.display = show ? '' : 'none';
+      { let dc = document.getElementById('bsTreantDeco'); const stg = +(wn && wn.st) || 0; // 27.11: Древень в лагере обрастает украшениями по этапам (как в OBS)
+        if (show && stg > 0 && !dc && im) { dc = document.createElement('canvas'); dc.id = 'bsTreantDeco'; dc.width = 404; dc.height = 600; dc.style.cssText = im.style.cssText.replace('z-index:3', 'z-index:4').replace(/filter:[^;]*;?/, '') + ';width:auto'; sc.appendChild(dc); }
+        if (dc) { dc.style.display = show && stg > 0 ? '' : 'none'; if (show && stg > 0) treantDeco(dc, stg); } }
       if (im && wn) im.title = `Древень · наряжен ${wn.st}/5`; } catch (e) {} }, 1000);
 })();
 
