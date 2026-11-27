@@ -1844,8 +1844,8 @@
       if (show && !im) { im = document.createElement('img'); im.id = 'bsTreant'; im.src = 'img/winter/treant.png?v=w1'; im.alt = 'Древень'; im.style.cssText = 'position:absolute;left:93.2%;top:62.5%;height:30.5%;transform:translate(-50%,-100%);pointer-events:none;z-index:3;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45))'; sc.appendChild(im); }
       if (im) im.style.display = show ? '' : 'none';
       { const stg = Math.max(0, Math.min(5, +(wn && wn.st) || 0)); // 27.11: Древень по этапам украшения — отдельные картинки (Grok)
-        if (im) { const u = stg ? `img/winter/treant_s${stg}.png?v=1` : 'img/winter/treant.png?v=w1'; if (im.dataset.u !== u) { im.dataset.u = u; im.src = u; } }
-        if (im2) { const u2 = `img/winter/treant_h${stg}.png?v=1`; if (im2.dataset.u !== u2) { im2.dataset.u = u2; im2.src = u2; } } }
+        if (im) { const u = stg ? `img/winter/treant_s${stg}.png?v=2` : 'img/winter/treant.png?v=w1'; if (im.dataset.u !== u) { im.dataset.u = u; im.src = u; } }
+        if (im2) { const u2 = `img/winter/treant_h${stg}.png?v=2`; if (im2.dataset.u !== u2) { im2.dataset.u = u2; im2.src = u2; } } }
       if (im && wn) im.title = `Древень · наряжен ${wn.st}/5`; } catch (e) {} }, 1000);
 })();
 
