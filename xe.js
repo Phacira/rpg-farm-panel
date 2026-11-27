@@ -96,9 +96,17 @@
     const sync = () => { pp.querySelector('[data-k=on]').checked = !!SND.on; pp.querySelector('[data-k=vol]').value = Math.round(SND.vol * 100); b.classList.toggle('off', !SND.on); };
     try { if (!localStorage.getItem('rpgHornSeen2')) b.classList.add('new'); } catch (e) {}
     const seen = () => { b.classList.remove('new'); try { localStorage.setItem('rpgHornSeen2', '1'); } catch (er) {} };
-    b.onclick = e => { e.stopPropagation(); const on = pp.style.display !== 'block'; pp.style.display = on ? 'block' : 'none'; sync(); if (on) { const r = b.getBoundingClientRect(); pp.style.top = Math.round(r.bottom + 6) + 'px'; } };
-    // 27.11: всегда справа сверху; на большом экране — под кнопкой «Обычный пульт», если она справа
-    setInterval(() => { let top = 12; if (document.body.classList.contains('bs-on')) { const ex = [...document.querySelectorAll('#bs button, #bs a')].find(x => /Обычный пульт/.test(x.textContent)); if (ex) { const r = ex.getBoundingClientRect(); if (r.width && r.left > innerWidth * 0.5) top = Math.round(r.bottom + 6); } } let right = 12; const qp = document.body.classList.contains('bs-on') && document.getElementById('bsQuests'); if (qp) { const r = qp.getBoundingClientRect(); if (r.width && r.top < top + 40 && r.right > innerWidth - 60) right = Math.round(innerWidth - r.left + 8); } b.style.top = top + 'px'; b.style.right = right + 'px'; pp.style.right = right + 'px'; }, 400);
+    b.onclick = e => { e.stopPropagation(); const on = pp.style.display !== 'block'; pp.style.display = on ? 'block' : 'none'; sync(); if (on) { const r = b.getBoundingClientRect(), w = 256; pp.style.left = Math.max(8, Math.min(innerWidth - w - 8, Math.round(r.left))) + 'px'; pp.style.right = 'auto'; if (r.top > innerHeight / 2) { pp.style.top = 'auto'; pp.style.bottom = Math.round(innerHeight - r.top + 6) + 'px'; } else { pp.style.bottom = 'auto'; pp.style.top = Math.round(r.bottom + 6) + 'px'; } } };
+    // 27.11: телефон — справа сверху (на большом экране под «Обычный пульт»); компьютер — пульт: слева внизу, большой экран: под аватаркой
+    setInterval(() => {
+      const phone = innerWidth < 760 || (matchMedia && matchMedia('(pointer:coarse)').matches), bs = document.body.classList.contains('bs-on');
+      const port = !phone && bs && document.querySelector('#bsUnit .port'), uf = port && port.parentElement;
+      if (port) { if (b.parentElement !== uf) uf.appendChild(b); Object.assign(b.style, { position: 'absolute', left: Math.round(port.offsetLeft + (port.offsetWidth - 34) / 2) + 'px', top: Math.round(port.offsetTop + port.offsetHeight + 2) + 'px', right: 'auto', bottom: 'auto' }); return; }
+      if (b.parentElement !== document.body && document.body) document.body.appendChild(b);
+      if (phone) { let top = 12; if (bs) { const ex = [...document.querySelectorAll('#bs button, #bs a')].find(x => /Обычный пульт/.test(x.textContent)); if (ex) { const r = ex.getBoundingClientRect(); if (r.width && r.left > innerWidth * 0.5) top = Math.round(r.bottom + 6); } }
+        Object.assign(b.style, { position: 'fixed', top: top + 'px', right: '12px', left: 'auto', bottom: 'auto' }); }
+      else Object.assign(b.style, { position: 'fixed', left: '54px', bottom: '10px', top: 'auto', right: 'auto' });
+    }, 400);
     pp.onclick = e => e.stopPropagation();
     pp.addEventListener('input', e => { seen(); const k = e.target.dataset.k; if (k === 'on') SND.on = e.target.checked ? 1 : 0; if (k === 'vol') SND.vol = e.target.value / 100; sndSave(); sync(); });
     pp.querySelector('[data-k=test]').onclick = () => { seen(); const o = SND.on; SND.on = 1; horn(true); SND.on = o; };
