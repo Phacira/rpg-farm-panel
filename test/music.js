@@ -19,7 +19,8 @@
   pop.innerHTML = `<b>Музыка</b><label><input type="checkbox" data-k="on"> играть</label><div>Громкость</div><input type="range" min="0" max="100" data-k="vol">` + TR.map(t => `<label><input type="radio" name="musTr" value="${t.id}"> ${t.name}</label>`).join('');
   document.body.append(btn, pop);
   const sync = () => { pop.querySelector('[data-k=on]').checked = !!C.on; pop.querySelector('[data-k=vol]').value = Math.round(C.vol * 100); pop.querySelectorAll('[name=musTr]').forEach(r => r.checked = r.value === C.tr); };
-  btn.onclick = e => { e.stopPropagation(); started = true; pop.style.display = pop.style.display === 'block' ? 'none' : 'block'; sync(); apply(); };
+  btn.onclick = e => { e.stopPropagation(); started = true; const on = pop.style.display !== 'block'; pop.style.display = on ? 'block' : 'none'; sync(); apply();
+    if (on) { const r = btn.getBoundingClientRect(), w = 246; if (btn.classList.contains('paired')) { pop.style.zIndex = 2147483001; pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, Math.round(r.left))) + 'px'; if (r.top > innerHeight / 2) { pop.style.top = 'auto'; pop.style.bottom = Math.round(innerHeight - r.top + 6) + 'px'; } else { pop.style.bottom = 'auto'; pop.style.top = Math.round(r.bottom + 6) + 'px'; } } else { pop.style.left = ''; pop.style.top = ''; pop.style.bottom = ''; } } };
   pop.onclick = e => e.stopPropagation();
   pop.addEventListener('input', e => { const t = e.target; if (t.dataset.k === 'on') C.on = t.checked ? 1 : 0; else if (t.dataset.k === 'vol') C.vol = t.value / 100; else if (t.name === 'musTr') C.tr = t.value; save(); started = true; apply(); });
   document.addEventListener('click', () => { pop.style.display = 'none'; }, false);
@@ -27,6 +28,6 @@
   const first = () => { if (started) return; started = true; apply(); };
   ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, first, { once: true, capture: true }));
   document.addEventListener('visibilitychange', apply);
-  window.__music = { pause(v) { paused = !!v; apply(); } };
+  window.__music = { pause(v) { paused = !!v; apply(); }, getVol: () => C.vol, setVol(v) { C.vol = Math.max(0, Math.min(1, +v || 0)); save(); apply(); try { sync(); } catch (e) {} } }; // 27.11: общий ползунок с хороводом
   apply();
 })();
