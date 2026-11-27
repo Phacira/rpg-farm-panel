@@ -85,9 +85,16 @@
     try { if (localStorage.getItem('rpgXeSound') === '0') return; } catch (e) {}
     try { if (navigator.vibrate) navigator.vibrate([150, 80, 150, 80, 250]); } catch (e) {}
     try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume();
-      const t = AC.currentTime, lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400; lp.connect(AC.destination); // негромкий горн: мягкая «медь» через фильтр
-      [[392, 0, 0.28], [523, 0.3, 0.28], [659, 0.6, 0.75]].forEach(([f, d, len]) => { [0, 3].forEach(dt => { const o = AC.createOscillator(), g = AC.createGain(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = dt;
-        g.gain.setValueAtTime(0.0001, t + d); g.gain.exponentialRampToValueAtTime(0.045, t + d + 0.06); g.gain.setValueAtTime(0.045, t + d + len - 0.1); g.gain.exponentialRampToValueAtTime(0.0001, t + d + len); o.connect(g).connect(lp); o.start(t + d); o.stop(t + d + len + 0.05); }); }); } catch (e) {}
+      const t = AC.currentTime; // 27.11: глубокий военный горн (как в LoL): низкая нота D2, затем квинта A2, мягкий подъезд и раскрытие фильтра
+      [[73.4, 0, 1.9, 0.16], [110, 0.4, 1.5, 0.1]].forEach(([f, d, len, vol]) => {
+        const g = AC.createGain(), f1 = AC.createBiquadFilter(), f2 = AC.createBiquadFilter(), T = t + d;
+        [f1, f2].forEach(F => { F.type = 'lowpass'; F.Q.value = 0.5; F.frequency.setValueAtTime(300, T); F.frequency.linearRampToValueAtTime(900, T + 0.4); });
+        g.gain.setValueAtTime(0.0001, T); g.gain.linearRampToValueAtTime(vol, T + 0.25); g.gain.setValueAtTime(vol, T + len - 0.45); g.gain.linearRampToValueAtTime(0.0001, T + len);
+        f1.connect(f2).connect(g).connect(AC.destination);
+        const lfo = AC.createOscillator(), lg = AC.createGain(); lfo.frequency.value = 5; lg.gain.value = f * 0.004; lfo.connect(lg);
+        [0, 5].forEach(dt => { const o = AC.createOscillator(); o.type = 'sawtooth'; o.detune.value = dt; o.frequency.setValueAtTime(f * 0.93, T); o.frequency.linearRampToValueAtTime(f, T + 0.18); lg.connect(o.frequency); o.connect(f1); o.start(T); o.stop(T + len + 0.05); });
+        lfo.start(T); lfo.stop(T + len + 0.05);
+      }); } catch (e) {}
     if (document.hidden) { const t0 = document.title; let n = 0; const iv = setInterval(() => { document.title = n++ % 2 ? t0 : '⚔ ПОХОД НАЧАЛСЯ!'; if (n > 20 || !document.hidden) { clearInterval(iv); document.title = t0; } }, 700); }
   }
   let wasQ = 0, wasExp = false;
