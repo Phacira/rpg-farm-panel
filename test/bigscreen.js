@@ -964,7 +964,7 @@
   function ringPos(i, n) { const a = (performance.now() - RING.t0) / 1000 * 0.32 + i * Math.PI * 2 / n; return { x: RING.x + RING.rx * Math.cos(a), y: RING.y + RING.ry * Math.sin(a), flip: Math.sin(a) < 0 }; }
   function ringTick() { requestAnimationFrame(ringTick); const L = ringNames(); RING.list = RING.list.filter(n => L.includes(n)); L.forEach(n => { if (!RING.list.includes(n)) RING.list.push(n); });
     const n = Math.max(RING.list.length + 1, 6);
-    window.__danceDog = RING.list.length ? () => ringPos(RING.list.length, n) : null;
+    window.__danceDog = RING.list.length ? () => { const q = ringPos(RING.list.length, n); q.behind = q.y < 1085; return q; } : null;
     if (!RING.list.length && !RING.was) return; RING.was = RING.list.length > 0;
     for (const k in actorTween.nodes) { const it = actorTween.nodes[k]; if (it.kind === 'hero') applyActorPos(it); } }
   requestAnimationFrame(ringTick);
@@ -1767,7 +1767,7 @@
     if (!img.complete || !img.naturalWidth) { cv.hidden = true; if (cvT) cvT.hidden = true; root.classList.remove('live-on'); setTimeout(liveKick, 120); return; } // v8.7: пока грузится новая локация — не держим на экране старый живой фон
     const g = cv.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(img, 0, 0, cv.width, cv.height);
     const k = cv.width / 2560; g.setTransform(k, 0, 0, k, 0, 0);
-    try { LIVE6.draw(g, vl, img, 0, 'img/'); } catch (e) { console.warn('live6', e); }
+    try { LIVE6.draw(g, vl, img, 0, 'img/'); if (LIVE6.drawDogBehind) LIVE6.drawDogBehind(g, vl); } catch (e) { console.warn('live6', e); } // 27.11: пёсик за Древнем — в нижнем слое
     if (cvT && LIVE6.drawTop) { const gt = cvT.getContext('2d'); gt.setTransform(1, 0, 0, 1, 0, 0); gt.clearRect(0, 0, cvT.width, cvT.height); gt.setTransform(k, 0, 0, k, 0, 0); try { LIVE6.drawTop(gt, vl, 'img/'); } catch (e) { console.warn('live6 top', e); } cvT.hidden = false; } // v8.7: пёсик/котик поверх героев
     cv.hidden = false; root.classList.add('live-on');
     liveEma = liveEma * 0.9 + (performance.now() - __t0) * 0.1; if (liveEma <= 30) liveSlow = 0;
@@ -1837,7 +1837,7 @@
       const dance = !!(o && ((wn && +wn.dc > 0) || window.__horDemo)); // 27.11: хоровод — Древень на городской площади
       const show = !!(o && (WF || (wn && wn.intro)) && sc && bs && bs.dataset.view === 'camp' && !dance);
       let im2 = document.getElementById('bsTreantD'); const showD = !!(dance && sc && bs && bs.dataset.view === 'town');
-      if (showD && !im2) { im2 = document.createElement('img'); im2.id = 'bsTreantD'; im2.src = 'img/winter/treant_happy.png?v=2'; im2.alt = 'Древень'; im2.style.cssText = 'position:absolute;left:50.4%;top:75.3%;height:33.6%;transform:translate(-50%,-100%);pointer-events:none;z-index:3;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45));animation:bsTrBob 1.6s ease-in-out infinite'; if (!document.getElementById('bsTrBobCss')) { const st = document.createElement('style'); st.id = 'bsTrBobCss'; st.textContent = '@keyframes bsTrBob{50%{transform:translate(-50%,-100%) translateY(-6px) rotate(1.5deg)}}'; document.head.appendChild(st); } sc.appendChild(im2); }
+      if (showD && !im2) { im2 = document.createElement('img'); im2.id = 'bsTreantD'; im2.src = 'img/winter/treant_happy.png?v=2'; im2.alt = 'Древень'; im2.style.cssText = 'position:absolute;left:1290px;top:1084px;height:484px;transform:translate(-50%,-100%);pointer-events:none;z-index:1085;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45));animation:bsTrBob 1.6s ease-in-out infinite'; if (!document.getElementById('bsTrBobCss')) { const st = document.createElement('style'); st.id = 'bsTrBobCss'; st.textContent = '@keyframes bsTrBob{50%{transform:translate(-50%,-100%) translateY(-6px) rotate(1.5deg)}}'; document.head.appendChild(st); } (document.getElementById('bsActors') || sc).appendChild(im2); } // 27.11: в слое героев — кто сзади круга, уходит за Древня
       if (im2) im2.style.display = showD ? '' : 'none';
       if (show && !im) { im = document.createElement('img'); im.id = 'bsTreant'; im.src = 'img/winter/treant.png?v=w1'; im.alt = 'Древень'; im.style.cssText = 'position:absolute;left:93.2%;top:62.5%;height:30.5%;transform:translate(-50%,-100%);pointer-events:none;z-index:3;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45))'; sc.appendChild(im); }
       if (im) im.style.display = show ? '' : 'none';

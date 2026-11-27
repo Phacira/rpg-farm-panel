@@ -14,22 +14,25 @@
     g.fillStyle = fill || '#fff'; g.fill(); g.lineJoin = 'round'; g.lineWidth = s * 0.08; g.strokeStyle = 'rgba(0,0,0,.55)'; g.stroke(); g.restore(); }
   function ball(g, cx, cy, R, fill, line, dpr) { g.beginPath(); g.arc(Math.round(cx), Math.round(cy), R, 0, 7); g.fillStyle = fill; g.fill(); g.lineWidth = 3 * dpr; g.strokeStyle = line; g.stroke(); }
   const OPP = [2, 3, 0, 1], KEY = { ArrowLeft: 0, ArrowUp: 1, ArrowRight: 2, ArrowDown: 3 }, CODE = { KeyA: 0, KeyW: 1, KeyD: 2, KeyS: 3 };
-  const MOCK = /[?&]mock=1/.test(location.search), TOUCH = matchMedia('(pointer:coarse)').matches;
+  const MOCK = /[?&]mock=1/.test(location.search), TOUCH = matchMedia('(pointer:coarse)').matches || /[?&]touch=1/.test(location.search);
+  let CTL = 'swipe'; try { if (localStorage.getItem('rpgHorCtl') === 'pad') CTL = 'pad'; } catch (e) {}
   const css = `#horOv{position:fixed;inset:0;z-index:2147482500;background:radial-gradient(ellipse at 50% 30%,rgba(40,30,70,.97),rgba(10,8,18,.98));display:none;color:#fff;font:600 15px Rubik,system-ui,sans-serif;user-select:none;-webkit-user-select:none}
-#horOv.play{background:none;pointer-events:none}body.hor-play #bs .bars-wrap,body.hor-play #bsFeed,body.hor-play #bsZoom{visibility:hidden}#horOv.play>*{pointer-events:auto}#horOv.play .board{pointer-events:none}
+#horOv.play{background:none;pointer-events:none}body.hor-open #hornBtn,body.hor-open #hornPop,body.hor-open #musBtn,body.hor-open #musPop{visibility:hidden!important}body.hor-play #bs .bars-wrap,body.hor-play #bsFeed,body.hor-play #bsZoom{visibility:hidden}#horOv.play>*{pointer-events:auto}#horOv.play .board{pointer-events:none}
 #horOv .x{position:absolute;right:14px;top:10px;font-size:28px;background:none;border:0;color:#cfc4e0;cursor:pointer}
 #horOv .menu{max-width:560px;margin:6vh auto 0;padding:0 14px;text-align:center}#horOv h2{color:#ffd86b;margin:0 0 4px}#horOv .hint{opacity:.75;font-weight:400;font-size:13px;margin-bottom:14px}
 #horOv .modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}#horOv .modes button{min-height:84px;border-radius:12px;border:1.5px solid #c99b4a;background:linear-gradient(#4a3020,#2e1e14);color:#fff;font:700 16px Rubik,system-ui,sans-serif;cursor:pointer;padding:8px}
 #horOv .modes button small{display:block;font-weight:400;font-size:12px;opacity:.8;margin-top:4px}#horOv .modes button:hover{border-color:#ffe08a}
 #horOv .vol{position:absolute;right:52px;top:12px;display:flex;align-items:center;gap:6px;font-size:16px;z-index:2}#horOv .vol input{width:110px;accent-color:#ffd86b}
 #horOv .strip{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);width:min(1000px,98vw);height:clamp(150px,27vh,240px);border-radius:16px;background:linear-gradient(rgba(16,11,30,.45),rgba(16,11,30,.78));box-shadow:0 0 0 1px rgba(255,216,107,.25),0 6px 24px rgba(0,0,0,.35)}
-#horOv .strip.touch{height:clamp(210px,36vh,300px)}#horOv .strip canvas{position:absolute;left:0;top:0;width:100%;height:100%}#horOv .strip.touch canvas{height:calc(100% - 62px)}
+#horOv .strip canvas{position:absolute;left:0;top:0;width:100%;height:100%}
 #horOv .strip .x{right:6px;top:2px;font-size:22px;z-index:2}#horOv .strip .vol{right:40px;top:6px;font-size:14px}#horOv .strip .vol input{width:80px}
 #horOv .hud{position:absolute;left:12px;top:7px;max-width:calc(100% - 175px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;text-shadow:0 1px 3px #000;opacity:.92}#horOv .cred{position:absolute;left:0;right:0;bottom:3px;text-align:center;font-size:10px;opacity:.5;font-weight:400}
-#horOv .pad{position:absolute;left:6px;right:6px;bottom:16px;display:flex;gap:6px}#horOv .pad button{flex:1;height:46px;border-radius:10px;border:1px solid #c99b4a;background:rgba(74,48,32,.85);color:#fff;font:800 22px system-ui;touch-action:none}#horOv .pad button.sp{flex:1.6;font-size:14px}
+#horOv .pad{position:absolute;left:8px;right:8px;bottom:16px;height:172px;display:flex;justify-content:space-between;align-items:center}#horOv .cross{display:grid;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(3,56px);gap:2px}#horOv .pad button{border-radius:12px;border:1px solid #c99b4a;background:rgba(74,48,32,.9);color:#fff;font:800 24px system-ui;touch-action:none;padding:0}#horOv .pad button:active{background:#c99b4a}#horOv .pad button.sp{width:120px;height:120px;border-radius:50%;font-size:18px}
+#horOv .strip.touch.swipe{height:clamp(200px,38vh,320px)}#horOv .strip.touch.swipe canvas{height:100%;touch-action:none}#horOv .strip.touch.padm{height:clamp(300px,52vh,400px)}#horOv .strip.touch.padm canvas{height:calc(100% - 195px)}#horOv .shint{position:absolute;left:0;right:0;bottom:16px;text-align:center;font-size:12px;opacity:.6;pointer-events:none}
+#horOv .ctl{margin:12px auto 0;display:inline-flex;border:1px solid #c99b4a;border-radius:10px;overflow:hidden}#horOv .ctl button{background:none;border:0;color:#fff;font:600 13px Rubik,system-ui;padding:8px 12px;cursor:pointer}#horOv .ctl button.on{background:#c99b4a;color:#1a1006}
 #horOv .board{position:absolute;right:12px;top:30%;min-width:210px;max-width:46vw;background:rgba(20,14,34,.72);border:1px solid rgba(255,216,107,.45);border-radius:12px;padding:8px 10px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.4)}
 #horOv .board b{display:block;color:#ffd86b;font-size:13px;margin-bottom:4px}#horOv .board div{display:flex;gap:8px;padding:2px 0}#horOv .board div span:nth-child(2){flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#horOv .board div.me{color:#9fe0ff}#horOv .board div.tr{color:#a7f0a0}#horOv .board i{font-style:normal;opacity:.6;width:16px}
-@media (max-width:600px){#horOv .board{font-size:11px;min-width:150px;top:auto;bottom:calc(36vh + 20px)}#horOv .strip .vol input{width:56px}}
+@media (max-width:600px){#horOv .board{font-size:11px;min-width:150px;top:110px}#horOv .strip{background:rgba(22,15,38,.97)}#horOv .strip .vol input{width:56px}}
 #horOv .res{max-width:420px;margin:12vh auto 0;text-align:center;padding:0 14px}#horOv .big{font:800 64px Rubik,system-ui,sans-serif;color:#ffd86b}#horOv .res button{min-height:46px;padding:0 18px;margin:6px;border-radius:10px;border:1px solid #c99b4a;background:linear-gradient(#7a4b22,#5a3416);color:#fff;font:700 15px Rubik,system-ui,sans-serif;cursor:pointer}`;
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
   const ov = document.createElement('div'); ov.id = 'horOv'; document.body.appendChild(ov);
@@ -38,11 +41,12 @@
   const volBind = () => { const r = ov.querySelector('.vol input'); if (r) r.oninput = () => { VOL = r.value / 100; try { localStorage.setItem('rpgHorVol', VOL); } catch (e) {} if (G && G.au) G.au.volume = VOL; try { window.__music && window.__music.setVol && window.__music.setVol(VOL); } catch (e) {} }; };
   // очки в игру (таблица хоровода): тихо, без всплывашек
   const sendPts = (sc, mode) => { if (MOCK) return; try { window.__panelSend && window.__panelSend({ type: 'cmd', id: 'hs' + (++hs), cmd: 'хоровод', arg: 'очки:' + Math.round(sc) + ':' + mode }); } catch (e) {} };
-  function close() { stop(); document.body.classList.remove('hor-play'); ov.style.display = 'none'; ov.innerHTML = ''; ov.classList.remove('play'); window.__horDemo = false; }
+  function close() { stop(); document.body.classList.remove('hor-play', 'hor-open'); ov.style.display = 'none'; ov.innerHTML = ''; ov.classList.remove('play'); window.__horDemo = false; }
   function stop() { try { window.__music && window.__music.pause(false); } catch (e) {} if (G) { try { G.au.pause(); } catch (e) {} document.removeEventListener('keydown', G.kd, true); } G = null; cancelAnimationFrame(raf); }
   function menu() { stop(); document.body.classList.remove('hor-play'); ov.classList.remove('play'); ov.innerHTML = `<button class="x" title="Закрыть">✕</button>${volHtml()}<div class="menu"><h2>🎄 Хоровод у Древня</h2><div class="hint">Стрелки (или W A S D) и пробел. Каждый раз выпадает свой вариант: поток стрелок, ряды на скорость, комбо с пробелом, эхо, метель…<br>Твой герой уже идёт на городскую площадь — в хоровод вокруг Древня. Очки всех танцующих — в общей таблице.<br>Очки ивента — раз за стрим, за лучший результат. Звук включи!</div>
-      <div class="modes">${MODES.map(m => `<button data-m="${m.id}">${m.name}<small>${m.sub}</small></button>`).join('')}</div></div>`;
-    volBind(); ov.querySelector('.x').onclick = close; ov.querySelectorAll('.modes button').forEach(b => b.onclick = () => start(+b.dataset.m)); }
+      <div class="modes">${MODES.map(m => `<button data-m="${m.id}">${m.name}<small>${m.sub}</small></button>`).join('')}</div>${TOUCH ? `<div class="ctl"><button data-c="swipe" class="${CTL === 'swipe' ? 'on' : ''}">👆 Свайпы</button><button data-c="pad" class="${CTL === 'pad' ? 'on' : ''}">✚ Крестовина</button></div>` : ''}</div>`;
+    volBind(); ov.querySelector('.x').onclick = close; ov.querySelectorAll('.modes button').forEach(b => b.onclick = () => start(+b.dataset.m));
+    ov.querySelectorAll('.ctl button').forEach(b => b.onclick = () => { CTL = b.dataset.c; try { localStorage.setItem('rpgHorCtl', CTL); } catch (e) {} ov.querySelectorAll('.ctl button').forEach(x => x.classList.toggle('on', x === b)); }); }
   function start(id) {
     const M = MODES.find(m => m.id === id), beats = CH[M.song], notes = [], bars = [], ST = M.styles[Math.floor(Math.random() * M.styles.length)];
     const BARS = /^(parapa|rows|echo|duet)/.test(ST), ROWS = /^(rows|echo|duet)/.test(ST), INV = /Inv$|^inv$/.test(ST);
@@ -55,7 +59,7 @@
         if (ty === 's') { notes.push({ t, sp: 1 }); lastT = t; return; }
         let ln = Math.floor(Math.random() * 4); if (ln === last && Math.random() < 0.6) ln = (ln + 1 + Math.floor(Math.random() * 3)) % 4; last = ln; lastT = t;
         const inv = INV && Math.random() < (M.inv || 0.3); notes.push({ t, ln, key: inv ? OPP[ln] : ln, inv }); }); }
-    ov.classList.add('play'); document.body.classList.add('hor-play'); ov.innerHTML = `<div class="board"></div><div class="strip${TOUCH ? ' touch' : ''}"><canvas></canvas><div class="hud"></div><button class="x" title="Выйти">✕</button>${volHtml()}${TOUCH ? '<div class="pad"><button data-k="0">←</button><button data-k="1">↑</button><button data-k="3">↓</button><button data-k="2">→</button><button data-k="4" class="sp">ХЛОП</button></div>' : ''}<div class="cred">♪ ${M.credit}</div></div>`;
+    ov.classList.add('play'); document.body.classList.add('hor-play'); ov.innerHTML = `<div class="board"></div><div class="strip${TOUCH ? ' touch ' + (CTL === 'pad' ? 'padm' : 'swipe') : ''}"><canvas></canvas><div class="hud"></div><button class="x" title="Выйти">✕</button>${volHtml()}${TOUCH && CTL === 'pad' ? '<div class="pad"><div class="cross"><i></i><button data-k="1">↑</button><i></i><button data-k="0">←</button><i></i><button data-k="2">→</button><i></i><button data-k="3">↓</button><i></i></div><button data-k="4" class="sp">ХЛОП</button></div>' : TOUCH ? '<div class="shint">проведи пальцем в сторону стрелки · тап — хлоп / пробел</div>' : ''}<div class="cred">♪ ${M.credit}</div></div>`;
     ov.querySelector('.x').onclick = menu; volBind();
     const cv = ov.querySelector('canvas'), au = new Audio(M.file); au.preload = 'auto'; au.volume = VOL;
     G = { M, ST, BARS, ROWS, notes, bars, au, cv, pts: 0, sc: 0, tsc: 0, n: bars.length || notes.length, per: 0, good: 0, miss: 0, combo: 0, best: 0, flash: [0, 0, 0, 0, 0], fb: '', fbC: '#fff', fbT: 0, spd: 1, snow: [], fog: { t: 0, on: 0 },
@@ -63,7 +67,7 @@
     sendPts(0, M.id);
     const fbk = (txt, c) => { G.fb = txt; G.fbC = c; G.fbT = performance.now(); };
     const gain = (base, ok) => { if (ok) { G.combo++; G.best = Math.max(G.best, G.combo); G.sc += base * (1 + Math.floor(G.combo / 10) * 0.1); } else G.combo = 0; };
-    const hit = k => { if (!G || !G.started) return; const t = clk(); G.flash[k] = performance.now();
+    const hit = (k, at) => { if (!G || !G.started) return; const t = at != null ? at : clk(); G.flash[k] = performance.now();
       if (G.BARS) { const b = G.bars.find(x => !x.done && t >= x.t0 - 0.25 && t <= x.t1 + (G.ROWS ? 0 : 0.2)); if (!b) return; const L = b.seq.length;
         if (k === 4) { if (G.ROWS) return; const d = Math.abs(t - b.t1); b.done = 1;
           if (b.idx < L || d > 0.2) { b.res = 'm'; G.miss++; gain(0, false); fbk(b.idx < L ? 'Не успел' : 'Мимо', '#ff9c9c'); }
@@ -79,6 +83,11 @@
     G.kd = e => { const k = e.code === 'Space' ? 4 : KEY[e.key] ?? CODE[e.code]; if (k == null) return; e.preventDefault(); e.stopPropagation(); if (!e.repeat) hit(k); };
     document.addEventListener('keydown', G.kd, true);
     ov.querySelectorAll('.pad button').forEach(b => b.onpointerdown = e => { e.preventDefault(); hit(+b.dataset.k); });
+    if (TOUCH && CTL !== 'pad') { let sw = null; const TH = 22; // свайп — стрелка, тап — хлоп; время засчитываем по касанию
+      cv.onpointerdown = e => { e.preventDefault(); sw = { x: e.clientX, y: e.clientY, t: G && G.started ? clk() : null, done: 0, id: e.pointerId }; try { cv.setPointerCapture(e.pointerId); } catch (_) {} };
+      cv.onpointermove = e => { if (!sw || sw.done || e.pointerId !== sw.id) return; const dx = e.clientX - sw.x, dy = e.clientY - sw.y; if (Math.hypot(dx, dy) < TH) return; sw.done = 1;
+        hit(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3), sw.t); };
+      cv.onpointerup = cv.onpointercancel = e => { if (sw && !sw.done && e.type === 'pointerup') hit(4, sw.t); sw = null; }; }
     au.addEventListener('playing', () => { if (G && G.au === au) { G.a0 = au.currentTime; G.p0 = performance.now(); } });
     try { window.__music && window.__music.pause(true); } catch (e) {} au.load(); draw();
   }
@@ -135,17 +144,17 @@
     const n = cur.seq.length, cw = Math.min(H * 0.3, W * 0.9 / n), R0 = cw * 0.44, y0 = H * 0.42, x0 = W / 2 - cw * n / 2 + cw / 2, er = Math.max(0, 1 - (now - cur.errT) / 300);
     const hide = G.ST === 'echo' && t > cur.t0 + (cur.t1 - cur.t0) * 0.35;
     cur.seq.forEach((q, i) => { const cx = x0 + i * cw, ok = i < cur.idx;
-      ball(g, cx, y0, R0, ok ? '#2f7d4a' : er ? `rgba(200,60,60,${0.5 + 0.5 * er})` : q.inv && !hide ? '#c23b3b' : '#6b4a1e', ok ? '#7dff9a' : q.inv && !hide ? '#ff9c9c' : '#ffd86b', dpr);
+      ball(g, cx, y0, R0, ok ? '#2f7d4a' : er ? `rgba(230,180,40,${0.55 + 0.45 * er})` : q.inv && !hide ? '#c23b3b' : '#6b4a1e', ok ? '#7dff9a' : er ? '#fff3a0' : q.inv && !hide ? '#ff9c9c' : '#ffd86b', dpr); // 27.11: ошибка — все мигают жёлтым (красный путал с перевёртышами)
       if (hide && !ok) { g.fillStyle = '#ffd86b'; g.font = `900 ${Math.round(R0 * 1.1)}px Rubik,system-ui`; g.fillText('?', cx, y0 + 1); } else arrow(g, cx, y0, R0 * 1.15, q.ln); });
-    const by = H * 0.8, bw = Math.min(W * 0.6, W - 40 * dpr), bx0 = W / 2 - bw / 2, pr = Math.max(0, Math.min(1, (t - cur.t0) / (cur.te - cur.t0))), ready = cur.idx >= n;
+    const by = H * (W / dpr < 600 ? 0.7 : 0.8), bw = W / dpr < 600 ? W * 0.84 : Math.min(W * 0.6, W - 40 * dpr), bx0 = W / 2 - bw / 2, pr = Math.max(0, Math.min(1, (t - cur.t0) / (cur.te - cur.t0))), ready = cur.idx >= n;
     g.fillStyle = 'rgba(255,255,255,.14)'; g.fillRect(bx0, by - 6 * dpr, bw, 12 * dpr);
     if (!G.ROWS) { const X = s => bx0 + bw * Math.max(0, Math.min(1, (s - cur.t0) / (cur.te - cur.t0))), xg0 = X(cur.t1 - 0.2), xg1 = X(cur.t1 + 0.2), xp0 = X(cur.t1 - 0.08), xp1 = X(cur.t1 + 0.08);
       const gr = g.createLinearGradient(xg0, 0, xg1, 0); gr.addColorStop(0, 'rgba(143,216,255,0)'); gr.addColorStop(0.5, 'rgba(143,216,255,.85)'); gr.addColorStop(1, 'rgba(143,216,255,0)'); g.fillStyle = gr; g.fillRect(xg0, by - 14 * dpr, xg1 - xg0, 28 * dpr);
       g.fillStyle = ready ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.55)'; g.fillRect(xp0, by - 11 * dpr, xp1 - xp0, 22 * dpr);
       const cx = bx0 + bw * pr; g.fillStyle = ready ? '#7dff9a' : '#ffd86b'; g.beginPath(); g.moveTo(cx, by - 16 * dpr); g.lineTo(cx - 8 * dpr, by - 27 * dpr); g.lineTo(cx + 8 * dpr, by - 27 * dpr); g.closePath(); g.fill(); g.fillRect(cx - 2 * dpr, by - 16 * dpr, 4 * dpr, 32 * dpr); }
     else { g.fillStyle = pr > 0.75 ? '#ff8a6b' : '#ffd86b'; g.fillRect(bx0, by - 6 * dpr, bw * pr, 12 * dpr); }
-    g.font = `${Math.round(H * 0.075)}px Rubik,system-ui`; g.fillStyle = '#cfe9ff'; g.textAlign = 'left';
-    g.fillText(G.ROWS ? (G.ST === 'echo' ? (hide ? 'по памяти!' : 'запоминай…') : 'успей набрать') : ready ? 'ПРОБЕЛ в яркой зоне!' : 'стрелки по порядку', bx0 + bw + 12 * dpr, by); g.textAlign = 'center';
+    const narrow = W / dpr < 600; g.font = `${Math.round(narrow ? 13 * dpr : H * 0.075)}px Rubik,system-ui`; g.fillStyle = '#cfe9ff'; g.textAlign = narrow ? 'center' : 'left';
+    g.fillText(G.ROWS ? (G.ST === 'echo' ? (hide ? 'по памяти!' : 'запоминай…') : 'успей набрать') : ready ? 'ПРОБЕЛ в яркой зоне!' : 'стрелки по порядку', narrow ? W / 2 : bx0 + bw + 12 * dpr, narrow ? by + 22 * dpr : by); g.textAlign = 'center';
   }
   function finish() { const g0 = G; sendPts(g0.sc, g0.M.id); stop(); const pct = g0.n ? Math.round(g0.pts / (2 * g0.n) * 100) : 0, M = g0.M;
     document.body.classList.remove('hor-play'); ov.classList.remove('play'); ov.innerHTML = `<div class="res"><h2>${M.name}</h2><div class="big">${pct}%</div><div class="hint">${Math.round(g0.sc).toLocaleString('ru')} очков · отлично ${g0.per} · хорошо ${g0.good} · мимо ${g0.miss} · лучшее комбо ${g0.best}${g0.ST === 'duet' ? ` · Древень: ${Math.round(g0.tsc).toLocaleString('ru')} — ${g0.sc >= g0.tsc ? 'ты победил!' : 'Древень победил'}` : ''}</div>
@@ -154,5 +163,5 @@
     try { if (window.PanelActions && !MOCK) PanelActions.fire('хоровод', M.id + ':' + pct, 'Хоровод'); } catch (e) {}
   }
   function showTown() { try { if (document.body.classList.contains('bs-on')) { const b = [...document.querySelectorAll('#bs button')].find(x => x.textContent.trim() === 'Город'); if (b) b.click(); } else if (window.__panel && window.__panel.setTab) window.__panel.setTab('town'); } catch (e) {} }
-  window.__hor = { g: () => G, open() { ov.style.display = 'block'; menu(); showTown(); if (MOCK) window.__horDemo = true; try { if (window.PanelActions && !MOCK) PanelActions.fire('хоровод', 'старт', 'Хоровод'); } catch (e) {} }, close };
+  window.__hor = { g: () => G, open() { ov.style.display = 'block'; document.body.classList.add('hor-open'); menu(); showTown(); if (MOCK) window.__horDemo = true; try { if (window.PanelActions && !MOCK) PanelActions.fire('хоровод', 'старт', 'Хоровод'); } catch (e) {} }, close };
 })();
