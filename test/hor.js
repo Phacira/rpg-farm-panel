@@ -8,28 +8,30 @@
     { id: 4, name: 'Пляска троллей', sub: 'супер-быстро · музыка разгоняется', song: 'mking', file: 'test/audio/hor_mking.mp3?v=1', credit: 'Григ — «В пещере горного короля». Исп.: Czech National Symphony Orchestra для Musopen (общественное достояние)', pick: (b, k) => 'a', fall: 1.2 }
   ];
   const AR = ['←', '↑', '→', '↓'], OPP = [2, 3, 0, 1], KEY = { ArrowLeft: 0, ArrowUp: 1, ArrowRight: 2, ArrowDown: 3 }, CODE = { KeyA: 0, KeyW: 1, KeyD: 2, KeyS: 3 };
-  const css = `#horOv{position:fixed;inset:0;z-index:2147482500;background:radial-gradient(ellipse at 50% 30%,rgba(40,30,70,.97),rgba(10,8,18,.98));display:none;color:#fff;font:600 15px Rubik,system-ui,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none}
+  const css = `#horOv{position:fixed;inset:0;z-index:2147482500;background:radial-gradient(ellipse at 50% 30%,rgba(40,30,70,.97),rgba(10,8,18,.98));}#horOv.play{background:rgba(10,8,18,.25)}#horOv.play .stage{background:rgba(12,9,22,.72);box-shadow:0 0 40px rgba(0,0,0,.6)}#horOv{display:none;color:#fff;font:600 15px Rubik,system-ui,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none}
 #horOv .x{position:absolute;right:14px;top:10px;font-size:28px;background:none;border:0;color:#cfc4e0;cursor:pointer}
 #horOv .menu{max-width:560px;margin:6vh auto 0;padding:0 14px;text-align:center}#horOv h2{color:#ffd86b;margin:0 0 4px}#horOv .hint{opacity:.75;font-weight:400;font-size:13px;margin-bottom:14px}
 #horOv .modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}#horOv .modes button{min-height:84px;border-radius:12px;border:1.5px solid #c99b4a;background:linear-gradient(#4a3020,#2e1e14);color:#fff;font:700 16px Rubik,system-ui,sans-serif;cursor:pointer;padding:8px}
 #horOv .modes button small{display:block;font-weight:400;font-size:12px;opacity:.8;margin-top:4px}#horOv .modes button:hover{border-color:#ffe08a}
 #horOv .stage{position:absolute;left:50%;top:0;bottom:0;width:min(420px,96vw);transform:translateX(-50%)}#horOv canvas{position:absolute;inset:0;width:100%;height:100%}
-#horOv .hud{position:absolute;left:0;right:0;top:8px;text-align:center;font-size:14px;text-shadow:0 1px 3px #000}#horOv .cred{position:absolute;left:0;right:0;bottom:6px;text-align:center;font-size:10.5px;opacity:.55;font-weight:400;padding:0 10px}
+#horOv .hud{position:absolute;left:0;right:0;top:8px;text-align:center;font-size:14px;text-shadow:0 1px 3px #000}#horOv .vol{position:absolute;right:52px;top:12px;display:flex;align-items:center;gap:6px;font-size:16px;z-index:2}#horOv .vol input{width:110px;accent-color:#ffd86b}#horOv .cred{position:absolute;left:0;right:0;bottom:6px;text-align:center;font-size:10.5px;opacity:.55;font-weight:400;padding:0 10px}
 #horOv .res{max-width:420px;margin:12vh auto 0;text-align:center;padding:0 14px}#horOv .big{font:800 64px Rubik,system-ui,sans-serif;color:#ffd86b}#horOv .res button{min-height:46px;padding:0 18px;margin:6px;border-radius:10px;border:1px solid #c99b4a;background:linear-gradient(#7a4b22,#5a3416);color:#fff;font:700 15px Rubik,system-ui,sans-serif;cursor:pointer}`;
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
   const ov = document.createElement('div'); ov.id = 'horOv'; document.body.appendChild(ov);
-  let G = null, raf = 0;
-  function close() { stop(); ov.style.display = 'none'; ov.innerHTML = ''; }
+  let G = null, raf = 0, VOL = 0.3; try { const v = parseFloat(localStorage.getItem('rpgHorVol')); if (v >= 0 && v <= 1) VOL = v; } catch (e) {} // 27.11: громкость хоровода, по умолчанию тихо
+  const volHtml = () => `<label class="vol" title="Громкость">🔊<input type="range" min="0" max="100" value="${Math.round(VOL * 100)}"></label>`;
+  const volBind = () => { const r = ov.querySelector('.vol input'); if (r) r.oninput = () => { VOL = r.value / 100; try { localStorage.setItem('rpgHorVol', VOL); } catch (e) {} if (G && G.au) G.au.volume = VOL; }; };
+  function close() { stop(); ov.style.display = 'none'; ov.innerHTML = ''; ov.classList.remove('play'); }
   function stop() { try { window.__music && window.__music.pause(false); } catch (e) {} if (G) { try { G.au.pause(); } catch (e) {} document.removeEventListener('keydown', G.kd, true); } G = null; cancelAnimationFrame(raf); }
-  function menu() { stop(); ov.innerHTML = `<button class="x" title="Закрыть">✕</button><div class="menu"><h2>🎄 Хоровод у Древня</h2><div class="hint">Жми стрелки (или W A S D), когда они долетают до линии. На телефоне — касайся дорожек.<br>Твой герой уже идёт на городскую площадь — в хоровод вокруг Древня.<br>Очки ивента — раз за стрим, за лучший результат. Звук включи!</div>
+  function menu() { stop(); ov.classList.remove('play'); ov.innerHTML = `<button class="x" title="Закрыть">✕</button>${volHtml()}<div class="menu"><h2>🎄 Хоровод у Древня</h2><div class="hint">Жми стрелки (или W A S D), когда они долетают до линии. На телефоне — касайся дорожек.<br>Твой герой уже идёт на городскую площадь — в хоровод вокруг Древня.<br>Очки ивента — раз за стрим, за лучший результат. Звук включи!</div>
       <div class="modes">${MODES.map(m => `<button data-m="${m.id}">${m.name}<small>${m.sub}</small></button>`).join('')}</div></div>`;
-    ov.querySelector('.x').onclick = close; ov.querySelectorAll('.modes button').forEach(b => b.onclick = () => start(+b.dataset.m)); }
+    volBind(); ov.querySelector('.x').onclick = close; ov.querySelectorAll('.modes button').forEach(b => b.onclick = () => start(+b.dataset.m)); }
   function start(id) {
     const M = MODES.find(m => m.id === id), beats = CH[M.song], notes = [];
     let last = -1; beats.forEach((t, k) => { const ty = M.pick(t, k); if (!ty) return; if (ty === 's') { notes.push({ t, sp: 1 }); return; } let ln = Math.floor(Math.random() * 4); if (ln === last && Math.random() < 0.6) ln = (ln + 1 + Math.floor(Math.random() * 3)) % 4; last = ln; const inv = M.inv && Math.random() < M.inv; notes.push({ t, ln, key: inv ? OPP[ln] : ln, inv }); });
-    ov.innerHTML = `<button class="x" title="Выйти">✕</button><div class="stage"><canvas></canvas><div class="hud"></div><div class="cred">♪ ${M.credit}</div></div>`;
-    ov.querySelector('.x').onclick = menu;
-    const cv = ov.querySelector('canvas'), au = new Audio(M.file); au.preload = 'auto';
+    ov.classList.add('play'); ov.innerHTML = `<button class="x" title="Выйти">✕</button>${volHtml()}<div class="stage"><canvas></canvas><div class="hud"></div><div class="cred">♪ ${M.credit}</div></div>`;
+    ov.querySelector('.x').onclick = menu; volBind();
+    const cv = ov.querySelector('canvas'), au = new Audio(M.file); au.preload = 'auto'; au.volume = VOL;
     G = { M, notes, au, cv, pts: 0, n: notes.length, per: 0, good: 0, miss: 0, combo: 0, best: 0, flash: [0, 0, 0, 0, 0], fb: '', fbT: 0, end: (beats[beats.length - 1] || 30) + 1.2 };
     const hit = k => { if (!G) return; const t = G.au.currentTime; G.flash[k] = performance.now(); let bi = -1, bd = 9;
       G.notes.forEach((n, i) => { if (n.done) return; const ok = k === 4 ? n.sp : !n.sp && n.key === k; if (!ok) return; const d = Math.abs(n.t - t); if (d < bd) { bd = d; bi = i; } });
@@ -60,10 +62,11 @@
     if (t >= G.end || (G.au.ended && t > 1)) finish();
   }
   function finish() { const g0 = G; stop(); const pct = g0.n ? Math.round(g0.pts / (2 * g0.n) * 100) : 0, M = g0.M;
-    ov.innerHTML = `<div class="res"><h2>${M.name}</h2><div class="big">${pct}%</div><div class="hint">отлично ${g0.per} · хорошо ${g0.good} · мимо ${g0.miss} · лучшее комбо ${g0.best}</div>
+    ov.classList.remove('play'); ov.innerHTML = `<div class="res"><h2>${M.name}</h2><div class="big">${pct}%</div><div class="hint">отлично ${g0.per} · хорошо ${g0.good} · мимо ${g0.miss} · лучшее комбо ${g0.best}</div>
       <button data-a="again">Ещё раз</button><button data-a="menu">Другой режим</button><button data-a="x">Закрыть</button></div>`;
     ov.querySelector('[data-a=again]').onclick = () => start(M.id); ov.querySelector('[data-a=menu]').onclick = menu; ov.querySelector('[data-a=x]').onclick = close;
     try { if (window.PanelActions && !/[?&]mock=1/.test(location.search)) PanelActions.fire('хоровод', M.id + ':' + pct, 'Хоровод'); } catch (e) {}
   }
-  window.__hor = { open() { ov.style.display = 'block'; menu(); try { if (window.PanelActions && !/[?&]mock=1/.test(location.search)) PanelActions.fire('хоровод', 'старт', 'Хоровод'); } catch (e) {} /* v16: герой идёт на площадь в хоровод */ }, close };
+  function showTown() { try { if (document.body.classList.contains('bs-on')) { const b = [...document.querySelectorAll('#bs button')].find(x => x.textContent.trim() === 'Город'); if (b) b.click(); } else if (window.__panel && window.__panel.setTab) window.__panel.setTab('town'); } catch (e) {} }
+  window.__hor = { open() { ov.style.display = 'block'; menu(); showTown(); try { if (window.PanelActions && !/[?&]mock=1/.test(location.search)) PanelActions.fire('хоровод', 'старт', 'Хоровод'); } catch (e) {} /* v16: герой идёт на площадь в хоровод */ }, close };
 })();
