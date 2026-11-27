@@ -1004,6 +1004,16 @@
     if (!actorTween.raf) actorTween.raf = requestAnimationFrame(tickActors);
   }
 
+  // 27.11: ауры героев (как в игре); «чужие ауры» можно скрыть в настройках (колокольчик)
+  const AURA9 = { fire: ['fire', 460, 461], frost: ['frost', 474, 451], leaf: ['leaf', 503, 545], moondust: ['moon', 489, 372], gold: ['gold', 496, 355], shadow: ['shadow', 454, 331], xmas: ['xmas', 498, 429] }, AURA_RY = { fire: 356, frost: 360, leaf: 461, moondust: 249, gold: 255, shadow: 182, xmas: 305 };
+  function auraSet(el, id, mine) { let d = el.querySelector(':scope > .aura9'); let others = true; try { others = localStorage.getItem('rpgAuraOthers') !== '0'; } catch (e) {}
+    const A = id && AURA9[id], show = !!(A && (mine || others));
+    if (!show) { if (d) d.remove(); return; }
+    if (!d) { d = document.createElement('div'); d.className = 'aura9'; const sh = el.querySelector(':scope > .shadow'); el.insertBefore(d, sh ? sh.nextSibling : el.firstChild); }
+    if (d.dataset.id === id) return; d.dataset.id = id; const k = 192 * 1.35 / A[1], w = 520 * k, h = A[2] * k, b = (A[2] - AURA_RY[id]) * k;
+    d.style.cssText = `position:absolute;left:0;bottom:calc(${-b.toFixed(1)}px * var(--hs,1));width:calc(${w.toFixed(1)}px * var(--hs,1));height:calc(${h.toFixed(1)}px * var(--hs,1));transform:translateX(-50%);background:url(img/auras/${A[0]}.png?v=3) center/100% 100% no-repeat;pointer-events:none;animation:aura9 2.6s ease-in-out infinite`; }
+  { const st9 = document.createElement('style'); st9.textContent = '@keyframes aura9{50%{opacity:.82;transform:translateX(-50%) scale(1.03,.97)}}'; document.head.appendChild(st9); }
+  window.__auraRefresh = () => { document.querySelectorAll('#bsActors .aura9').forEach(d => { d.dataset.id = ''; }); try { if (window.__panel && __panel.render) __panel.render(); } catch (e) {} };
   function fillActors(c) {
     const box = $('#bsActors'), st = c.state, l = bsLoc;
     if (!box) return;
@@ -1099,6 +1109,7 @@
         it.hp = isFinite(hpN) ? hpN : null; it.mhp = isFinite(hpM) ? hpM : null; it.sh = isFinite(shN) ? shN : null;
         moveActor(it, +t[1], +t[2], snapAll, dur);
       }
+      auraSet(it.el, t.length > 19 ? t[19] : '', mine);
     }
 
     if (l === 'forest') {

@@ -92,8 +92,8 @@
     document.head.appendChild(st);
     const b = document.createElement('button'); b.id = 'hornBtn'; b.title = 'Сигнал о начале похода'; b.textContent = '🔔';
     const pp = document.createElement('div'); pp.id = 'hornPop';
-    pp.innerHTML = '<b>Сигнал похода</b><div style="opacity:.75;font-size:12px;margin-top:2px">звучит, когда твой пати- или гильд-поход стартует</div><label><input type="checkbox" data-k="on"> включён</label><div>Громкость</div><input type="range" min="0" max="100" data-k="vol"><button data-k="test">▶ Проверить</button>';
-    const sync = () => { pp.querySelector('[data-k=on]').checked = !!SND.on; pp.querySelector('[data-k=vol]').value = Math.round(SND.vol * 100); b.classList.toggle('off', !SND.on); };
+    pp.innerHTML = '<b>Сигнал похода</b><div style="opacity:.75;font-size:12px;margin-top:2px">звучит, когда твой пати- или гильд-поход стартует</div><label><input type="checkbox" data-k="on"> включён</label><div>Громкость</div><input type="range" min="0" max="100" data-k="vol"><button data-k="test">▶ Проверить</button><div style="border-top:1px solid rgba(201,155,74,.4);margin-top:10px;padding-top:6px"><b>Ауры героев</b></div><label><input type="checkbox" data-k="aur"> показывать чужие ауры</label><div style="opacity:.7;font-size:11.5px">твоя аура видна всегда</div>';
+    const sync = () => { try { pp.querySelector('[data-k=aur]').checked = localStorage.getItem('rpgAuraOthers') !== '0'; } catch (e) {} pp.querySelector('[data-k=on]').checked = !!SND.on; pp.querySelector('[data-k=vol]').value = Math.round(SND.vol * 100); b.classList.toggle('off', !SND.on); };
     try { if (!localStorage.getItem('rpgHornSeen2')) b.classList.add('new'); } catch (e) {}
     const seen = () => { b.classList.remove('new'); try { localStorage.setItem('rpgHornSeen2', '1'); } catch (er) {} };
     b.onclick = e => { e.stopPropagation(); const on = pp.style.display !== 'block'; pp.style.display = on ? 'block' : 'none'; sync(); if (on) { const r = b.getBoundingClientRect(), w = 256; pp.style.left = Math.max(8, Math.min(innerWidth - w - 8, Math.round(r.left))) + 'px'; pp.style.right = 'auto'; if (r.top > innerHeight / 2) { pp.style.top = 'auto'; pp.style.bottom = Math.round(innerHeight - r.top + 6) + 'px'; } else { pp.style.bottom = 'auto'; pp.style.top = Math.round(r.bottom + 6) + 'px'; } } };
@@ -113,7 +113,7 @@
       else { Object.assign(b.style, { position: 'fixed', left: '54px', bottom: '10px', top: 'auto', right: 'auto' }); if (mb) { mb.classList.remove('paired'); mb.style.cssText = ''; } }
     }, 400);
     pp.onclick = e => e.stopPropagation();
-    pp.addEventListener('input', e => { seen(); const k = e.target.dataset.k; if (k === 'on') SND.on = e.target.checked ? 1 : 0; if (k === 'vol') SND.vol = e.target.value / 100; sndSave(); sync(); });
+    pp.addEventListener('input', e => { seen(); const k = e.target.dataset.k; if (k === 'aur') { try { localStorage.setItem('rpgAuraOthers', e.target.checked ? '1' : '0'); } catch (er) {} if (window.__auraRefresh) __auraRefresh(); return; } if (k === 'on') SND.on = e.target.checked ? 1 : 0; if (k === 'vol') SND.vol = e.target.value / 100; sndSave(); sync(); });
     pp.querySelector('[data-k=test]').onclick = () => { seen(); const o = SND.on; SND.on = 1; horn(true); SND.on = o; };
     document.addEventListener('click', () => { pp.style.display = 'none'; });
     const add = () => { document.body.append(b, pp); sync(); }; if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
