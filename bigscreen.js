@@ -1447,7 +1447,7 @@
       const feetTarget = Math.min(vh - botSafe - 20, vh * 0.72);
       const sFit = Math.max(vw / W, vh / H);
       const sFeet = (H - hy) > 8 ? (vh - feetTarget) / (H - hy) : sFit;
-      s = Math.max(sFit, sFeet);
+      s = Math.min(Math.max(sFit, sFeet), sFit * 1.6); // 27.11: герой у нижнего края сцены (поход в лес) давал огромный зум — ограничиваем
       ox = vw / 2 - hx * s;
       oy = feetTarget - hy * s;
       [ox, oy] = clampCam(ox, oy, s, vw, vh);
