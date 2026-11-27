@@ -85,7 +85,7 @@
   const SND = { on: 1, vol: 0.6 }; try { Object.assign(SND, JSON.parse(localStorage.getItem('rpgHorn') || '{}')); if (localStorage.getItem('rpgXeSound') === '0') SND.on = 0; } catch (e) {}
   const sndSave = () => { try { localStorage.setItem('rpgHorn', JSON.stringify(SND)); } catch (e) {} };
   (function () {
-    const st = document.createElement('style'); st.textContent = `#hornBtn{position:fixed;left:54px;bottom:10px;z-index:30;width:38px;height:38px;border-radius:50%;border:1.5px solid #c99b4a;background:rgba(40,26,16,.85);color:#ffd86b;font:18px system-ui;cursor:pointer;opacity:.75;padding:0}#hornBtn:hover{opacity:1}body.bs-on #hornBtn{left:auto;right:12px;bottom:auto;top:62px;z-index:2147483000}body.bs-on #hornPop{left:auto;right:12px;bottom:auto;top:106px;z-index:2147483001}#hornBtn.off{filter:grayscale(1);opacity:.5}
+    const st = document.createElement('style'); st.textContent = `#hornBtn{position:fixed;left:54px;bottom:10px;z-index:30;width:38px;height:38px;border-radius:50%;border:1.5px solid #c99b4a;background:rgba(40,26,16,.85);color:#ffd86b;font:18px system-ui;cursor:pointer;opacity:.75;padding:0}#hornBtn:hover{opacity:1}#bsUnit #hornBtn{position:absolute;width:28px;height:28px;font-size:14px;opacity:.85;z-index:3}body.bs-on #hornPop{z-index:2147483001}#hornBtn.off{filter:grayscale(1);opacity:.5}
 #hornPop{position:fixed;left:54px;bottom:54px;z-index:31;background:rgba(30,20,12,.96);border:1px solid #c99b4a;border-radius:10px;padding:10px 12px;color:#f3e3c2;font:500 13px Rubik,system-ui,sans-serif;width:230px;display:none}
 #hornPop b{color:#ffd86b}#hornPop label{display:flex;gap:8px;align-items:center;margin:6px 0;cursor:pointer}#hornPop input[type=range]{width:100%;accent-color:#ffd86b}#hornPop button{margin-top:6px;width:100%;min-height:32px;border-radius:8px;border:1px solid #c99b4a;background:linear-gradient(#7a4b22,#5a3416);color:#fff;font:600 13px Rubik,system-ui;cursor:pointer}`;
     document.head.appendChild(st);
@@ -93,7 +93,12 @@
     const pp = document.createElement('div'); pp.id = 'hornPop';
     pp.innerHTML = '<b>Сигнал похода</b><div style="opacity:.75;font-size:12px;margin-top:2px">звучит, когда твой пати- или гильд-поход стартует</div><label><input type="checkbox" data-k="on"> включён</label><div>Громкость</div><input type="range" min="0" max="100" data-k="vol"><button data-k="test">▶ Проверить</button>';
     const sync = () => { pp.querySelector('[data-k=on]').checked = !!SND.on; pp.querySelector('[data-k=vol]').value = Math.round(SND.vol * 100); b.classList.toggle('off', !SND.on); };
-    b.onclick = e => { e.stopPropagation(); pp.style.display = pp.style.display === 'block' ? 'none' : 'block'; sync(); };
+    b.onclick = e => { e.stopPropagation(); const on = pp.style.display !== 'block'; pp.style.display = on ? 'block' : 'none'; sync();
+      if (on) { const r = b.getBoundingClientRect(); if (b.parentElement !== document.body) { pp.style.left = Math.round(r.left) + 'px'; pp.style.top = Math.round(r.bottom + 6) + 'px'; pp.style.bottom = 'auto'; } else { pp.style.left = ''; pp.style.top = ''; pp.style.bottom = ''; } } };
+    // 27.11: на большом экране — под аватаркой героя слева сверху
+    setInterval(() => { const port = document.body.classList.contains('bs-on') && document.querySelector('#bsUnit .port'), uf = port && port.parentElement;
+      if (port) { if (b.parentElement !== uf) uf.appendChild(b); b.style.left = Math.round(port.offsetLeft + (port.offsetWidth - 28) / 2) + 'px'; b.style.top = Math.round(port.offsetTop + port.offsetHeight + 6) + 'px'; b.style.bottom = 'auto'; }
+      else if (b.parentElement !== document.body && document.body) { document.body.appendChild(b); b.style.left = b.style.top = b.style.bottom = ''; } }, 400);
     pp.onclick = e => e.stopPropagation();
     pp.addEventListener('input', e => { const k = e.target.dataset.k; if (k === 'on') SND.on = e.target.checked ? 1 : 0; if (k === 'vol') SND.vol = e.target.value / 100; sndSave(); sync(); });
     pp.querySelector('[data-k=test]').onclick = () => { const o = SND.on; SND.on = 1; horn(true); SND.on = o; };
