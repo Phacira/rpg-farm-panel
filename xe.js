@@ -64,10 +64,20 @@
     setTimeout(() => box.querySelectorAll('button').forEach(b => b.onclick = () => send(b.dataset.c, '')));
     return head('🧭 Развилка', s) + `<div class="b">${(x.btn || []).map(c => `<button data-c="${c}"${x.vote === c ? ' style="outline:3px solid #ffe08a"' : ''}>${LBL[c] || c}${x.vote === c ? ' ✓' : ''}</button>`).join('')}</div>` + bar(); }
   const UI = { fog: uiFog, luck: uiLuck, flee: uiFlee, weak: uiWeak, trap: uiTrap, fork: uiFork };
+  // 27.11: звук и вибрация, когда в походе появляется мини-игра (выключить: localStorage rpgXeSound = '0')
+  let AC = null;
+  function ding() {
+    try { if (localStorage.getItem('rpgXeSound') === '0') return; } catch (e) {}
+    try { if (navigator.vibrate) navigator.vibrate([90, 60, 90]); } catch (e) {}
+    try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume();
+      const t = AC.currentTime; [[880, 0], [1320, 0.12]].forEach(([f, d]) => { const o = AC.createOscillator(), g = AC.createGain(); o.type = 'triangle'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t + d); g.gain.exponentialRampToValueAtTime(0.22, t + d + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.35); o.connect(g).connect(AC.destination); o.start(t + d); o.stop(t + d + 0.4); }); } catch (e) {}
+  }
+  ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) {} }, { once: true, capture: true }));
   function show(x) {
     const base = x.k + ':' + x.u, k = base + (x.k === 'fork' ? ':' + (x.vote || '') + (x.nl || 0) + (x.nr || 0) + (x.hint || '') + (x.btn || []).join() : ':' + (x.btn ? 1 : 0));
     if (k === key) return; if (done && done.split(':').slice(0, 2).join(':') === base && x.k !== 'fork') return;
-    const same = key.split(':').slice(0, 2).join(':') === base; key = k; if (!same) { t0 = Date.now(); L0 = Math.max(1, x.left); done = ''; }
+    const same = key.split(':').slice(0, 2).join(':') === base; key = k; if (!same) { t0 = Date.now(); L0 = Math.max(1, x.left); done = ''; ding(); }
     clearT(); box.innerHTML = (UI[x.k] || (() => head(x.n || '', '')))(x); box.style.display = 'block';
   }
   setInterval(() => {
