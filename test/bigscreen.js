@@ -953,7 +953,24 @@
     const e = u * u * (3 - 2 * u);
     return { x: it.from.x + (it.x - it.from.x) * e, y: it.from.y + (it.y - it.from.y) * e };
   }
+  // 27.11: хоровод на сайте — танцующие идут по кругу вокруг Древня плавно (локально), пёсик с ними
+  const RING = { x: 1290, y: 1110, rx: 520, ry: 150, list: [], t0: performance.now() };
+  function ringNames() { try { const P = window.__panel, wn = P && P.state && P.state.ref && P.state.ref.wn, bs = document.getElementById('bs');
+      if (!bs || bs.dataset.view !== 'town') return [];
+      const ov = document.getElementById('horOv'), open = ov && ov.style.display === 'block';
+      if (window.__horDemo) return Object.keys(actorTween.nodes).filter(k => actorTween.nodes[k].kind === 'hero').map(k => actorTween.nodes[k].el.dataset.n.toLowerCase());
+      const out = ((wn && wn.dn) || []).map(x => String(x).toLowerCase()); if (open && +((wn && wn.dc) || 0) > 0) { const me = document.querySelector('#bsActors .hero.me'); if (me && !out.includes(me.dataset.n.toLowerCase())) out.push(me.dataset.n.toLowerCase()); }
+      return out; } catch (e) { return []; } }
+  function ringPos(i, n) { const a = (performance.now() - RING.t0) / 1000 * 0.32 + i * Math.PI * 2 / n; return { x: RING.x + RING.rx * Math.cos(a), y: RING.y + RING.ry * Math.sin(a), flip: Math.sin(a) < 0 }; }
+  function ringTick() { requestAnimationFrame(ringTick); const L = ringNames(); RING.list = RING.list.filter(n => L.includes(n)); L.forEach(n => { if (!RING.list.includes(n)) RING.list.push(n); });
+    const n = Math.max(RING.list.length + 1, 6);
+    window.__danceDog = RING.list.length ? () => ringPos(RING.list.length, n) : null;
+    if (!RING.list.length && !RING.was) return; RING.was = RING.list.length > 0;
+    for (const k in actorTween.nodes) { const it = actorTween.nodes[k]; if (it.kind === 'hero') applyActorPos(it); } }
+  requestAnimationFrame(ringTick);
   function applyActorPos(it) {
+    const ri = it.kind === 'hero' && RING.list.length ? RING.list.indexOf(String(it.el.dataset.n).toLowerCase()) : -1;
+    if (ri >= 0) { const q = ringPos(ri, Math.max(RING.list.length + 1, 6)), bob = Math.abs(Math.sin(performance.now() / 1000 * 7 + ri)) * 8; it.el.style.left = q.x + 'px'; it.el.style.top = (q.y - bob) + 'px'; it.el.style.zIndex = Math.round(q.y); it.el.classList.add('walk'); it.el.classList.toggle('flip', q.flip); return; }
     const p = actorNow(it);
     it.el.style.left = p.x + 'px';
     it.el.style.top = p.y + 'px';
@@ -1820,7 +1837,7 @@
       const dance = !!(o && ((wn && +wn.dc > 0) || window.__horDemo)); // 27.11: хоровод — Древень на городской площади
       const show = !!(o && (WF || (wn && wn.intro)) && sc && bs && bs.dataset.view === 'camp' && !dance);
       let im2 = document.getElementById('bsTreantD'); const showD = !!(dance && sc && bs && bs.dataset.view === 'town');
-      if (showD && !im2) { im2 = document.createElement('img'); im2.id = 'bsTreantD'; im2.src = 'img/winter/treant_happy.png?v=1'; im2.alt = 'Древень'; im2.style.cssText = 'position:absolute;left:50.4%;top:75.3%;height:33.6%;transform:translate(-50%,-100%);pointer-events:none;z-index:3;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45));animation:bsTrBob 1.6s ease-in-out infinite'; if (!document.getElementById('bsTrBobCss')) { const st = document.createElement('style'); st.id = 'bsTrBobCss'; st.textContent = '@keyframes bsTrBob{50%{transform:translate(-50%,-100%) translateY(-6px) rotate(1.5deg)}}'; document.head.appendChild(st); } sc.appendChild(im2); }
+      if (showD && !im2) { im2 = document.createElement('img'); im2.id = 'bsTreantD'; im2.src = 'img/winter/treant_happy.png?v=2'; im2.alt = 'Древень'; im2.style.cssText = 'position:absolute;left:50.4%;top:75.3%;height:33.6%;transform:translate(-50%,-100%);pointer-events:none;z-index:3;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45));animation:bsTrBob 1.6s ease-in-out infinite'; if (!document.getElementById('bsTrBobCss')) { const st = document.createElement('style'); st.id = 'bsTrBobCss'; st.textContent = '@keyframes bsTrBob{50%{transform:translate(-50%,-100%) translateY(-6px) rotate(1.5deg)}}'; document.head.appendChild(st); } sc.appendChild(im2); }
       if (im2) im2.style.display = showD ? '' : 'none';
       if (show && !im) { im = document.createElement('img'); im.id = 'bsTreant'; im.src = 'img/winter/treant.png?v=w1'; im.alt = 'Древень'; im.style.cssText = 'position:absolute;left:93.2%;top:62.5%;height:30.5%;transform:translate(-50%,-100%);pointer-events:none;z-index:3;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45))'; sc.appendChild(im); }
       if (im) im.style.display = show ? '' : 'none';
