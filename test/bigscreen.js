@@ -1817,7 +1817,11 @@
     if (o && !raf) raf = requestAnimationFrame(tick);
     // Древень-ёлка в лагере (пока он в лагере: ref.wn.intro)
     try { const P = window.__panel, wn = P && P.state && P.state.ref && P.state.ref.wn, sc = document.getElementById('bsScene'), bs = document.getElementById('bs'); let im = document.getElementById('bsTreant');
-      const show = !!(o && (WF || (wn && wn.intro)) && sc && bs && bs.dataset.view === 'camp');
+      const dance = !!(o && ((wn && +wn.dc > 0) || window.__horDemo)); // 27.11: хоровод — Древень на городской площади
+      const show = !!(o && (WF || (wn && wn.intro)) && sc && bs && bs.dataset.view === 'camp' && !dance);
+      let im2 = document.getElementById('bsTreantD'); const showD = !!(dance && sc && bs && bs.dataset.view === 'town');
+      if (showD && !im2) { im2 = document.createElement('img'); im2.id = 'bsTreantD'; im2.src = 'img/winter/treant_happy.png?v=1'; im2.alt = 'Древень'; im2.style.cssText = 'position:absolute;left:50.4%;top:75.3%;height:33.6%;transform:translate(-50%,-100%);pointer-events:none;z-index:3;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45));animation:bsTrBob 1.6s ease-in-out infinite'; if (!document.getElementById('bsTrBobCss')) { const st = document.createElement('style'); st.id = 'bsTrBobCss'; st.textContent = '@keyframes bsTrBob{50%{transform:translate(-50%,-100%) translateY(-6px) rotate(1.5deg)}}'; document.head.appendChild(st); } sc.appendChild(im2); }
+      if (im2) im2.style.display = showD ? '' : 'none';
       if (show && !im) { im = document.createElement('img'); im.id = 'bsTreant'; im.src = 'img/winter/treant.png?v=w1'; im.alt = 'Древень'; im.style.cssText = 'position:absolute;left:93.2%;top:62.5%;height:30.5%;transform:translate(-50%,-100%);pointer-events:none;z-index:3;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45))'; sc.appendChild(im); }
       if (im) im.style.display = show ? '' : 'none';
       if (im && wn) im.title = `Древень · наряжен ${wn.st}/5`; } catch (e) {} }, 1000);

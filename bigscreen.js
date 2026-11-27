@@ -494,7 +494,7 @@
       title.textContent = GH && !pq ? 'Сбор гильд-похода' : 'Очередь на пати-поход';
       const inQ = !!(cx.me && cx.me.pty), joinBtn = cx.me ? '<button class="bsJoin" data-join="1"' + (inQ ? ' disabled' : '') + ' style="width:100%;min-height:46px;margin:2px 0 10px;border-radius:10px;border:1px solid #c99b4a;background:' + (inQ ? '#3a2e44' : 'linear-gradient(#7a4b22,#5a3416)') + ';color:#fff;font:700 16px Rubik,system-ui,sans-serif;cursor:pointer">' + (inQ ? '✓ Ты в очереди' : '⚔ Присоединиться к пати-походу') + '</button>' : ''; // 27.11: вступить прямо из окна очереди
       const PH = window.__panel && window.__panel.partyHtml ? window.__panel.partyHtml() : ''; // 27.11: как в обычном пульте — портреты и пустые места
-      if (PH) { body.innerHTML = '<div class="bsPtyFull">' + (GH && GH.hu && cx.me && GH.hu.some(x => String(x[0]).toLowerCase() === String(cx.me.n || '').toLowerCase()) ? '<div class="muted" style="margin-bottom:8px">ты в отряде гильд-похода</div>' : joinBtn) + PH + '</div>'; return; }
+      if (PH) { body.innerHTML = '<div class="bsPtyFull">' + (GH && GH.hu && cx.me && GH.hu.some(x => String(x[0]).toLowerCase() === String(cx.me.n || '').toLowerCase()) ? '<div class="muted" style="margin-bottom:8px">ты в отряде гильд-похода</div>' : joinBtn) + PH + '</div>'; hiResParty(body, cx); return; }
       body.innerHTML = joinBtn + (pq || !GH ? (partyBoxHtml(cx, true) || '<div class="muted">пока никого</div>') : '') + (GH ? '<h3 style="margin:10px 0 4px">🏰 Гильд-поход · ' + esc(Math.min(+GH.hq, +GH.hmax || 5) + '/' + (+GH.hmax || 5)) + '</h3>' + g9HikeHtml(cx, GH) : '');
     } else {
       title.textContent = 'Ещё';
@@ -750,6 +750,9 @@
     const stt = n >= mx ? 'отряд собран — уходит' : (+G.hsec > 0 ? (n >= mn ? 'старт через ' : 'нужно ещё ' + (mn - n) + ' · сбор ') + fmtPtyLeft(+G.hsec) : 'набор идёт');
     return '<div class="ph-sub">' + esc(stt) + '</div><ul class="qlist">' + rows.join('') + '</ul>';
   }
+  function hiResParty(root, c) { // 27.11: в блоке «Пати» — крупные спрайты h7 вместо мелких 64px
+    try { root.querySelectorAll('.bsPtyFull .pm[title]').forEach(pm => { const n = String(pm.getAttribute('title') || '').replace(/ — выбыл$/, ''), t = findHeroTup(c && c.state, n); const u = t && sprUrl(t); if (!u) return;
+      const old = pm.querySelector('.hpic'); if (!old || old.dataset.hr === u) return; const im = document.createElement('img'); im.className = 'hpic sm'; im.dataset.hr = u; im.src = u; im.alt = ''; old.replaceWith(im); }); } catch (e) {} }
   function fillParty(c) {
     const el = $('#bsParty'), chip = $('#bsPartyChip');
     const P = ptyOf(c), GH = g9HikeOf(c);
@@ -768,7 +771,7 @@
           + '<button type="button" class="fold-chev" data-bsfold="party" title="Свернуть очередь" aria-label="Свернуть очередь">▾</button>'
           + '</header>' + (partyBoxHtml(c, false) || '<div class="muted">пока никого</div>');
         const PH = window.__panel && window.__panel.partyHtml ? window.__panel.partyHtml() : ''; // 27.11: как в обычном пульте — портреты и пустые места
-        if (PH) { const hd = GH && !qn ? '🏰 Гильд-поход' : '⚔ Очередь на пати-поход'; el.innerHTML = '<header>' + hd + (qn ? '<span class="pcnt">' + esc(cnt) + '</span>' : '') + '<button type="button" class="fold-chev" data-bsfold="party" title="Свернуть" aria-label="Свернуть">▾</button></header><div class="bsPtyFull">' + PH.replace(/<h2>[\s\S]*?<\/h2>/, '') + '</div>'; }
+        if (PH) { const hd = GH && !qn ? '🏰 Гильд-поход' : '⚔ Очередь на пати-поход'; el.innerHTML = '<header>' + hd + (qn ? '<span class="pcnt">' + esc(cnt) + '</span>' : '') + '<button type="button" class="fold-chev" data-bsfold="party" title="Свернуть" aria-label="Свернуть">▾</button></header><div class="bsPtyFull">' + PH.replace(/<h2>[\s\S]*?<\/h2>/, '') + '</div>';  hiResParty(el, c); }
         else if (GH) { const gc = Math.min(+GH.hq, +GH.hmax || 5) + '/' + (+GH.hmax || 5) + (+GH.hsec > 0 ? ' · ' + fmtPtyLeft(+GH.hsec) : '');
           const hp = '<header>🏰 Гильд-поход<span class="pcnt">' + esc(gc) + '</span></header>' + g9HikeHtml(c, GH);
           el.innerHTML = (P && (qn > 0 || inCamp)) ? el.innerHTML + hp : hp; }

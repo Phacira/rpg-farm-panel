@@ -21,7 +21,7 @@
   let G = null, raf = 0, VOL = 0.3; try { const v = parseFloat(localStorage.getItem('rpgHorVol')); if (v >= 0 && v <= 1) VOL = v; else if (window.__music && window.__music.getVol) VOL = window.__music.getVol(); } catch (e) {} // 27.11: громкость хоровода, по умолчанию тихо
   const volHtml = () => `<label class="vol" title="Громкость">🔊<input type="range" min="0" max="100" value="${Math.round(VOL * 100)}"></label>`;
   const volBind = () => { const r = ov.querySelector('.vol input'); if (r) r.oninput = () => { VOL = r.value / 100; try { localStorage.setItem('rpgHorVol', VOL); } catch (e) {} if (G && G.au) G.au.volume = VOL; try { window.__music && window.__music.setVol && window.__music.setVol(VOL); } catch (e) {} }; }; // один ползунок: и мини-игра, и музыка сайта
-  function close() { stop(); ov.style.display = 'none'; ov.innerHTML = ''; ov.classList.remove('play'); }
+  function close() { stop(); ov.style.display = 'none'; ov.innerHTML = ''; ov.classList.remove('play'); window.__horDemo = false; }
   function stop() { try { window.__music && window.__music.pause(false); } catch (e) {} if (G) { try { G.au.pause(); } catch (e) {} document.removeEventListener('keydown', G.kd, true); } G = null; cancelAnimationFrame(raf); }
   function menu() { stop(); ov.classList.remove('play'); ov.innerHTML = `<button class="x" title="Закрыть">✕</button>${volHtml()}<div class="menu"><h2>🎄 Хоровод у Древня</h2><div class="hint">Жми стрелки (или W A S D), когда они долетают до линии. На телефоне — касайся дорожек.<br>Твой герой уже идёт на городскую площадь — в хоровод вокруг Древня.<br>Очки ивента — раз за стрим, за лучший результат. Звук включи!</div>
       <div class="modes">${MODES.map(m => `<button data-m="${m.id}">${m.name}<small>${m.sub}</small></button>`).join('')}</div></div>`;
@@ -32,19 +32,23 @@
     ov.classList.add('play'); ov.innerHTML = `<button class="x" title="Выйти">✕</button>${volHtml()}<div class="stage"><canvas></canvas><div class="hud"></div><div class="cred">♪ ${M.credit}</div></div>`;
     ov.querySelector('.x').onclick = menu; volBind();
     const cv = ov.querySelector('canvas'), au = new Audio(M.file); au.preload = 'auto'; au.volume = VOL;
-    G = { M, notes, au, cv, pts: 0, n: notes.length, per: 0, good: 0, miss: 0, combo: 0, best: 0, flash: [0, 0, 0, 0, 0], fb: '', fbT: 0, end: (beats[beats.length - 1] || 30) + 1.2 };
-    const hit = k => { if (!G) return; const t = G.au.currentTime; G.flash[k] = performance.now(); let bi = -1, bd = 9;
+    G = { M, notes, au, cv, pts: 0, n: notes.length, per: 0, good: 0, miss: 0, combo: 0, best: 0, flash: [0, 0, 0, 0, 0], fb: '', fbT: 0, end: (beats[beats.length - 1] || 30) + 1.2, cd0: performance.now(), CD: 3.6, started: false, a0: 0, p0: 0 }; // 27.11: отсчёт 3-2-1 и плавные часы
+    const hit = k => { if (!G || !G.started) return; const t = clk(); G.flash[k] = performance.now(); let bi = -1, bd = 9;
       G.notes.forEach((n, i) => { if (n.done) return; const ok = k === 4 ? n.sp : !n.sp && n.key === k; if (!ok) return; const d = Math.abs(n.t - t); if (d < bd) { bd = d; bi = i; } });
       if (bi < 0 || bd > 0.18) { G.combo = 0; return; } const n = G.notes[bi]; n.done = 1; if (bd < 0.07) { G.pts += 2; G.per++; n.res = 'p'; G.fb = 'Отлично!'; } else { G.pts += 1; G.good++; n.res = 'g'; G.fb = 'Хорошо'; } G.fbT = performance.now(); G.combo++; G.best = Math.max(G.best, G.combo); };
     G.kd = e => { const k = e.code === 'Space' ? 4 : KEY[e.key] ?? CODE[e.code]; if (k == null) return; e.preventDefault(); e.stopPropagation(); if (!e.repeat) hit(k); };
     document.addEventListener('keydown', G.kd, true);
     cv.onpointerdown = e => { e.preventDefault(); const r = cv.getBoundingClientRect(), y = (e.clientY - r.top) / r.height, x = (e.clientX - r.left) / r.width; hit(M.song === 'shchedryk' && y > 0.9 ? 4 : Math.min(3, Math.floor(x * 4))); };
-    try { window.__music && window.__music.pause(true); } catch (e) {} au.play().catch(() => {}); draw();
+    au.addEventListener('playing', () => { if (G && G.au === au) { G.a0 = au.currentTime; G.p0 = performance.now(); } });
+    try { window.__music && window.__music.pause(true); } catch (e) {} au.load(); draw();
   }
+  function clk() { const now = performance.now();
+    if (!G.started) { const t = (now - G.cd0) / 1000 - G.CD; if (t >= 0) { G.started = true; G.a0 = 0; G.p0 = now; G.au.play().catch(() => {}); } return Math.min(t, 0); }
+    let t = G.a0 + (now - G.p0) / 1000; const a = G.au.currentTime; if (G.au.paused || Math.abs(t - a) > 0.12) { G.a0 = a; G.p0 = now; t = a; } return t; }
   function draw() {
     raf = requestAnimationFrame(draw); if (!G) return; const { cv, M } = G, r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
     if (cv.width !== Math.round(r.width * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); }
-    const g = cv.getContext('2d'), W = cv.width, H = cv.height, lw = W / 4, hy = H * 0.82, t = G.au.currentTime, now = performance.now(), sp = M.song === 'shchedryk';
+    const g = cv.getContext('2d'), W = cv.width, H = cv.height, lw = W / 4, hy = H * 0.82, t = clk(), now = performance.now(), sp = M.song === 'shchedryk';
     g.clearRect(0, 0, W, H);
     for (let i = 0; i < 4; i++) { g.fillStyle = i % 2 ? 'rgba(255,255,255,.035)' : 'rgba(255,255,255,.06)'; g.fillRect(i * lw, 0, lw, H); const f = Math.max(0, 1 - (now - G.flash[i]) / 160); if (f) { g.fillStyle = `rgba(255,216,107,${0.25 * f})`; g.fillRect(i * lw, 0, lw, H); } }
     g.strokeStyle = '#ffd86b'; g.lineWidth = 3 * dpr; g.beginPath(); g.moveTo(0, hy); g.lineTo(W, hy); g.stroke();
@@ -57,9 +61,11 @@
       if (n.sp) { g.fillStyle = n.res === 'm' ? 'rgba(120,120,140,.5)' : '#8fd8ff'; g.fillRect(lw * 0.15, y - 8 * dpr, W - lw * 0.3, 16 * dpr); continue; }
       const cx = n.ln * lw + lw / 2, R = lw * 0.36; g.beginPath(); g.arc(cx, y, R, 0, 7); g.fillStyle = n.res === 'm' ? 'rgba(90,80,100,.6)' : n.inv ? '#c23b3b' : '#6b4a1e'; g.fill(); g.lineWidth = 3 * dpr; g.strokeStyle = n.inv ? '#ff9c9c' : '#ffd86b'; g.stroke();
       g.fillStyle = '#fff'; g.font = `bold ${Math.round(R * 1.1)}px system-ui`; g.fillText(AR[n.ln], cx, y + 1); }
+    if (!G.started || now - G.cd0 < (G.CD + 0.8) * 1000) { const rem = G.CD - (now - G.cd0) / 1000, txt = rem > 2.4 ? '3' : rem > 1.2 ? '2' : rem > 0 ? '1' : 'ПОЕХАЛИ!', ph = rem > 0 ? (rem % 1.2) / 1.2 : 1 + rem / 0.8;
+      g.save(); g.globalAlpha = Math.max(0, Math.min(1, ph * 1.4)); g.fillStyle = '#ffd86b'; g.strokeStyle = '#2a1405'; g.lineWidth = 8 * dpr; g.font = `900 ${Math.round(rem > 0 ? H * 0.16 : H * 0.085)}px Rubik,system-ui`; g.strokeText(txt, W / 2, H * 0.42); g.fillText(txt, W / 2, H * 0.42); g.restore(); }
     const hud = ov.querySelector('.hud'), pct = G.n ? Math.round(G.pts / (2 * G.n) * 100) : 0, fb = now - G.fbT < 500 ? ' · ' + G.fb : '';
     if (hud) hud.textContent = `${M.name} · ${pct}% · комбо ${G.combo}${fb}`;
-    if (t >= G.end || (G.au.ended && t > 1)) finish();
+    if (G.started && (t >= G.end || (G.au.ended && t > 1))) finish();
   }
   function finish() { const g0 = G; stop(); const pct = g0.n ? Math.round(g0.pts / (2 * g0.n) * 100) : 0, M = g0.M;
     ov.classList.remove('play'); ov.innerHTML = `<div class="res"><h2>${M.name}</h2><div class="big">${pct}%</div><div class="hint">отлично ${g0.per} · хорошо ${g0.good} · мимо ${g0.miss} · лучшее комбо ${g0.best}</div>
@@ -68,5 +74,5 @@
     try { if (window.PanelActions && !/[?&]mock=1/.test(location.search)) PanelActions.fire('хоровод', M.id + ':' + pct, 'Хоровод'); } catch (e) {}
   }
   function showTown() { try { if (document.body.classList.contains('bs-on')) { const b = [...document.querySelectorAll('#bs button')].find(x => x.textContent.trim() === 'Город'); if (b) b.click(); } else if (window.__panel && window.__panel.setTab) window.__panel.setTab('town'); } catch (e) {} }
-  window.__hor = { open() { ov.style.display = 'block'; menu(); showTown(); try { if (window.PanelActions && !/[?&]mock=1/.test(location.search)) PanelActions.fire('хоровод', 'старт', 'Хоровод'); } catch (e) {} /* v16: герой идёт на площадь в хоровод */ }, close };
+  window.__hor = { open() { ov.style.display = 'block'; menu(); showTown(); if (/[?&]mock=1/.test(location.search)) window.__horDemo = true; try { if (window.PanelActions && !/[?&]mock=1/.test(location.search)) PanelActions.fire('хоровод', 'старт', 'Хоровод'); } catch (e) {} /* v16: герой идёт на площадь в хоровод */ }, close };
 })();

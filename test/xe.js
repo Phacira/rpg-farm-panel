@@ -85,7 +85,7 @@
   const SND = { on: 1, vol: 0.6 }; try { Object.assign(SND, JSON.parse(localStorage.getItem('rpgHorn') || '{}')); if (localStorage.getItem('rpgXeSound') === '0') SND.on = 0; } catch (e) {}
   const sndSave = () => { try { localStorage.setItem('rpgHorn', JSON.stringify(SND)); } catch (e) {} };
   (function () {
-    const st = document.createElement('style'); st.textContent = `#hornBtn{position:fixed;right:12px;top:12px;z-index:2147483000;width:34px;height:34px;border:0;background:none;box-shadow:none;color:#ffd86b;font:20px system-ui;cursor:pointer;opacity:.85;padding:0;overflow:visible;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}#hornBtn:hover{opacity:1}#hornBtn.off{filter:grayscale(1) drop-shadow(0 1px 2px rgba(0,0,0,.8));opacity:.5}
+    const st = document.createElement('style'); st.textContent = `#hornBtn{position:fixed;right:12px;top:12px;z-index:2147483000;width:34px;height:34px;border:0;background:none;box-shadow:none;color:#ffd86b;font:20px system-ui;cursor:pointer;opacity:.85;padding:0;overflow:visible;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}#hornBtn:hover{opacity:1}#musBtn.paired{width:34px!important;height:34px!important;border:0!important;background:none!important;box-shadow:none!important;font-size:20px!important;z-index:2147483000!important;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}#hornBtn.off{filter:grayscale(1) drop-shadow(0 1px 2px rgba(0,0,0,.8));opacity:.5}
 #hornBtn.new::after{content:'';position:absolute;top:5px;right:6px;width:8px;height:8px;border-radius:50%;background:#ff4d4d;box-shadow:0 0 6px #ff4d4d;animation:hornDot 1.2s ease-in-out infinite}@keyframes hornDot{50%{opacity:.25;transform:scale(.8)}}
 #hornPop{position:fixed;right:12px;top:50px;z-index:2147483001;background:rgba(30,20,12,.96);border:1px solid #c99b4a;border-radius:10px;padding:10px 12px;color:#f3e3c2;font:500 13px Rubik,system-ui,sans-serif;width:230px;display:none}
 #hornPop b{color:#ffd86b}#hornPop label{display:flex;gap:8px;align-items:center;margin:6px 0;cursor:pointer}#hornPop input[type=range]{width:100%;accent-color:#ffd86b}#hornPop button{margin-top:6px;width:100%;min-height:32px;border-radius:8px;border:1px solid #c99b4a;background:linear-gradient(#7a4b22,#5a3416);color:#fff;font:600 13px Rubik,system-ui;cursor:pointer}`;
@@ -101,11 +101,16 @@
     setInterval(() => {
       const phone = innerWidth < 760 || (matchMedia && matchMedia('(pointer:coarse)').matches), bs = document.body.classList.contains('bs-on');
       const port = !phone && bs && document.querySelector('#bsUnit .port'), uf = port && port.parentElement;
-      if (port) { if (b.parentElement !== uf) uf.appendChild(b); Object.assign(b.style, { position: 'absolute', left: Math.round(port.offsetLeft + (port.offsetWidth - 34) / 2) + 'px', top: Math.round(port.offsetTop + port.offsetHeight + 2) + 'px', right: 'auto', bottom: 'auto' }); return; }
+      const mb = document.getElementById('musBtn'); // 27.11: кнопка музыки (зима) — рядом с колокольчиком, без обводки; на маленьком пульте с ПК — как была
+      if (port) { if (b.parentElement !== uf) uf.appendChild(b); const c = port.offsetLeft + port.offsetWidth / 2, top = Math.round(port.offsetTop + port.offsetHeight + 2) + 'px';
+        Object.assign(b.style, { position: 'absolute', left: Math.round(c - (mb ? 34 : 17)) + 'px', top, right: 'auto', bottom: 'auto' });
+        if (mb) { if (mb.parentElement !== uf) uf.appendChild(mb); mb.classList.add('paired'); Object.assign(mb.style, { position: 'absolute', left: Math.round(c) + 'px', top, right: 'auto', bottom: 'auto' }); } return; }
       if (b.parentElement !== document.body && document.body) document.body.appendChild(b);
+      if (mb && mb.parentElement !== document.body && document.body) document.body.appendChild(mb);
       if (phone) { let top = 12; if (bs) { const ex = [...document.querySelectorAll('#bs button, #bs a')].find(x => /Обычный пульт/.test(x.textContent)); if (ex) { const r = ex.getBoundingClientRect(); if (r.width && r.left > innerWidth * 0.5) top = Math.round(r.bottom + 6); } }
-        Object.assign(b.style, { position: 'fixed', top: top + 'px', right: '12px', left: 'auto', bottom: 'auto' }); }
-      else Object.assign(b.style, { position: 'fixed', left: '54px', bottom: '10px', top: 'auto', right: 'auto' });
+        Object.assign(b.style, { position: 'fixed', top: top + 'px', right: '12px', left: 'auto', bottom: 'auto' });
+        if (mb) { mb.classList.add('paired'); Object.assign(mb.style, { position: 'fixed', top: top + 'px', right: '48px', left: 'auto', bottom: 'auto' }); } }
+      else { Object.assign(b.style, { position: 'fixed', left: '54px', bottom: '10px', top: 'auto', right: 'auto' }); if (mb) { mb.classList.remove('paired'); mb.style.cssText = ''; } }
     }, 400);
     pp.onclick = e => e.stopPropagation();
     pp.addEventListener('input', e => { seen(); const k = e.target.dataset.k; if (k === 'on') SND.on = e.target.checked ? 1 : 0; if (k === 'vol') SND.vol = e.target.value / 100; sndSave(); sync(); });
