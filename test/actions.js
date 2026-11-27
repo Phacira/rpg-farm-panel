@@ -232,7 +232,7 @@
           if (full || mine >= wn.per) d._soft = 1; return [d]; })()[0];
           const it = (b, extra) => Object.assign({ label: b[0] + ' ' + b[1], sub: b[4] || '', cmd: b[2], arg: typeof b[3] === 'string' ? b[3] : '' }, typeof b[3] === 'function' ? { next: b[3]().map(o => Object.assign({ cmd: b[2] }, o)) } : {}, b._soft ? { soft: 1 } : {}, extra || {});
           const L = [it(adv)]; if (horOn) L.push({ label: '🎶 Хоровод', sub: hor[4], fn: () => { if (window.__hor) window.__hor.open(); } }); if (deco) L.push(it(deco));
-          L.push(it(snow), it(gift), it(dress), { label: '🏆 Рейтинг ивента', sub: `твои очки: ${my}`, next: rate[3]() });
+          L.push(it(dress), /* снежок и подарок — нажатием на героя (wint.js) */ { label: '🏆 Рейтинг ивента', sub: `твои очки: ${my}`, next: rate[3]() });
           return { L, sub: xm.adv ? (xm.hd ? `хоровод ${xm.hd}%` : 'хоровод, ёлка, снежки') : 'подарок дня ждёт!' }; })();
       if (!W || Array.isArray(W)) return []; return [['🎄', 'Новый год', 'подарок', () => W.L, W.sub]]; };
     return {
