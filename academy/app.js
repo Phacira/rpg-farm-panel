@@ -23,6 +23,29 @@
     ['Что вас больше всего привлекает в магии?', [['v', 'Лечить и выращивать'], ['a', 'Понять законы мира'], ['l', 'Узнавать скрытое'], ['r', 'Защищать других']]],
     ['За что вас ценят друзья?', [['l', 'Умею слушать и хранить тайны'], ['r', 'Смелый и говорю прямо'], ['v', 'Забочусь и не тороплю'], ['a', 'Даю дельные советы']]],
     ['Где вы проведёте свободный вечер в замке?', [['a', 'В обсерватории на крыше'], ['l', 'В старой библиотеке при свечах'], ['v', 'В оранжерее'], ['r', 'На тренировочном дворе']]]];
+  let RIG = null; fetch('rig.json').then(r => r.json()).then(j => { RIG = j; render(); }).catch(() => {});
+  const IMGS = {};
+  function img(src) { if (!IMGS[src]) { const i = IMGS[src] = new Image(); i.onload = () => drawFigures(); i.src = src; } return IMGS[src]; }
+  // ученик целиком: та же сборка, что в оверлее (стойка, без поворотов)
+  function figure(look, robe, h) { return `<canvas class="fig" data-look="${esc(look)}" data-robe="${esc(robe || 'grey')}" style="height:${h}px;width:${Math.round(h * 0.6)}px"></canvas>`; }
+  function drawFigures() {
+    if (!RIG) return;
+    document.querySelectorAll('canvas.fig').forEach(cv => {
+      const look = cv.dataset.look, robe = cv.dataset.robe, hd = RIG.heads[look]; if (!hd) return;
+      const parts = { arm_f: `img/body/arm_f_${robe}.png`, leg_f: 'img/body/leg_f.png', leg_n: 'img/body/leg_n.png', body: `img/body/body_${robe}.png`, arm_n: `img/body/arm_n_${robe}.png`, head: `img/heads/${look}.png` };
+      const im = {}; for (const k in parts) { im[k] = img(parts[k]); if (!im[k].complete || !im[k].naturalWidth) return; }
+      const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr;
+      const c = cv.getContext('2d'), b = RIG.bbox, bw = b[2] - b[0], bh = b[3] - b[1] + 30, k = Math.min(W / bw, H / bh) * dpr;
+      c.setTransform(k, 0, 0, k, (W * dpr - bw * k) / 2 - b[0] * k, (H * dpr - bh * k) - b[1] * k);
+      const A = RIG.ATT, P = RIG.PIV, Z = RIG.size, X = RIG.BX, Y = RIG.BY;
+      c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse((b[0] + b[2]) / 2, b[3] - 4, bw * .32, 16, 0, 0, 7); c.fill();
+      const put = (n, ax, ay) => c.drawImage(im[n], ax - P[n][0], ay - P[n][1], Z[n][0], Z[n][1]);
+      put('arm_f', X + A.arm_f[0], Y + A.arm_f[1]); put('leg_f', X + A.leg_f[0], Y + A.leg_f[1]); put('leg_n', X + A.leg_n[0], Y + A.leg_n[1]);
+      c.drawImage(im.body, X, Y, Z.body[0], Z.body[1]);
+      c.drawImage(im.head, X + A.head[0] - hd.p[0], Y + A.head[1] - hd.p[1], hd.w, hd.h);
+      put('arm_n', X + A.arm_n[0], Y + A.arm_n[1]);
+    });
+  }
   let HEADS = {}; fetch('heads.json').then(r => r.json()).then(j => { HEADS = j; render(); }).catch(() => {});
   const draftKey = 'ac_draft';
   let draft = (() => { try { return JSON.parse(localStorage.getItem(draftKey)) || null; } catch (e) { return null; } })() || { g: 'f', st: 'braids', c: 'darkbrown', q: [] };
@@ -101,7 +124,7 @@
   function setRes(ok, msg) { lastRes = { ok, msg, at: Date.now() }; render(); }
 
   // ---------- отрисовка ----------
-  function render() { renderAuth(); renderMe(); renderCup(); renderAdmin(); }
+  function render() { renderAuth(); renderMe(); renderCup(); renderAdmin(); drawFigures(); }
   function renderAuth() {
     $('auth').innerHTML = user
       ? `<span>Вы вошли как <b>${esc(user.login)}</b></span><button class="btn-ghost btn-small" id="out">Выйти</button>`
@@ -114,7 +137,7 @@
     const k = size * 0.19 / m[4], w = m[0] * k, x = size / 2 - m[2] * k, y = size * 0.6 - m[3] * k;
     return `<div class="${cls || 'portrait'}" style="width:${size}px;height:${size}px"><img src="img/heads/${encodeURIComponent(look)}.png" alt="" style="width:${w}px;left:${x}px;top:${y}px"></div>`;
   }
-  function portrait(look) { return look ? face(look, 104) : `<div class="portrait empty">?</div>`; }
+  function portrait(look, robe) { return look ? `<div class="stage">${figure(look, robe, 190)}</div>` : `<div class="portrait empty">?</div>`; }
   function renderMe() {
     const box = $('me');
     if (!user) {
@@ -139,7 +162,7 @@
       return;
     }
     const h = houseOf(me.house);
-    box.innerHTML = `<div class="status">${portrait(me.look)}<div><p class="big">${esc(me.n)}</p><p class="sub">Ученик Академии магии</p></div></div>
+    box.innerHTML = `<div class="status">${portrait(me.look, { astra: 'blue', verdant: 'green', vallor: 'red', lumen: 'purple' }[me.house])}<div><p class="big">${esc(me.n)}</p><p class="sub">Ученик Академии магии</p></div></div>
       <div class="house" style="background:${h.color}">${emblem(h.id, 44)}<div><b>${h.name}</b><div>${h.motto}</div></div></div>${resLine()}`;
   }
   function renderBuilder(box) {
@@ -152,7 +175,7 @@
     }
     if (step === 'look') {
       const st = STYLES[draft.g];
-      box.innerHTML = `<h2>Внешность</h2><div class="builder"><div class="preview">${face(L, 150)}</div>
+      box.innerHTML = `<h2>Внешность</h2><div class="builder"><div class="stage big">${figure(L, 'grey', 250)}</div>
         <div class="opts"><p class="lbl2">Ученик</p><div class="seg"><button data-g="m" class="${draft.g === 'm' ? 'on' : ''}">Парень</button><button data-g="f" class="${draft.g === 'f' ? 'on' : ''}">Девушка</button></div>
         <p class="lbl2">Цвет волос</p><div class="sw">${COLORS.map(c => `<button data-c="${c[0]}" class="${draft.c === c[0] ? 'on' : ''}" style="background:${c[2]}" aria-label="${c[1]}" title="${c[1]}"></button>`).join('')}</div></div></div>
         <p class="lbl2">Причёска</p><div class="styles">${st.map(x => `<button data-s="${x[0]}" class="${draft.st === x[0] ? 'on' : ''}">${face(`${draft.g}_${x[0]}_${draft.c}`, 64, 'mini')}<span>${x[1]}</span></button>`).join('')}</div>
