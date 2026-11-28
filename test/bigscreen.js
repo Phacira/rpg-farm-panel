@@ -1005,14 +1005,17 @@
   }
 
   // 27.11: ауры героев (как в игре); «чужие ауры» можно скрыть в настройках (колокольчик)
-  const AURA9 = { fire: ['fire', 460, 461], frost: ['frost', 474, 451], leaf: ['leaf', 503, 545], moondust: ['moon', 489, 372], gold: ['gold', 496, 355], shadow: ['shadow', 454, 331], xmas: ['xmas', 529, 376] }, AURA_RY = { fire: 356, frost: 360, leaf: 461, moondust: 249, gold: 255, shadow: 182, xmas: 190 };
+  const AURA9 = { fire: ['fire', 460, 461], frost: ['frost', 474, 451], leaf: ['leaf', 503, 545], moondust: ['moon', 489, 372], gold: ['gold', 496, 355], shadow: ['shadow', 454, 331], xmas: ['xmas', 529, 376] }, AURA_RY = { fire: 332, frost: 354, leaf: 448, moondust: 251, gold: 249, shadow: 195, xmas: 196 }, AURA_OX = { fire: -3, leaf: 4, shadow: 7 };
   function auraSet(el, id, mine) { let d = el.querySelector(':scope > .aura9'); let others = true; try { others = localStorage.getItem('rpgAuraOthers') !== '0'; } catch (e) {}
     const A = id && AURA9[id], show = !!(A && (mine || others));
     if (!show) { if (d) d.remove(); return; }
     if (!d) { d = document.createElement('div'); d.className = 'aura9'; const sh = el.querySelector(':scope > .shadow'); el.insertBefore(d, sh ? sh.nextSibling : el.firstChild); }
     if (d.dataset.id === id) return; d.dataset.id = id; const k = 192 * 1.2 / A[1], w = 520 * k, h = A[2] * k, b = (A[2] - AURA_RY[id]) * k;
-    d.style.cssText = `position:absolute;left:0;bottom:calc(${-b.toFixed(1)}px * var(--hs,1));width:calc(${w.toFixed(1)}px * var(--hs,1));height:calc(${h.toFixed(1)}px * var(--hs,1));transform:translateX(-50%);background:url(img/auras/${A[0]}.png?v=5) center/100% 100% no-repeat;pointer-events:none;animation:aura9 3.2s ease-in-out infinite`; }
-  { const st9 = document.createElement('style'); st9.textContent = '@keyframes aura9{0%,100%{filter:brightness(1) saturate(1)}50%{filter:brightness(1.3) saturate(1.25)}}'; document.head.appendChild(st9); }
+    d.style.cssText = `position:absolute;left:0;bottom:calc(${-b.toFixed(1)}px * var(--hs,1));width:calc(${w.toFixed(1)}px * var(--hs,1));height:calc(${h.toFixed(1)}px * var(--hs,1));transform:translateX(calc(-50% - ${((AURA_OX[id] || 0) * k).toFixed(1)}px * var(--hs,1)));background:url(img/auras/${A[0]}.png?v=6) center/100% 100% no-repeat;pointer-events:none;animation:aura9 3.2s ease-in-out infinite`;
+    const PK = { fire: ['u', '#ffb04a', 'border-radius:1px;transform:rotate(45deg)', 5], frost: ['u', '#e6f6ff', 'border-radius:50%', 4], leaf: ['d', '#d58a3a', 'border-radius:0 80% 0 80%', 9], moondust: ['t', '#efeaff', 'border-radius:50%', 4], gold: ['u', '#ffd24a', 'border-radius:50%;box-shadow:inset -1px -1px #c9961e', 7], shadow: ['u', '#b07aff', 'border-radius:50%;opacity:.7', 6], xmas: ['d', '#ffffff', 'border-radius:50%', 4] }[id];
+    if (PK) { let hh = ''; for (let q = 0; q < 6; q++) { const L = 18 + (q * 13) % 64, T = PK[0] === 't' ? 20 + (q * 17) % 50 : PK[0] === 'u' ? 45 + (q * 7) % 20 : 5 + (q * 11) % 20, dur = PK[0] === 't' ? 1.6 + q * .3 : 2.4 + (q % 3) * .7;
+      hh += `<i style="left:${L}%;top:${T}%;width:${PK[3]}px;height:${PK[0] === 'd' && id === 'leaf' ? PK[3] * .6 : PK[3]}px;background:${PK[1]};${PK[2]};animation:au9${PK[0]} ${dur}s ${-q * .55}s linear infinite"></i>`; } d.innerHTML = hh; } }
+  { const st9 = document.createElement('style'); st9.textContent = '@keyframes aura9{0%,100%{filter:brightness(1) saturate(1)}50%{filter:brightness(1.3) saturate(1.25)}}@keyframes au9u{0%{transform:translateY(0);opacity:0}15%{opacity:1}100%{transform:translateY(-140%);opacity:0}}@keyframes au9d{0%{transform:translateY(-150%) rotate(0);opacity:0}15%{opacity:1}100%{transform:translateY(0) rotate(200deg);opacity:0}}@keyframes au9t{0%,100%{opacity:.2}50%{opacity:1}}.aura9 i{position:absolute;display:block;pointer-events:none}'; document.head.appendChild(st9); }
   window.__auraRefresh = () => { document.querySelectorAll('#bsActors .aura9').forEach(d => { d.dataset.id = ''; }); try { if (window.__panel && __panel.render) __panel.render(); } catch (e) {} };
   function fillActors(c) {
     const box = $('#bsActors'), st = c.state, l = bsLoc;
