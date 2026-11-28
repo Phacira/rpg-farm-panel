@@ -290,7 +290,7 @@
       seed: ['Семена', [{ html: '<span class="vegi icfb">🌱</span>', n: me.sd || 0, nm: 'Семена' }, { html: '<span class="vegi icfb">✨</span>', n: me.sdp || 0, nm: 'Волшебные семена' }]],
       gear: ['Снаряжение', (me.eqOwn || []).map(id => { const e = E[id], on = Object.values(eqOn).includes(id); return { html: icOf(id), n: on ? '✓' : '', nm: e ? e[1] : id, act: on, tip: (e && e[6] || '') + (on ? ' · надето' : '') }; })
         .concat(!(me.lgs && me.lgs.length) ? ((me.iv && me.iv.g) || []).map(x => ({ html: '<span class="vegi icfb">⚔️</span>', n: '★', nm: x[1] || 'лут', act: 1 })) : [])
-        .concat(me.ttOn ? [{ html: '<span class="vegi icfb">🏷️</span>', n: '', nm: 'титул: ' + me.ttOn, act: 1 }] : [], (me.pt || []).map(([id, n]) => ({ html: '<span class="vegi icfb">🐾</span>', n: me.ptOn === id ? '✓' : '', nm: 'питомец: ' + n, act: me.ptOn === id })))]
+        .concat(me.ttOn ? [{ html: '<span class="vegi icfb">🏷️</span>', n: '', nm: 'титул: ' + me.ttOn, act: 1 }] : [], (me.pt || []).map(([id, n]) => ({ html: '<span class="vegi icfb">🐾</span>', n: me.ptOn === id ? '✓' : '', nm: 'питомец: ' + n, act: me.ptOn === id })), ((me.au && me.au.own) || []).map(id => ({ html: '<span class="vegi icfb">✨</span>', n: me.au.on === id ? '✓' : '', nm: 'аура: ' + ((((state.ref && state.ref.au) || []).find(a => a[0] === id) || [])[1] || id), act: me.au.on === id })))]
     };
     const cur = T[obsTab] || T.mat, cells = cur[1].map(cell), pad = Math.max(0, (cells.length <= 12 ? 12 : Math.ceil(cells.length / 6) * 6) - cells.length);
     return `<div class="obsinv"><div class="ob-top"><div class="ob-left"><div class="ob-port">${heroPic(me.k6, me.hair, me.dy, me.cls, 'big')}<div><b>${esc(me.n)}</b><small>${esc(me.cn || '')} · ур. ${esc(me.lv)}</small></div></div>
@@ -598,6 +598,9 @@
     const pet = me.ptOn
       ? `<span class="uc-tag pet"><img src="img/pet/${esc(me.ptOn)}.png" alt="" onerror="this.replaceWith(document.createTextNode('🐾'))"> ${esc(petName)}</span>`
       : '<span class="uc-tag lab">питомец: нет</span>';
+    // 28.11: аура — как питомец (в окне героя)
+    const AUF = { fire: 'fire', frost: 'frost', leaf: 'leaf', moondust: 'moon', gold: 'gold', shadow: 'shadow', xmas: 'xmas' }, auM = me.au || null, auNm = auM && auM.on ? (((state.ref && state.ref.au) || []).find(a => a[0] === auM.on) || [])[1] || auM.on : '';
+    const aur = !auM ? '' : auM.on ? `<span class="uc-tag pet">${AUF[auM.on] ? `<img src="img/auras/${AUF[auM.on]}.png?v=5" alt="" style="object-fit:contain">` : '✨'} ${esc(auNm)}</span>` : '<span class="uc-tag lab">аура: нет</span>';
     const bfs = (me.bf || []);
     const bfHtml = bfs.length
       ? bfs.map(([n, t, c]) => `<span class="uc-tag bf"><b>${esc(n)}</b> — ${esc(t)}${c != null && c !== '' ? ` · осталось ${esc(hikeLeft(c))}` : ''}</span>`).join('')
@@ -614,7 +617,7 @@
       ${meter('HP' + hpBonusOf(me), me.hp, me.mhp, 'hp')}${me.mmp ? meter('Мана', me.mp || 0, me.mmp, 'mp') : ''}${meter('Опыт', me.xp, me.xpN, 'xp')}
       ${eqBlock}
       ${tab === 'me' || document.body.classList.contains('bs-on') ? (INV_OBS ? '' : statHtml(me)) : ''} <!-- v10: на большом экране в инвентаре тоже видны атака и защита -->
-      <div class="uc-status"><div class="uc-row">${ttl}${pet}</div><div class="uc-row">${bfHtml}</div></div>
+      <div class="uc-status"><div class="uc-row">${ttl}${pet}${aur}</div><div class="uc-row">${bfHtml}</div></div>
       <div class="uc-day">${dayBits.join('')}</div>
       ${tab === 'me' ? questHtml(me) : ''}
       <div class="hveg">${veg}</div>
