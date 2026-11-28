@@ -48,6 +48,10 @@
       c.drawImage(im.body, X, Y, Z.body[0], Z.body[1]);
       c.drawImage(im.head, X + A.head[0] - hd.p[0], Y + A.head[1] - hd.p[1], hd.w, hd.h);
       put('arm_n', X + A.arm_n[0], Y + A.arm_n[1]);
+      // косы и пряди ниже подбородка — поверх плеча, а не под рукавом
+      const hy0 = Y + A.head[1] - hd.p[1], cut = hd.p[1] - 6;
+      c.save(); c.beginPath(); c.rect(X + A.head[0] - hd.p[0], hy0 + cut, hd.w, hd.h - cut); c.clip();
+      c.drawImage(im.head, X + A.head[0] - hd.p[0], hy0, hd.w, hd.h); c.restore();
     });
   }
   let HEADS = {}; fetch('heads.json').then(r => r.json()).then(j => { HEADS = j; render(); }).catch(() => {});
