@@ -283,7 +283,7 @@
     const cell = o => `<span class="ob-c${o.n === 0 || o.n === '0' ? ' zero' : ''}${o.act ? ' on' : ''}" title="${esc(o.nm + (o.tip ? ' — ' + o.tip : ''))}">${o.html}${o.n !== '' && o.n != null ? `<i>${esc(o.n)}</i>` : ''}</span>`;
     const fromIv = (a, def) => (a || []).map(x => { const o = invItem(x, def); return { html: o.veg ? vegImg(o.veg, o.ic) : icoH(o.ic), n: o.n, nm: o.nm, act: o.act, tip: o.act ? 'активно' : '' }; });
     const T = {
-      mat: ['Материалы', fromIv(iv.m, '🪨')],
+      mat: ['Материалы', ((me.xm && me.xm.gq) || []).map(f => ({ html: '<span class="vegi icfb">🎁</span>', n: '', nm: 'подарок от ' + f + ' — открыть: «Мой герой → Подарки»', act: 1 })).concat(fromIv(iv.m, '🪨'))],
       food: ['Еда', fromIv(iv.f, '🍲').concat(Object.entries(me.veg || {}).map(([k, n]) => ({ html: vegImg(k), n, nm: k })))],
       pot: ['Зелья', fromIv(iv.p, '🧪')],
       tro: ['Трофеи', (me.lgs || []).map(r => { const act = r.length > 5 ? !!r[5] : true; return { html: '<span class="vegi icfb">🏆</span>', n: act ? '✓' : '', nm: 'Трофей: ' + r[1], act, tip: (act ? 'активный: ' : 'не действует (активен только один) · дал бы ') + (r[4] || '') + (r[3] != null ? ' · продать ' + r[3] + ' з' : '') }; })], // v49.8: трофеи — отдельно от снаряжения
