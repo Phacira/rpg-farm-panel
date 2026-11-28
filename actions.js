@@ -366,7 +366,7 @@
   function ask(d, arg, label, confirm, cmd) {
     if (confirm && window.__betaNoConfirm && window.__betaNoConfirm(cmd || d[2], arg)) confirm = null; // бета: без «Точно?» на бесплатных действиях
     if (confirm) return sheet(confirm, [{ label: 'Да, выполнить', go: () => { close(); fire(cmd || d[2], arg, label); } }]);
-    const c = cmd || d[2], cb = c === 'подарок' || c === 'распаковать' ? (m => sheet(m.ok ? (c === 'подарок' ? '🎁 Подарок дня' : '🎁 Подарок') : (c === 'подарок' ? 'Подарок дня' : 'Подарок'), [{ note: 1, label: m.ok ? 'Что внутри:' : 'Не получилось', sub: m.msg || '' }])) : null; // 27.11: что выпало — окном, а не мелкой строкой
+    const c = cmd || d[2], cb = c === 'подарок' || c === 'распаковать' ? (m => sheet(m.ok ? (c === 'подарок' ? '🎁 Подарок дня' : '🎁 Подарок') : (c === 'подарок' ? 'Подарок дня' : 'Подарок'), [{ note: 1, label: m.ok ? (c === 'подарок' ? 'Что внутри:' : 'Ты открываешь подарок…') : 'Не получилось', sub: m.msg || '' }])) : null; // 27.11: что выпало — окном, а не мелкой строкой
     close(); fire(c, arg, label, cb);
   }
   function choose(d, opts, title) {
