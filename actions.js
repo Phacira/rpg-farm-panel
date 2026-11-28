@@ -58,7 +58,15 @@
       const can = cnt > wn, e = me && me.esp && me.esp[id], extra = can && wn > 0, lv = e && !extra ? e[1] : 0;
       const pr = e ? (extra ? Math.round((price || 0) * 0.3) : e[0]) : Math.round((price || 0) * 0.3), nm = n + (lv ? ` +${lv}` : '');
       return { can, pr, lv, extra, nm, row: { ic: ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : '', label: nm + (extra ? ' (лишняя копия)' : ''), sub: can ? `кузня · ${pr} з${lv ? ' · с учётом заточки' : ''}` : 'сначала сними вещь', dis: !can, arg: id, cmd: 'продать', confirm: can ? `Продать «${nm}» за ${pr} золота?${lv ? `\nЗаточка +${lv} пропадёт.` : ''}` : '' } }; };
-    const shop = () => (ref.eq || []).filter(i => !i[4] || (me && i[4].includes(me.cls))).map(([id, name, price, slot, , bs, stt]) => { // v7panel20 п.2: + статы вещи; v49.9: у своей вещи — Надеть / Продать
+    // 28.11: ауры в кузнице — купить / надеть / снять (только вид, на статы не влияет)
+    const RAR9 = { rare: 'редкая', epic: 'эпическая', legendary: 'легендарная' };
+    const auraShop = () => { const A = ref.au || [], my = (me && me.au) || null; if (!A.length || !my) return [];
+      const L = A.filter(a => a[2] > 0 || my.own.includes(a[0])).map(([id, name, price, r]) => { const own = my.own.includes(id), on = my.on === id;
+        if (own) return { label: '✨ Аура «' + name + '»', sub: on ? 'надета · нажми, чтобы снять' : 'есть · надеть', arg: on ? 'аура' : id, cmd: on ? 'снять' : 'экип' };
+        return { label: '✨ Аура «' + name + '»', sub: `${price} з · ${RAR9[r] || r} · только вид`, dis: gold < price, arg: id, confirm: `Купить ауру «${name}» за ${price} золота? Это только внешний вид.` }; });
+      return L.length ? [{ note: 1, label: 'Ауры', sub: 'вокруг героя, на статы не влияют · иногда выпадают из сундуков' }].concat(L) : []; };
+    const shop = () => shopGear().concat(auraShop());
+    const shopGear = () => (ref.eq || []).filter(i => !i[4] || (me && i[4].includes(me.cls))).map(([id, name, price, slot, , bs, stt]) => { // v7panel20 п.2: + статы вещи; v49.9: у своей вещи — Надеть / Продать
       const own = me && (me.eqOwn || []).includes(id), on = me && eqWorn(id);
       const ic = ref.ic ? (window.__eqIcK ? window.__eqIcK(id) : id) : ''; // v7panel21 п.1: иконка вещи на кнопке
       const so9 = +(me && me.g9 && me.g9.so) || 0, pp = so9 ? Math.round(price * (1 - so9 / 100)) : price; // v9d: скидка гильдии недели
