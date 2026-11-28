@@ -83,10 +83,16 @@ footer{text-align:center;color:#8d81a8;font-size:13px;padding:0 16px 24px}
 @media(max-width:480px){.status{grid-template-columns:1fr;justify-items:center;text-align:center}.portrait{width:96px;height:96px}}
 .scene{display:block;width:100%;border-radius:14px;border:2px solid var(--line);background:#2a2238}
 .cap{margin:10px 2px 0;color:var(--mute);font-size:15px}
+.live{max-width:1400px;margin:6px auto 0;padding:0 14px}
+.lv-scroll{overflow-x:auto;overflow-y:hidden;border-radius:14px;border:2px solid var(--line);background:#1d1828;scrollbar-width:thin}
+#lv{display:block;height:min(42vw,380px)}
+.traits{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.tr{padding:4px 10px;border-radius:999px;font-weight:800;font-size:14px}
+.tr.t0{background:#d8f3dc;color:#1f5e2e}.tr.t1{background:#ffe0dc;color:#8a2a20}.tr.t2{background:#dde9ff;color:#24427a}
 </style>
 </head>
 <body>
 <header><h1>Академия магии</h1><p>Пульт ученика: поступление и ваш факультет</p></header>
+<section class="live" id="live" hidden><div class="lv-scroll"><canvas id="lv"></canvas></div></section>
 <main>
   <div class="auth" id="auth"></div>
   <section class="card" id="me"></section>
