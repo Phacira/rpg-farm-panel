@@ -413,6 +413,8 @@
   function heroPic(k6, hid, dy, cls, cl) {
     const fb = `<span class="hpic fb ${cl || ''}" title="${esc(cls || '')}">${CLS_IC[cls] || '🧝'}</span>`;
     k6 = String(k6 || '').replace(/_sit$/, ''); if (!k6) return fb;
+    { const hk = (hid && !/_(black|blond|chestnut|red|chestnut_loose)(_beard)?$/.test(k6)) ? k6 + '_' + hid : k6; // 28.11: новые спрайты h7 (как на большом экране), старые — запасной вариант
+      if (/_(m|f)_[a-z]+_/.test(hk) && !dy) return `<img class="hpic h7 ${cl || ''}" style="image-rendering:auto" src="img/h7/${esc(hk)}.webp?v=${/_priest_/.test(hk) ? 'h8p' : /_f_assassin_|_paladin_/.test(hk) ? 'h8f' : 'h8'}" alt="${esc(cls || '')}" onerror="this.onerror=null;this.style.imageRendering='pixelated';this.src='img/h/${esc(k6)}.webp?v=h8'">`; }
     const H = window.HeroSprites;
     // v7panel45b: canvas если движок готов; иначе webp по k6 из snap (emoji только при 404)
     if (H && H.has(k6)) {
