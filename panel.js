@@ -914,7 +914,7 @@
     gear: [['sword1','Острый меч',1,40,'+5% урон'],['sword2','Рунный клинок',2,80,'+10% урон'],['armor2','Кольчуга',2,80,'+4 защита'],['sword3','Клинок героя',3,120,'+18% урон']] };
   // отправка команды: в бою — через relay (ника нет, его подставит relay из токена); в демо — ответ имитируется на странице
   window.__panelSend = m => {
-    if (mock) { window.__lastMockCmd = m; return setTimeout(() => PanelActions.done(mockReply(m)), 350); }
+    if (mock) { window.__lastMockCmd = m; return setTimeout(() => { const r = mockReply(m); PanelActions.done(r); try { if (r && r.ok && r.msg && state.ref) { const L = state.ref.log || (state.ref.log = []); L.push([Date.now(), ((state.me && state.me.n) || 'demo_viewer') + ' ' + String(r.msg).replace(/\s*\(демо\)\s*$/, '').trim(), 'e']); if (L.length > 60) L.splice(0, L.length - 60); render(); } } catch (e) {} }, 350); } // 28.11: в демо результаты команд пишутся и в журнал (в живой игре журнал ведёт сама игра)
     if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); else PanelActions.done({ id: m.id, ok: false, msg: 'нет связи с сервером' });
   };
   function mockReply(m) {
