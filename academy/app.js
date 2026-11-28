@@ -14,6 +14,21 @@
     vallor: 'M-1.4 -11 h2.8 v13 h-2.8z M-6 2 h12 v2.8 h-12z M-1.6 4.8 h3.2 v5.5 h-3.2z' };
   const emblem = (id, size) => `<svg width="${size}" height="${size}" viewBox="-12 -12 24 24" aria-hidden="true"><path d="${EMB[id]}" fill="#f6d26b" stroke="#2a1e08" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
   const houseOf = id => HOUSES.find(h => h.id === id);
+  const STYLES = { m: [['messy', 'Растрёпанные'], ['sidepart', 'Пробор'], ['slick', 'Зачёс'], ['curly', 'Кудри'], ['ponytail', 'Хвостик'], ['spiky', 'Ёжик'], ['wavy', 'Волны'], ['buzz', 'Коротко']],
+    f: [['ponytail', 'Хвост'], ['braids', 'Две косы'], ['bob', 'Каре'], ['wavy', 'Локоны'], ['bun', 'Пучок'], ['sidebraid', 'Коса набок'], ['straight', 'Прямые'], ['twinbuns', 'Два пучка']] };
+  const COLORS = [['black', 'Чёрные', '#24201f'], ['darkbrown', 'Каштановые', '#5a3420'], ['lightbrown', 'Русые', '#9a6a40'], ['ginger', 'Рыжие', '#d9772e'], ['blond', 'Светлые', '#e8c560']];
+  const QUIZ = [
+    ['Перед вами запертая дверь в старой башне. Что вы сделаете?', [['a', 'Разгадаю, как устроен замок'], ['v', 'Спрошу, не заперт ли кто-то внутри и не нужна ли помощь'], ['r', 'Открою силой, раз надо пройти'], ['l', 'Поищу потайной ход, о котором никто не знает']]],
+    ['Что вы возьмёте с собой в Академию?', [['r', 'Старый меч деда'], ['l', 'Колоду гадальных карт'], ['a', 'Маленький телескоп'], ['v', 'Семена редкого растения']]],
+    ['Что вас больше всего привлекает в магии?', [['v', 'Лечить и выращивать'], ['a', 'Понять законы мира'], ['l', 'Узнавать скрытое'], ['r', 'Защищать других']]],
+    ['За что вас ценят друзья?', [['l', 'Умею слушать и хранить тайны'], ['r', 'Смелый и говорю прямо'], ['v', 'Забочусь и не тороплю'], ['a', 'Даю дельные советы']]],
+    ['Где вы проведёте свободный вечер в замке?', [['a', 'В обсерватории на крыше'], ['l', 'В старой библиотеке при свечах'], ['v', 'В оранжерее'], ['r', 'На тренировочном дворе']]]];
+  let HEADS = {}; fetch('heads.json').then(r => r.json()).then(j => { HEADS = j; render(); }).catch(() => {});
+  const draftKey = 'ac_draft';
+  let draft = (() => { try { return JSON.parse(localStorage.getItem(draftKey)) || null; } catch (e) { return null; } })() || { g: 'f', st: 'braids', c: 'darkbrown', q: [] };
+  let step = null; // null | 'look' | 0..4 (вопрос) | 'ready'
+  const saveDraft = () => { try { localStorage.setItem(draftKey, JSON.stringify(draft)); } catch (e) {} };
+  const lookOf = d => `${d.g}_${d.st}_${d.c}`;
   const mock = /[?&]mock=1/.test(location.search);
   let user = null, state = null, ws = null, retry = 1500, seq = 0, lastRes = null, busy = false, confirmYear = false, sureKey = null, filter = '';
   const redirect = () => location.origin + location.pathname.replace(/index\.html$/, '');
@@ -94,7 +109,12 @@
     const o = $('out'); if (o) o.onclick = logout;
   }
   function resLine() { return lastRes && Date.now() - lastRes.at < 15000 ? `<p class="res ${lastRes.ok ? '' : 'bad'}">${esc(lastRes.msg)}</p>` : ''; }
-  function portrait(look) { return look ? `<div class="portrait"><img src="img/heads/${encodeURIComponent(look)}.png" alt=""></div>` : `<div class="portrait empty">?</div>`; }
+  function face(look, size, cls) {
+    const m = HEADS[look]; if (!m) return `<div class="${cls || 'portrait'}" style="width:${size}px;height:${size}px"></div>`;
+    const k = size * 0.19 / m[4], w = m[0] * k, x = size / 2 - m[2] * k, y = size * 0.6 - m[3] * k;
+    return `<div class="${cls || 'portrait'}" style="width:${size}px;height:${size}px"><img src="img/heads/${encodeURIComponent(look)}.png" alt="" style="width:${w}px;left:${x}px;top:${y}px"></div>`;
+  }
+  function portrait(look) { return look ? face(look, 104) : `<div class="portrait empty">?</div>`; }
   function renderMe() {
     const box = $('me');
     if (!user) {
@@ -106,14 +126,7 @@
     if (state.nocfg) { box.innerHTML = `<h2>Сайт ещё не настроен</h2><p class="sub">В config.js не указан адрес ретранслятора.</p>`; return; }
     if (!state.online) { box.innerHTML = `<h2>Академия закрыта</h2><p class="sub">Стрим сейчас не идёт. Поступить можно будет, когда начнётся трансляция.</p>${resLine()}`; return; }
     const me = state.me, pub = state.pub || {};
-    if (!me) {
-      box.innerHTML = `<div class="status">${portrait(null)}<div><p class="big">Хотите учиться магии?</p>
-        <p class="sub">Ваш ученик встанет в очередь у ворот, а потом волшебный шар выберет ему факультет.</p></div></div>
-        <div class="row"><button class="btn-gold" data-g="м" ${busy ? 'disabled' : ''}>Поступить парнем</button><button class="btn-gold" data-g="ж" ${busy ? 'disabled' : ''}>Поступить девушкой</button></div>
-        <div class="row"><button data-g="" ${busy ? 'disabled' : ''}>Пусть решит судьба</button></div>${resLine()}`;
-      box.querySelectorAll('[data-g]').forEach(b => b.onclick = () => send('поступить', b.dataset.g));
-      return;
-    }
+    if (!me) { renderBuilder(box); return; }
     if (me.st === 'queue') {
       const ahead = me.pos - 1 + (pub.sorting ? 1 : 0), wait = Math.round(ahead * (pub.every || 7) / 10) * 10;
       box.innerHTML = `<div class="status">${portrait(me.look)}<div><p class="big">Вы в очереди у ворот</p>
@@ -128,6 +141,42 @@
     const h = houseOf(me.house);
     box.innerHTML = `<div class="status">${portrait(me.look)}<div><p class="big">${esc(me.n)}</p><p class="sub">Ученик Академии магии</p></div></div>
       <div class="house" style="background:${h.color}">${emblem(h.id, 44)}<div><b>${h.name}</b><div>${h.motto}</div></div></div>${resLine()}`;
+  }
+  function renderBuilder(box) {
+    const L = lookOf(draft);
+    if (step === null) {
+      box.innerHTML = `<div class="status">${portrait(L)}<div><p class="big">Хотите учиться магии?</p>
+        <p class="sub">Сначала выберите, как будет выглядеть ваш ученик, и ответьте на пять вопросов. По ответам волшебный шар выберет факультет на церемонии.</p></div></div>
+        <div class="row"><button class="btn-gold" id="go">Собрать ученика</button></div>${resLine()}`;
+      $('go').onclick = () => { step = 'look'; render(); }; return;
+    }
+    if (step === 'look') {
+      const st = STYLES[draft.g];
+      box.innerHTML = `<h2>Внешность</h2><div class="builder"><div class="preview">${face(L, 150)}</div>
+        <div class="opts"><p class="lbl2">Ученик</p><div class="seg"><button data-g="m" class="${draft.g === 'm' ? 'on' : ''}">Парень</button><button data-g="f" class="${draft.g === 'f' ? 'on' : ''}">Девушка</button></div>
+        <p class="lbl2">Цвет волос</p><div class="sw">${COLORS.map(c => `<button data-c="${c[0]}" class="${draft.c === c[0] ? 'on' : ''}" style="background:${c[2]}" aria-label="${c[1]}" title="${c[1]}"></button>`).join('')}</div></div></div>
+        <p class="lbl2">Причёска</p><div class="styles">${st.map(x => `<button data-s="${x[0]}" class="${draft.st === x[0] ? 'on' : ''}">${face(`${draft.g}_${x[0]}_${draft.c}`, 64, 'mini')}<span>${x[1]}</span></button>`).join('')}</div>
+        <div class="row"><button id="back">Назад</button><button class="btn-gold" id="next">Дальше: вопросы</button></div>`;
+      box.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { if (draft.g !== b.dataset.g) { draft.g = b.dataset.g; draft.st = STYLES[draft.g][0][0]; saveDraft(); render(); } });
+      box.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { draft.c = b.dataset.c; saveDraft(); render(); });
+      box.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { draft.st = b.dataset.s; saveDraft(); render(); });
+      $('back').onclick = () => { step = null; render(); }; $('next').onclick = () => { draft.q = []; step = 0; render(); };
+      return;
+    }
+    if (typeof step === 'number') {
+      const [q, ans] = QUIZ[step];
+      box.innerHTML = `<p class="sub">Вопрос ${step + 1} из ${QUIZ.length}</p><div class="dots">${QUIZ.map((_, i) => `<i class="${i < step ? 'done' : i === step ? 'cur' : ''}"></i>`).join('')}</div>
+        <h2 class="q">${esc(q)}</h2><div class="answers">${ans.map(a => `<button data-a="${a[0]}">${esc(a[1])}</button>`).join('')}</div>
+        <div class="row"><button id="back">Назад</button></div>`;
+      box.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { draft.q[step] = b.dataset.a; draft.q.length = step + 1; saveDraft(); step = step + 1 < QUIZ.length ? step + 1 : 'ready'; render(); });
+      $('back').onclick = () => { step = step === 0 ? 'look' : step - 1; render(); };
+      return;
+    }
+    box.innerHTML = `<div class="status">${portrait(L)}<div><p class="big">Всё готово</p>
+      <p class="sub">Ответы запечатаны в конверт: какой факультет выберет шар, вы узнаете на церемонии, прямо на стриме.</p></div></div>
+      <div class="row"><button id="back">Изменить</button><button class="btn-gold" id="send" ${busy ? 'disabled' : ''}>Отправиться к воротам</button></div>${resLine()}`;
+    $('back').onclick = () => { step = 'look'; render(); };
+    $('send').onclick = () => { send('поступить', L + ' ' + draft.q.join('')); step = null; };
   }
   function renderCup() {
     const pub = (state && state.pub) || null, counts = pub ? pub.counts : { astra: 0, verdant: 0, vallor: 0, lumen: 0 };
@@ -165,7 +214,7 @@
   // ---------- пример без Twitch (?mock=1) ----------
   function mockCmd(cmd, arg) {
     const p = state.pub;
-    if (cmd === 'поступить') { state.me = { n: user.login, look: arg === 'ж' ? 'f_braids_ginger' : 'm_curly_blond', st: 'queue', pos: 4 }; p.queue = 6; setRes(true, 'вы в очереди: место 4'); setTimeout(() => { state.me.st = 'sorting'; render(); }, 2500); setTimeout(() => { state.me.st = 'house'; state.me.house = 'lumen'; p.counts.lumen++; render(); }, 5000); return; }
+    if (cmd === 'поступить') { state.me = { n: user.login, look: arg.split(' ')[0], st: 'queue', pos: 4 }; p.queue = 6; setRes(true, 'вы в очереди: место 4'); setTimeout(() => { state.me.st = 'sorting'; render(); }, 2500); setTimeout(() => { state.me.st = 'house'; state.me.house = 'lumen'; p.counts.lumen++; render(); }, 5000); return; }
     if (cmd === 'пауза') p.paused = true; if (cmd === 'продолжить') p.paused = false; if (cmd === 'скорость') p.every = +arg; if (cmd === 'места') state.adm.perHouse = +arg;
     setRes(true, 'пример: команда «' + cmd + '» выполнена'); render();
   }
