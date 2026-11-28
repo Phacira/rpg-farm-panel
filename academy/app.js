@@ -17,12 +17,13 @@
   const STYLES = { m: [['messy', 'Растрёпанные'], ['sidepart', 'Пробор'], ['slick', 'Зачёс'], ['curly', 'Кудри'], ['ponytail', 'Хвостик'], ['spiky', 'Ёжик'], ['wavy', 'Волны'], ['buzz', 'Коротко']],
     f: [['ponytail', 'Хвост'], ['braids', 'Две косы'], ['bob', 'Каре'], ['wavy', 'Локоны'], ['bun', 'Пучок'], ['sidebraid', 'Коса набок'], ['straight', 'Прямые'], ['twinbuns', 'Два пучка']] };
   const COLORS = [['black', 'Чёрные', '#24201f'], ['darkbrown', 'Каштановые', '#5a3420'], ['lightbrown', 'Русые', '#9a6a40'], ['ginger', 'Рыжие', '#d9772e'], ['blond', 'Светлые', '#e8c560']];
+  // сон по дороге в Академию: ответы незаметно выбирают факультет (a — Astra, v — Verdant, r — Vallor, l — Lumen)
   const QUIZ = [
-    ['Перед вами запертая дверь в старой башне. Что вы сделаете?', [['a', 'Разгадаю, как устроен замок'], ['v', 'Спрошу, не заперт ли кто-то внутри и не нужна ли помощь'], ['r', 'Открою силой, раз надо пройти'], ['l', 'Поищу потайной ход, о котором никто не знает']]],
-    ['Что вы возьмёте с собой в Академию?', [['r', 'Старый меч деда'], ['l', 'Колоду гадальных карт'], ['a', 'Маленький телескоп'], ['v', 'Семена редкого растения']]],
-    ['Что вас больше всего привлекает в магии?', [['v', 'Лечить и выращивать'], ['a', 'Понять законы мира'], ['l', 'Узнавать скрытое'], ['r', 'Защищать других']]],
-    ['За что вас ценят друзья?', [['l', 'Умею слушать и хранить тайны'], ['r', 'Смелый и говорю прямо'], ['v', 'Забочусь и не тороплю'], ['a', 'Даю дельные советы']]],
-    ['Где вы проведёте свободный вечер в замке?', [['a', 'В обсерватории на крыше'], ['l', 'В старой библиотеке при свечах'], ['v', 'В оранжерее'], ['r', 'На тренировочном дворе']]]];
+    ['Вы стоите в густом тумане перед старой башней. Дверь заперта, а изнутри доносится тихий стук.', [['a', 'Разглядываю узор на замке: он похож на загадку'], ['v', 'Окликаю: вдруг там кто-то ждёт помощи'], ['r', 'Налегаю плечом: дверь поддастся'], ['l', 'Обхожу башню в поисках другого входа']]],
+    ['Дверь исчезает, а на каменной дорожке появляются четыре вещи. Взять можно только одну.', [['r', 'Старый меч в потёртых ножнах'], ['l', 'Колоду карт, тёплую на ощупь'], ['a', 'Медный телескоп'], ['v', 'Горсть светящихся семян']]],
+    ['Вещь в ваших руках вспыхивает, и откуда-то издалека звучит голос: «Зачем тебе магия?»', [['v', 'Чтобы лечить и помогать расти'], ['a', 'Чтобы понять, как устроен мир'], ['l', 'Чтобы видеть то, что скрыто'], ['r', 'Чтобы защищать тех, кто рядом']]],
+    ['Из тумана выходят знакомые лица. Ваши друзья говорят о вас. Что они говорят?', [['l', '«Тебе можно доверить любую тайну»'], ['r', '«Ты никогда не отступаешь»'], ['v', '«Рядом с тобой спокойно»'], ['a', '«Ты всегда знаешь, что посоветовать»']]],
+    ['Сон начинает таять. Перед пробуждением вы видите четыре тропы. По какой вы пойдёте?', [['a', 'По винтовой лестнице к звёздам'], ['l', 'В тихий коридор, где горят свечи'], ['v', 'В сад, полный цветов'], ['r', 'На площадь, где звенит сталь']]]];
   let RIG = null; fetch('rig.json').then(r => r.json()).then(j => { RIG = j; render(); }).catch(() => {});
   const IMGS = {};
   function img(src) { if (!IMGS[src]) { const i = IMGS[src] = new Image(); i.onload = () => drawFigures(); i.src = src; } return IMGS[src]; }
@@ -57,7 +58,7 @@
   let HEADS = {}; fetch('heads.json').then(r => r.json()).then(j => { HEADS = j; render(); }).catch(() => {});
   const draftKey = 'ac_draft';
   let draft = (() => { try { return JSON.parse(localStorage.getItem(draftKey)) || null; } catch (e) { return null; } })() || { g: 'f', st: 'braids', c: 'darkbrown', q: [] };
-  let step = null; // null | 'look' | 0..4 (вопрос) | 'ready'
+  let step = null; // null | 'look' | 'dream' | 0..4 (сцена сна) | 'ready'
   const saveDraft = () => { try { localStorage.setItem(draftKey, JSON.stringify(draft)); } catch (e) {} };
   const lookOf = d => `${d.g}_${d.st}_${d.c}`;
   const mock = /[?&]mock=1/.test(location.search);
@@ -170,8 +171,8 @@
       return;
     }
     if (me.st === 'sorting') {
-      box.innerHTML = `<div class="status">${portrait(me.look)}<div><p class="big"><span class="spin">✦</span> Шар выбирает…</p>
-        <p class="sub">Ваш ученик стоит у волшебного шара. Смотрите на стрим!</p></div></div>${resLine()}`;
+      box.innerHTML = `<div class="status">${portrait(me.look)}<div><p class="big"><span class="spin">✦</span> Церемония…</p>
+        <p class="sub">Ваш ученик вошёл в зал распределения. Смотрите на стрим!</p></div></div>${resLine()}`;
       return;
     }
     const h = houseOf(me.house);
@@ -181,9 +182,9 @@
   function renderBuilder(box) {
     const L = lookOf(draft);
     if (step === null) {
-      box.innerHTML = `<div class="status">${portrait(L)}<div><p class="big">Хотите учиться магии?</p>
-        <p class="sub">Сначала выберите, как будет выглядеть ваш ученик, и ответьте на пять вопросов. По ответам волшебный шар выберет факультет на церемонии.</p></div></div>
-        <div class="row"><button class="btn-gold" id="go">Собрать ученика</button></div>${resLine()}`;
+      box.innerHTML = `<div class="status">${portrait(L)}<div><p class="big">Письмо с восковой печатью</p>
+        <p class="sub">Ворота Академии магии открыты для новых учеников, и в этом году в списке есть ваше имя. Осталось решить, каким вы приедете.</p></div></div>
+        <div class="row"><button class="btn-gold" id="go">Выбрать внешность</button></div>${resLine()}`;
       $('go').onclick = () => { step = 'look'; render(); }; return;
     }
     if (step === 'look') {
@@ -192,25 +193,33 @@
         <div class="opts"><p class="lbl2">Ученик</p><div class="seg"><button data-g="m" class="${draft.g === 'm' ? 'on' : ''}">Парень</button><button data-g="f" class="${draft.g === 'f' ? 'on' : ''}">Девушка</button></div>
         <p class="lbl2">Цвет волос</p><div class="sw">${COLORS.map(c => `<button data-c="${c[0]}" class="${draft.c === c[0] ? 'on' : ''}" style="background:${c[2]}" aria-label="${c[1]}" title="${c[1]}"></button>`).join('')}</div></div></div>
         <p class="lbl2">Причёска</p><div class="styles">${st.map(x => `<button data-s="${x[0]}" class="${draft.st === x[0] ? 'on' : ''}">${face(`${draft.g}_${x[0]}_${draft.c}`, 70, 'mini')}<span>${x[1]}</span></button>`).join('')}</div>
-        <div class="row"><button id="back">Назад</button><button class="btn-gold" id="next">Дальше: вопросы</button></div>`;
+        <div class="row"><button id="back">Назад</button><button class="btn-gold" id="next">Далее</button></div>`;
       box.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { if (draft.g !== b.dataset.g) { draft.g = b.dataset.g; draft.st = STYLES[draft.g][0][0]; saveDraft(); render(); } });
       box.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { draft.c = b.dataset.c; saveDraft(); render(); });
       box.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { draft.st = b.dataset.s; saveDraft(); render(); });
-      $('back').onclick = () => { step = null; render(); }; $('next').onclick = () => { draft.q = []; step = 0; render(); };
+      $('back').onclick = () => { step = null; render(); }; $('next').onclick = () => { draft.q = []; step = 'dream'; render(); };
+      return;
+    }
+    if (step === 'dream') {
+      box.innerHTML = `<div class="status">${portrait(L)}<div><p class="big">Дорога</p>
+        <p class="sub">Путь до Академии неблизкий. Повозка мерно покачивается, за окном тянутся холмы, и вы сами не замечаете, как закрываются глаза…</p>
+        <p class="sub">Вам снится очень странный сон.</p></div></div>
+        <div class="row"><button id="back">Назад</button><button class="btn-gold" id="next">Далее</button></div>`;
+      $('back').onclick = () => { step = 'look'; render(); }; $('next').onclick = () => { step = 0; render(); };
       return;
     }
     if (typeof step === 'number') {
       const [q, ans] = QUIZ[step];
-      box.innerHTML = `<p class="sub">Вопрос ${step + 1} из ${QUIZ.length}</p><div class="dots">${QUIZ.map((_, i) => `<i class="${i < step ? 'done' : i === step ? 'cur' : ''}"></i>`).join('')}</div>
+      box.innerHTML = `<p class="sub dream">Сон</p><div class="dots">${QUIZ.map((_, i) => `<i class="${i < step ? 'done' : i === step ? 'cur' : ''}"></i>`).join('')}</div>
         <h2 class="q">${esc(q)}</h2><div class="answers">${ans.map(a => `<button data-a="${a[0]}">${esc(a[1])}</button>`).join('')}</div>
         <div class="row"><button id="back">Назад</button></div>`;
       box.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { draft.q[step] = b.dataset.a; draft.q.length = step + 1; saveDraft(); step = step + 1 < QUIZ.length ? step + 1 : 'ready'; render(); });
-      $('back').onclick = () => { step = step === 0 ? 'look' : step - 1; render(); };
+      $('back').onclick = () => { step = step === 0 ? 'dream' : step - 1; render(); };
       return;
     }
-    box.innerHTML = `<div class="status">${portrait(L)}<div><p class="big">Всё готово</p>
-      <p class="sub">Ответы запечатаны в конверт: какой факультет выберет шар, вы узнаете на церемонии, прямо на стриме.</p></div></div>
-      <div class="row"><button id="back">Изменить</button><button class="btn-gold" id="send" ${busy ? 'disabled' : ''}>Отправиться к воротам</button></div>${resLine()}`;
+    box.innerHTML = `<div class="status">${portrait(L)}<div><p class="big">Пробуждение</p>
+      <p class="sub">Повозка вздрагивает и останавливается. Сон ускользает, но вы почему-то уверены: он был не случайным. Впереди, за туманом, виднеются ворота Академии.</p></div></div>
+      <div class="row"><button id="back">Изменить</button><button class="btn-gold" id="send" ${busy ? 'disabled' : ''}>Выйти к воротам</button></div>${resLine()}`;
     $('back').onclick = () => { step = 'look'; render(); };
     $('send').onclick = () => { send('поступить', L + ' ' + draft.q.join('')); step = null; };
   }
@@ -228,9 +237,9 @@
     const f = filter.trim().toLowerCase(), shown = all.filter(x => !f || x[0].includes(f) || String(x[1]).toLowerCase().includes(f)).slice(0, 80);
     const item = (k, n, color) => `<div class="item">${color ? `<i class="dot" style="background:${color}"></i>` : ''}<span>${esc(n)}</span><button data-rm="${esc(k)}" class="${sureKey === k ? 'sure' : ''}">${sureKey === k ? 'Точно убрать?' : 'Убрать'}</button></div>`;
     box.innerHTML = `<h2>Пульт ведущего</h2>
-      <p class="sub">${pub.paused ? 'Распределение на паузе.' : 'Распределение идёт.'} В очереди: ${pub.queue || 0}.${pub.sorting ? ` У шара: ${esc(pub.sorting)}.` : ''}</p>
+      <p class="sub">${pub.paused ? 'Распределение на паузе.' : 'Распределение идёт.'} В очереди: ${pub.queue || 0}.${pub.sorting ? ` На церемонии: ${esc(pub.sorting)}.` : ''}</p>
       <div class="row">${pub.paused ? '<button class="btn-gold" data-c="продолжить">Продолжить</button>' : '<button data-c="пауза">Пауза</button>'}
-        <button data-c="следующий" ${!pub.queue || pub.sorting ? 'disabled' : ''}>Следующего к шару</button><button data-c="тест">Тестовый ученик</button></div>
+        <button data-c="следующий" ${!pub.queue || pub.sorting ? 'disabled' : ''}>Следующего на церемонию</button><button data-c="тест">Тестовый ученик</button></div>
       <p class="lbl">Распределение раз в</p><div class="chips">${[3, 5, 7, 10, 15, 20, 30, 60].map(s => `<button data-c="скорость" data-a="${s}" class="${pub.every === s ? 'on' : ''}">${s} с</button>`).join('')}</div>
       <p class="lbl">Учеников каждого факультета в зале</p><div class="chips">${[1, 2, 3, 4, 5, 6].map(s => `<button data-c="места" data-a="${s}" class="${adm.perHouse === s ? 'on' : ''}">${s}</button>`).join('')}</div>
       <p class="lbl">Очередь у ворот</p><div class="list">${q.length ? q.map(x => item(x[0], x[1])).join('') : '<p class="sub">пусто</p>'}</div>
