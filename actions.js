@@ -240,6 +240,7 @@
           if (full || mine >= wn.per) d._soft = 1; return [d]; })()[0];
           const it = (b, extra) => Object.assign({ label: b[0] + ' ' + b[1], sub: b[4] || '', cmd: b[2], arg: typeof b[3] === 'string' ? b[3] : '' }, typeof b[3] === 'function' ? { next: b[3]().map(o => Object.assign({ cmd: b[2] }, o)) } : {}, b._soft ? { soft: 1 } : {}, extra || {});
           const L = [it(adv)]; if (horOn) L.push({ label: '🎶 Хоровод', sub: hor[4], fn: () => { if (window.__hor) window.__hor.open(); } }); if (deco) L.push(it(deco));
+          if (me && me.xm && me.xm.tg > 0) L.unshift(me.xm.tg === 1 ? { label: '🎄 Подарок под ёлкой', sub: 'итоги ивента — открыть!', cmd: 'ёлка' } : { label: '🎄 Подарок под ёлкой', sub: 'уже открыт ✓', dis: 1, cmd: 'ёлка' }); // 28.11: финал ивента
           if (me && me.xm && me.xm.gq && me.xm.gq.length) L.unshift({ label: '🎁 Открыть подарок', sub: 'от ' + me.xm.gq[0] + (me.xm.gq.length > 1 ? ` · всего ${me.xm.gq.length}` : ''), cmd: 'распаковать' });
           L.push(it(dress), /* снежок и подарок — нажатием на героя (wint.js) */ { label: '🏆 Рейтинг ивента', sub: `твои очки: ${my}`, next: rate[3]() });
           return { L, sub: xm.adv ? (xm.hd ? `хоровод ${xm.hd}%` : 'хоровод, ёлка, снежки') : 'подарок дня ждёт!' }; })();
@@ -366,7 +367,7 @@
   function ask(d, arg, label, confirm, cmd) {
     if (confirm && window.__betaNoConfirm && window.__betaNoConfirm(cmd || d[2], arg)) confirm = null; // бета: без «Точно?» на бесплатных действиях
     if (confirm) return sheet(confirm, [{ label: 'Да, выполнить', go: () => { close(); fire(cmd || d[2], arg, label); } }]);
-    const c = cmd || d[2], cb = c === 'подарок' || c === 'распаковать' ? (m => sheet(m.ok ? (c === 'подарок' ? '🎁 Подарок дня' : '🎁 Подарок') : (c === 'подарок' ? 'Подарок дня' : 'Подарок'), [{ note: 1, label: m.ok ? (c === 'подарок' ? 'Что внутри:' : 'Ты открываешь подарок…') : 'Не получилось', sub: m.msg || '' }])) : null; // 27.11: что выпало — окном, а не мелкой строкой
+    const c = cmd || d[2], cb = c === 'подарок' || c === 'распаковать' || c === 'ёлка' ? (m => sheet(m.ok ? (c === 'подарок' ? '🎁 Подарок дня' : c === 'ёлка' ? '🎄 Подарок под ёлкой' : '🎁 Подарок') : (c === 'подарок' ? 'Подарок дня' : 'Подарок'), [{ note: 1, label: m.ok ? (c === 'подарок' ? 'Что внутри:' : 'Ты открываешь подарок…') : 'Не получилось', sub: m.msg || '' }])) : null; // 27.11: что выпало — окном, а не мелкой строкой
     close(); fire(c, arg, label, cb);
   }
   function choose(d, opts, title) {
