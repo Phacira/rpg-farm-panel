@@ -27,7 +27,7 @@
   const IMGS = {};
   function img(src) { if (!IMGS[src]) { const i = IMGS[src] = new Image(); i.onload = () => drawFigures(); i.src = src; } return IMGS[src]; }
   // ученик целиком: та же сборка, что в оверлее (стойка, без поворотов)
-  function figure(look, robe, h) { return `<canvas class="fig" data-look="${esc(look)}" data-robe="${esc(robe || 'grey')}" style="height:${h}px;width:${Math.round(h * 0.6)}px"></canvas>`; }
+  function figure(look, robe, h) { return `<canvas class="fig" data-look="${esc(look)}" data-robe="${esc(robe || 'grey')}" style="height:${h}px;width:${Math.round(h * 0.7)}px"></canvas>`; }
   function drawFigures() {
     if (!RIG) return;
     document.querySelectorAll('canvas.fig').forEach(cv => {
@@ -35,10 +35,14 @@
       const parts = { arm_f: `img/body/arm_f_${robe}.png`, leg_f: 'img/body/leg_f.png', leg_n: 'img/body/leg_n.png', body: `img/body/body_${robe}.png`, arm_n: `img/body/arm_n_${robe}.png`, head: `img/heads/${look}.png` };
       const im = {}; for (const k in parts) { im[k] = img(parts[k]); if (!im[k].complete || !im[k].naturalWidth) return; }
       const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr;
-      const c = cv.getContext('2d'), b = RIG.bbox, bw = b[2] - b[0], bh = b[3] - b[1] + 30, k = Math.min(W / bw, H / bh) * dpr;
-      c.setTransform(k, 0, 0, k, (W * dpr - bw * k) / 2 - b[0] * k, (H * dpr - bh * k) - b[1] * k);
       const A = RIG.ATT, P = RIG.PIV, Z = RIG.size, X = RIG.BX, Y = RIG.BY;
-      c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse((b[0] + b[2]) / 2, b[3] - 4, bw * .32, 16, 0, 0, 7); c.fill();
+      // рамка по факту: тело + реальная голова с причёской (косы, пучки), с запасом
+      const hx = X + A.head[0] - hd.p[0], hy = Y + A.head[1] - hd.p[1];
+      const b = [Math.min(RIG.bbox[0], hx) - 12, Math.min(RIG.bbox[1], hy) - 12, Math.max(RIG.bbox[2], hx + hd.w) + 12, RIG.bbox[3] + 26];
+      const c = cv.getContext('2d'), bw = b[2] - b[0], bh = b[3] - b[1], k = Math.min(W * dpr / bw, H * dpr / bh);
+      c.clearRect(0, 0, cv.width, cv.height);
+      c.setTransform(k, 0, 0, k, (W * dpr - bw * k) / 2 - b[0] * k, (H * dpr - bh * k) - b[1] * k);
+      c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse(X + Z.body[0] / 2, RIG.bbox[3] - 4, bw * .32, 16, 0, 0, 7); c.fill();
       const put = (n, ax, ay) => c.drawImage(im[n], ax - P[n][0], ay - P[n][1], Z[n][0], Z[n][1]);
       put('arm_f', X + A.arm_f[0], Y + A.arm_f[1]); put('leg_f', X + A.leg_f[0], Y + A.leg_f[1]); put('leg_n', X + A.leg_n[0], Y + A.leg_n[1]);
       c.drawImage(im.body, X, Y, Z.body[0], Z.body[1]);
@@ -134,6 +138,11 @@
   function resLine() { return lastRes && Date.now() - lastRes.at < 15000 ? `<p class="res ${lastRes.ok ? '' : 'bad'}">${esc(lastRes.msg)}</p>` : ''; }
   function face(look, size, cls) {
     const m = HEADS[look]; if (!m) return `<div class="${cls || 'portrait'}" style="width:${size}px;height:${size}px"></div>`;
+    if (cls === 'mini') { // причёска целиком, без обрезки; общий масштаб, чтобы длинные косы были видны в настоящую длину
+      let mw = 1, mh = 1; for (const key in HEADS) if (key[0] === look[0]) { mw = Math.max(mw, HEADS[key][0]); mh = Math.max(mh, HEADS[key][1]); }
+      const k = Math.min(size / mw, size * 1.25 / mh), w = m[0] * k, h = m[1] * k;
+      return `<div class="mini" style="width:${size}px;height:${Math.round(size * 1.25)}px"><img src="img/heads/${encodeURIComponent(look)}.png" alt="" style="width:${w}px;left:${(size - w) / 2}px;top:${(size * 1.25 - h) / 2}px"></div>`;
+    }
     const k = size * 0.19 / m[4], w = m[0] * k, x = size / 2 - m[2] * k, y = size * 0.6 - m[3] * k;
     return `<div class="${cls || 'portrait'}" style="width:${size}px;height:${size}px"><img src="img/heads/${encodeURIComponent(look)}.png" alt="" style="width:${w}px;left:${x}px;top:${y}px"></div>`;
   }
@@ -178,7 +187,7 @@
       box.innerHTML = `<h2>Внешность</h2><div class="builder"><div class="stage big">${figure(L, 'grey', 250)}</div>
         <div class="opts"><p class="lbl2">Ученик</p><div class="seg"><button data-g="m" class="${draft.g === 'm' ? 'on' : ''}">Парень</button><button data-g="f" class="${draft.g === 'f' ? 'on' : ''}">Девушка</button></div>
         <p class="lbl2">Цвет волос</p><div class="sw">${COLORS.map(c => `<button data-c="${c[0]}" class="${draft.c === c[0] ? 'on' : ''}" style="background:${c[2]}" aria-label="${c[1]}" title="${c[1]}"></button>`).join('')}</div></div></div>
-        <p class="lbl2">Причёска</p><div class="styles">${st.map(x => `<button data-s="${x[0]}" class="${draft.st === x[0] ? 'on' : ''}">${face(`${draft.g}_${x[0]}_${draft.c}`, 64, 'mini')}<span>${x[1]}</span></button>`).join('')}</div>
+        <p class="lbl2">Причёска</p><div class="styles">${st.map(x => `<button data-s="${x[0]}" class="${draft.st === x[0] ? 'on' : ''}">${face(`${draft.g}_${x[0]}_${draft.c}`, 70, 'mini')}<span>${x[1]}</span></button>`).join('')}</div>
         <div class="row"><button id="back">Назад</button><button class="btn-gold" id="next">Дальше: вопросы</button></div>`;
       box.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { if (draft.g !== b.dataset.g) { draft.g = b.dataset.g; draft.st = STYLES[draft.g][0][0]; saveDraft(); render(); } });
       box.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { draft.c = b.dataset.c; saveDraft(); render(); });
