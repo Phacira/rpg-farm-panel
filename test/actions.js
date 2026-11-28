@@ -358,6 +358,58 @@
     bossCdTick();
   }
   // окно выбора/подтверждения
+  // 28.11: окно «подарок открыт» (макет A) — коробка раскрывается, лут вылетает карточками. Для !подарок, !распаковать, !ёлка.
+  const GR_DECO = { 'Колпак Деда Мороза': 'kolpak', 'Мишура': 'mish', 'Оленьи рожки': 'roga', 'Снежинка-заколка': 'snezh', 'Венок из остролиста': 'venok', 'Звезда над головой': 'zvezda' };
+  const GR_VEG = { 'Огурец': 'cucumber', 'Помидор': 'tomato', 'Морковь': 'carrot', 'Баклажан': 'eggplant', 'Золотая тыква': 'pumpkin' };
+  function grItem(t) {
+    const x = t.trim().replace(/^./, c => c.toUpperCase()), I = (src, cls, tag, hint) => ({ x, ic: `<img src="${src}" alt="">`, cls, tag, hint }), E = (e, cls, tag, hint) => ({ x, ic: `<span>${e}</span>`, cls, tag, hint });
+    if (/золот/i.test(x)) return E('🪙', 'g', 'золото', 'в кошелёк');
+    if (/пряник/i.test(x)) return I('img/ic/pryanik.png?v=1', 'u', 'снек', 'съест сам перед походом');
+    if (/эликсир/i.test(x)) return I('img/ic/pot_gold.png', 'r', 'зелье', 'в инвентарь');
+    if (/удач/i.test(x)) return I('img/ic/pot_green.png', 'u', 'зелье', 'в инвентарь');
+    if (/зелье|отвар/i.test(x)) return I('img/ic/pot_red.png', 'u', 'зелье', 'в инвентарь');
+    if (/семен|семя/i.test(x)) return E('🌱', 'r', 'семена', 'посадить на огороде');
+    { const m = /украшение «([^»]+)»/i.exec(x); if (m) return Object.assign(I(`img/winter/deco_${GR_DECO[m[1]] || 'mish'}.png`, 'r', 'украшение', /надето/.test(x) ? 'уже надето!' : 'надеть: Новый год → Наряд'), { x: m[1] }); }
+    if (/аура/i.test(x)) return Object.assign(I('img/auras/xmas.png?v=6', 'L', 'аура', /надета/.test(x) ? 'уже надета!' : 'надеть: Мой герой → Аура'), { x: x.replace(/\s*\(надета\)/, '').replace(/^аура\s*/i, '') });
+    if (/титул/i.test(x)) return Object.assign(E('👑', 'L', 'титул', ''), { x: x.replace(/^титул\s*/i, '') });
+    if (/место|сертификат|мемкоин|₽/i.test(x)) { const m = /^(?:🏆\s*)?(\d+ место):\s*(.+)$/u.exec(x); return Object.assign(E('🏆', 'L', m ? 'приз · ' + m[1] : 'приз', 'стример выдаст'), { x: m ? m[2] : x.replace(/^🏆\s*/u, '') }); }
+    { const m = /^([А-ЯЁа-яё ]+?) ×(\d+)$/.exec(x); if (m && GR_VEG[m[1]]) return I(`img/veg/${GR_VEG[m[1]]}.png`, '', 'овощи', 'в амбар'); }
+    return E('🎁', '', '', '');
+  }
+  window.__giftReveal = (t, m) => giftReveal(t, m); // тест/макет
+  function giftReveal(title, msg) {
+    let s = String(msg || '').replace(/\s*\(демо\)\s*$/, '').replace(/^[🎁🎄]\s*/u, '');
+    const i = s.indexOf(': '), head = i > 0 ? s.slice(0, i) : '', parts = (i > 0 ? s.slice(i + 2) : s).split(' · '), items = parts.shift().split(/,\s+/).filter(Boolean).map(grItem), notes = parts;
+    const sub = /^открывает подарок$/.test(head) ? '' : head.replace(/^подарок от /, 'от ');
+    const s0 = document.getElementById('sheet'); s0.hidden = false;
+    s0.innerHTML = `<div class="sbox grv"><div class="grv-rays"></div><h3>${esc(title)}</h3><div class="grv-box">${/ёлк/.test(title) ? '🎄' : '🎁'}</div>${sub ? `<div class="grv-sub">${esc(sub)}${notes.filter(n => /^серия/.test(n)).map(n => ' · ' + esc(n) + ' 🔥').join('')}</div>` : ''}
+      <div class="grv-row">${items.map((it, k) => `<div class="grv-card ${it.cls}" style="animation-delay:${0.55 + k * 0.18}s"><div class="grv-ic">${it.ic}</div><b>${esc(it.x)}</b>${it.tag ? `<span class="grv-tag">${esc(it.tag)}</span>` : ''}${it.hint ? `<small>${esc(it.hint)}</small>` : ''}</div>`).join('')}</div>
+      ${notes.filter(n => !/^серия/.test(n)).map(n => `<div class="grv-note">${/следующем/.test(n) ? '⭐ ' : ''}${esc(n.replace(/^на следующем/, 'На следующем'))}</div>`).join('')}
+      <button type="button" class="grv-go" data-o="x">Забрать!</button></div>`;
+    s0.onclick = e => { if (e.target === s0 || e.target.closest('.grv-go')) close(); };
+  }
+  if (!document.getElementById('grv-css')) { const st = document.createElement('style'); st.id = 'grv-css'; st.textContent = `
+.sbox.grv{position:relative;overflow:hidden;text-align:center;max-width:520px;box-shadow:0 0 40px rgba(255,200,90,.25)}
+.grv>*{position:relative}.grv h3{font-size:23px;margin:2px 0 0}
+.grv .grv-rays{position:absolute;left:50%;top:92px;width:560px;height:560px;margin:-280px 0 0 -280px;background:repeating-conic-gradient(rgba(255,215,120,.17) 0 10deg,transparent 10deg 20deg);border-radius:50%;-webkit-mask:radial-gradient(circle,#000 18%,transparent 62%);mask:radial-gradient(circle,#000 18%,transparent 62%);animation:grvSpin 24s linear infinite,grvFade .5s .35s both;pointer-events:none}
+.grv-box{font-size:68px;line-height:1;margin:8px 0 2px;filter:drop-shadow(0 0 18px rgba(255,210,110,.8));animation:grvBox .7s cubic-bezier(.3,1.6,.5,1) both}
+.grv-sub{font-size:13px;color:#cdb8e0;animation:grvFade .4s .4s both}
+.grv-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px}
+.grv-card{width:122px;padding:10px 6px 8px;border-radius:12px;background:#3a2c47;border:2px solid #6d5a86;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13px;line-height:1.2;animation:grvPop .5s cubic-bezier(.3,1.5,.5,1) both}
+.grv-card b{font-weight:600}.grv-card small{font-size:11px;color:#cdb8e0;opacity:.9}
+.grv-ic{height:54px;display:flex;align-items:center;justify-content:center;font-size:42px}.grv-ic img{max-height:54px;max-width:84px}
+.grv-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#a99bbd}
+.grv-card.g{border-color:#f0c060;box-shadow:0 0 14px rgba(240,192,96,.45)}.grv-card.g .grv-tag{color:#f0c060}
+.grv-card.u{border-color:#5fc77a;box-shadow:0 0 14px rgba(95,199,122,.45)}.grv-card.u .grv-tag{color:#5fc77a}
+.grv-card.r{border-color:#b07cff;box-shadow:0 0 14px rgba(176,124,255,.5)}.grv-card.r .grv-tag{color:#b07cff}
+.grv-card.L{border-color:#ffd36b;background:#4a3820;box-shadow:0 0 18px rgba(255,211,107,.6)}.grv-card.L .grv-tag{color:#ffd36b}
+.grv-note{font-size:13px;color:#e8d9f5;margin-top:10px}
+.grv-go{margin-top:14px;width:100%;padding:12px;border-radius:12px;border:2px solid #f0c060;background:linear-gradient(#f6c75a,#c8902e);color:#2a1606;font:inherit;font-weight:800;font-size:17px;cursor:pointer}
+@keyframes grvSpin{to{transform:rotate(360deg)}}@keyframes grvFade{from{opacity:0}}
+@keyframes grvBox{0%{transform:scale(.3) rotate(-8deg);opacity:0}45%{transform:scale(1.15) rotate(6deg);opacity:1}65%{transform:rotate(-5deg)}100%{transform:none}}
+@keyframes grvPop{0%{transform:translateY(-40px) scale(.4);opacity:0}100%{transform:none;opacity:1}}
+@media(max-width:480px){.grv-card{width:96px;font-size:12px}.grv-box{font-size:54px}}
+@media(prefers-reduced-motion:reduce){.grv *{animation:none!important}}`; document.head.appendChild(st); }
   function sheet(title, opts) {
     const s = document.getElementById('sheet'); s.hidden = false;
     s.innerHTML = `<div class="sbox"><h3>${esc(title)}</h3><div class="sopts">${opts.length ? opts.map((o, i) => o.note ? (o.lines ? `<div class="snote sinfo">${o.label ? `<b>${esc(o.label)}</b>` : ''}${o.lines.map(([k, v, c]) => `<div class="sl${c ? ' ' + c : ''}"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('')}</div>` : `<p class="snote"><b>${esc(o.label)}</b><br>${esc(o.sub || '')}</p>`) : `<button data-o="${i}"${o.dis ? ' disabled' : ''}${o.pic ? ' class="hasp"' : ''}>${o.pic ? `<img class="opic" src="${esc(o.pic)}" alt="" onerror="this.remove()"><span class="otx">` : ''}<span class="al">${o.ic ? `<img class="oic" src="img/ic/${esc(String(o.ic).split('~')[0])}.png" alt=""${+String(o.ic).split('~')[1] ? ` style="filter:hue-rotate(${+String(o.ic).split('~')[1]}deg)"` : ''} onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'oic icfb',textContent:'${/^ring/.test(o.ic) ? '💍' : /^(amu|t\d)/.test(o.ic) ? '📿' : '🎒'}'}))">` : ''}${esc(o.label)}</span>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}${o.pic ? '</span>' : ''}</button>`).join('') : '<p class="note">Выбрать пока нечего.</p>'}</div><button class="scancel" data-o="x">Отмена</button></div>`;
@@ -367,7 +419,7 @@
   function ask(d, arg, label, confirm, cmd) {
     if (confirm && window.__betaNoConfirm && window.__betaNoConfirm(cmd || d[2], arg)) confirm = null; // бета: без «Точно?» на бесплатных действиях
     if (confirm) return sheet(confirm, [{ label: 'Да, выполнить', go: () => { close(); fire(cmd || d[2], arg, label); } }]);
-    const c = cmd || d[2], cb = c === 'подарок' || c === 'распаковать' || c === 'ёлка' ? (m => sheet(m.ok ? (c === 'подарок' ? '🎁 Подарок дня' : c === 'ёлка' ? '🎄 Подарок под ёлкой' : '🎁 Подарок') : (c === 'подарок' ? 'Подарок дня' : 'Подарок'), [{ note: 1, label: m.ok ? (c === 'подарок' ? 'Что внутри:' : 'Ты открываешь подарок…') : 'Не получилось', sub: m.msg || '' }])) : null; // 27.11: что выпало — окном, а не мелкой строкой
+    const c = cmd || d[2], cb = c === 'подарок' || c === 'распаковать' || c === 'ёлка' ? (m => m.ok ? giftReveal(c === 'подарок' ? 'Подарок дня!' : c === 'ёлка' ? 'Подарок под ёлкой!' : 'Подарок!', m.msg) : sheet(m.ok ? (c === 'подарок' ? '🎁 Подарок дня' : c === 'ёлка' ? '🎄 Подарок под ёлкой' : '🎁 Подарок') : (c === 'подарок' ? 'Подарок дня' : 'Подарок'), [{ note: 1, label: m.ok ? (c === 'подарок' ? 'Что внутри:' : 'Ты открываешь подарок…') : 'Не получилось', sub: m.msg || '' }])) : null; // 27.11: что выпало — окном, а не мелкой строкой
     close(); fire(c, arg, label, cb);
   }
   function choose(d, opts, title) {
