@@ -947,6 +947,7 @@
       const tot = rows.reduce((s, x) => s + x[2], 0); if (me.gold < tot) return { id: m.id, ok: false, msg: `нужно ${tot} з, у тебя ${me.gold} (демо)` }; me.gold -= tot;
       if (all) { dr.i = []; dr.t = 0; dr.ok = 0; dr.w = 'всё целое'; } else { dr.i = dr.i.filter(x => x[0] !== m.arg); dr.t = dr.i.reduce((s, x) => s + x[2], 0); dr.ok = dr.i.length && me.gold >= dr.t ? 1 : 0; }
       syncMockEqS(me); render(); return { id: m.id, ok: true, msg: `кузнец чинит (−${tot} з) (демо)` }; }
+    if (me.au && ((m.cmd === 'экип' && me.au.own.includes(m.arg)) || (m.cmd === 'снять' && m.arg === 'аура'))) { me.au.on = m.cmd === 'экип' ? m.arg : ''; Object.values(state.locs || {}).forEach(L => L.forEach(r => { if (r[0] === me.n) { while (r.length < 19) r.push(''); r[19] = me.au.on; } })); render(); try { window.__auraRefresh && __auraRefresh(); } catch (e) {} return { id: m.id, ok: true, msg: me.au.on ? 'надевает ауру (демо)' : 'аура снята (демо)' }; } // 28.11
     return { id: m.id, ok: true, msg: `выполнено (демо): !${m.cmd}${m.arg ? ' ' + m.arg : ''}` };
   }
   // ---------- v48.2: полоса каста босса (видна на любой вкладке, секундомер идёт сам между снимками) ----------
