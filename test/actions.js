@@ -364,6 +364,7 @@
   function grItem(t) {
     const x = t.trim().replace(/^./, c => c.toUpperCase()), I = (src, cls, tag, hint) => ({ x, ic: `<img src="${src}" alt="">`, cls, tag, hint }), E = (e, cls, tag, hint) => ({ x, ic: `<span>${e}</span>`, cls, tag, hint });
     { const m = /^снаряжение:\s*([^(—]+?)\s*(?:\(([^)]*(?:\([^)]*\)[^)]*)*)\))?\s*(?:—.*)?$/i.exec(x); if (m) return Object.assign(E('🛡️', 'r', 'снаряжение', 'надеть: Мой герой'), { x: m[1], st: m[2] || '' }); }
+    { const AU9 = { 'Пламя': 'fire', 'Иней': 'frost', 'Листопад': 'leaf', 'Лунная пыль': 'moon', 'Тень': 'shadow', 'Золотое сияние': 'gold' }, m = /^Аура:\s*(.+)$/.exec(x); if (m && AU9[m[1].trim()]) return Object.assign(I(`img/auras/${AU9[m[1].trim()]}.png?v=6`, m[1].trim() === 'Золотое сияние' ? 'L' : 'r', 'аура', 'надеть: Мой герой → Аура'), { x: m[1].trim(), nw: 1 }); }
     { const m = /^(Аура|Шляпа|Сет|Питомец):\s*(.+)$/.exec(x); if (m) return Object.assign(E({ Аура: '✨', Шляпа: '🎩', Сет: '👘', Питомец: '🐾' }[m[1]], 'r', m[1].toLowerCase(), 'надеть: Мой герой'), { x: m[2] }); }
     if (/золот/i.test(x)) { const m = /^(.*?золот\S*)\s*\((.+)\)$/i.exec(x); return Object.assign(E('🪙', 'g', '', m ? m[2] : ''), { x: m ? m[1] : x }); }
     if (/пряник/i.test(x)) return I('img/ic/pryanik.png?v=1', 'u', 'снек', 'съест сам перед походом');
