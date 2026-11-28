@@ -1,7 +1,0 @@
-<!doctype html><meta charset="utf-8"><title>ref</title>
-<body style="margin:0;background:#222;color:#fff;font:20px sans-serif">
-<button id="b" style="font-size:28px;padding:30px 60px;margin:40px">Копировать</button><span id="s"></span><br><img src="zal.jpg" style="width:600px">
-<script>
-b.onclick=async()=>{try{const im=new Image();im.src='zal.jpg';await im.decode();const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext('2d').drawImage(im,0,0);
-const blob=await new Promise(r=>c.toBlob(r,'image/png'));await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);s.textContent='OK '+blob.size}catch(e){s.textContent='ERR '+e}};
-</script>

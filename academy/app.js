@@ -7,12 +7,7 @@
     { id: 'verdant', name: 'Verdant', color: '#46a862', motto: 'жизнь и терпение' },
     { id: 'vallor', name: 'Vallor', color: '#e0544e', motto: 'смелость и сила' },
     { id: 'lumen', name: 'Lumen', color: '#9a68d8', motto: 'луна и тайны' }];
-  const EMB = {
-    astra: 'M0 -9 l2.6 6.4 6.9 0 -5.4 4.2 2.1 6.8 -6.2 -4 -6.2 4 2.1 -6.8 -5.4 -4.2 6.9 0z',
-    lumen: 'M2 -9 a9 9 0 1 0 2.2 15.6 a7 7 0 1 1 -2.2 -15.6z',
-    verdant: 'M0 -10 q-9 2 -8 9 q-3 6 3.5 8 q2.5 1 4.5 0 q6 -2 3.5 -8 q1 -7 -8 -9z M-1.2 6 h2.4 v6 h-2.4z',
-    vallor: 'M-1.4 -11 h2.8 v13 h-2.8z M-6 2 h12 v2.8 h-12z M-1.6 4.8 h3.2 v5.5 h-3.2z' };
-  const emblem = (id, size) => `<svg width="${size}" height="${size}" viewBox="-12 -12 24 24" aria-hidden="true"><path d="${EMB[id]}" fill="#f6d26b" stroke="#2a1e08" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+  const emblem = (id, size) => `<img class="emb" src="img/emb/${id}.png" alt="" style="height:${size}px;width:auto">`;
   const houseOf = id => HOUSES.find(h => h.id === id);
   const STYLES = { m: [['messy', 'Растрёпанные'], ['sidepart', 'Пробор'], ['slick', 'Зачёс'], ['curly', 'Кудри'], ['ponytail', 'Хвостик'], ['spiky', 'Ёжик'], ['wavy', 'Волны'], ['buzz', 'Коротко']],
     f: [['ponytail', 'Хвост'], ['braids', 'Две косы'], ['bob', 'Каре'], ['wavy', 'Локоны'], ['bun', 'Пучок'], ['sidebraid', 'Коса набок'], ['straight', 'Прямые'], ['twinbuns', 'Два пучка']] };
