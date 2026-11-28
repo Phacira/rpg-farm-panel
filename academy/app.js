@@ -3,10 +3,10 @@
   const CFG = window.PANEL_CONFIG || {}, $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const HOUSES = [
-    { id: 'astra', name: 'Astra', color: '#4a7fe0', motto: 'звёзды и ясный ум' },
-    { id: 'verdant', name: 'Verdant', color: '#46a862', motto: 'жизнь и терпение' },
-    { id: 'vallor', name: 'Vallor', color: '#e0544e', motto: 'смелость и сила' },
-    { id: 'lumen', name: 'Lumen', color: '#9a68d8', motto: 'луна и тайны' }];
+    { id: 'astra', name: 'Астра', color: '#4a7fe0', motto: 'звёзды и ясный ум' },
+    { id: 'verdant', name: 'Вердант', color: '#46a862', motto: 'жизнь и терпение' },
+    { id: 'vallor', name: 'Валлор', color: '#e0544e', motto: 'смелость и сила' },
+    { id: 'lumen', name: 'Люмен', color: '#9a68d8', motto: 'луна и тайны' }];
   const emblem = (id, size) => `<img class="emb" src="img/emb/${id}.png" alt="" style="height:${size}px;width:auto">`;
   const houseOf = id => HOUSES.find(h => h.id === id);
   const STYLES = { m: [['messy', 'Растрёпанные'], ['sidepart', 'Пробор'], ['slick', 'Зачёс'], ['curly', 'Кудри'], ['ponytail', 'Хвостик'], ['spiky', 'Ёжик'], ['wavy', 'Волны'], ['buzz', 'Коротко']],
@@ -50,6 +50,71 @@
       c.drawImage(im.head, X + A.head[0] - hd.p[0], hy0, hd.w, hd.h); c.restore();
     });
   }
+  // ---------- живая сцена: ученик идёт к воротам / стоит в зале с рунами ----------
+  const SCN = { gate: { src: 'img/scene_gate.jpg', ox: 700, oy: 300, w: 1028, h: 612 }, hall: { src: 'img/scene_hall.jpg', ox: 0, oy: 330, w: 2122, h: 579 } };
+  const BAN_X = { lumen: 380, vallor: 707, verdant: 1435, astra: 1779 }, HCOL = { astra: '#4a7fe0', verdant: '#46a862', vallor: '#e0544e', lumen: '#9a68d8' };
+  const walkers = {}; // ключ сцены -> {x, ph}, чтобы перерисовка страницы не начинала путь заново
+  function scene(mode, look, robe, opt) {
+    const o = opt || {};
+    return `<canvas class="scene" data-mode="${mode}" data-look="${esc(look)}" data-robe="${esc(robe || 'grey')}" data-tx="${o.tx || 0}" data-house="${o.house || ''}" data-st="${o.st || ''}"></canvas>`;
+  }
+  function drawChar(c, look, robe, x, y, sc, p) {
+    const hd = RIG.heads[look]; if (!hd) return;
+    const parts = { arm_f: `img/body/arm_f_${robe}.png`, leg_f: 'img/body/leg_f.png', leg_n: 'img/body/leg_n.png', body: `img/body/body_${robe}.png`, arm_n: `img/body/arm_n_${robe}.png`, head: `img/heads/${look}.png` };
+    const im = {}; for (const k in parts) { im[k] = img(parts[k]); if (!im[k].complete || !im[k].naturalWidth) return; }
+    const A = RIG.ATT, P = RIG.PIV, Z = RIG.size, X = RIG.BX, Y = RIG.BY, bb = RIG.bbox, b = p.bob || 0;
+    c.save(); c.translate(x, y);
+    c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(0, 0, 34 * sc, 8 * sc, 0, 0, 7); c.fill();
+    const k = sc * 150 / (bb[3] - bb[1]); c.scale(k * (p.dir || 1), k); c.translate(-(bb[0] + bb[2]) / 2, -bb[3]);
+    const part = (n, ax, ay, ang) => { c.save(); c.translate(ax, ay); c.rotate(ang * Math.PI / 180); c.drawImage(im[n], -P[n][0], -P[n][1], Z[n][0], Z[n][1]); c.restore(); };
+    part('arm_f', X + A.arm_f[0], Y + A.arm_f[1] + b, p.af || 0); part('leg_f', X + A.leg_f[0], Y + A.leg_f[1], p.lf || 0); part('leg_n', X + A.leg_n[0], Y + A.leg_n[1], p.ln || 0);
+    c.drawImage(im.body, X, Y + b, Z.body[0], Z.body[1]);
+    const head = () => { c.save(); c.translate(X + A.head[0], Y + A.head[1] + b + (p.hb || 0)); c.rotate((p.hr || 0) * Math.PI / 180); c.drawImage(im.head, -hd.p[0], -hd.p[1], hd.w, hd.h); c.restore(); };
+    head(); part('arm_n', X + A.arm_n[0], Y + A.arm_n[1] + b, p.an || 0);
+    c.save(); c.translate(X + A.head[0], Y + A.head[1] + b + (p.hb || 0)); c.rotate((p.hr || 0) * Math.PI / 180);
+    c.beginPath(); c.rect(-hd.p[0], -6, hd.w, hd.h); c.clip(); c.drawImage(im.head, -hd.p[0], -hd.p[1], hd.w, hd.h); c.restore();
+    c.restore();
+  }
+  let lastT = 0;
+  function tickScenes(now) {
+    const t = now / 1000, dt = Math.min(0.05, lastT ? t - lastT : 0); lastT = t;
+    document.querySelectorAll('canvas.scene').forEach(cv => {
+      if (!RIG) return;
+      const m = SCN[cv.dataset.mode], bg = img(m.src); if (!bg.complete || !bg.naturalWidth) return;
+      const look = cv.dataset.look, robe = cv.dataset.robe, house = cv.dataset.house, st = cv.dataset.st;
+      // камера: какой кусок сцены показать (в координатах сцены)
+      const cam = cv.dataset.mode === 'gate' ? [780, 420, 820, 440] : house ? [Math.min(2122 - 1000, Math.max(0, BAN_X[house] - 450)), 420, 1000, 440] : [300, 330, 1530, 560];
+      const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = Math.round(W * cam[3] / cam[2]);
+      if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + 'px'; }
+      const c = cv.getContext('2d'), k = cv.width / cam[2], f = bg.naturalWidth / m.w; c.setTransform(1, 0, 0, 1, 0, 0);
+      c.drawImage(bg, (cam[0] - m.ox) * f, (cam[1] - m.oy) * f, cam[2] * f, cam[3] * f, 0, 0, cv.width, cv.height);
+      const X = v => (v - cam[0]) * k, Y = v => (v - cam[1]) * k;
+      if (cv.dataset.mode === 'gate') {
+        const key = 'gate:' + look, w = walkers[key] || (walkers[key] = { x: 700, ph: 0 });
+        const tx = +cv.dataset.tx || 1020, d = tx - w.x, step = Math.min(Math.abs(d), 170 * dt);
+        w.x += Math.sign(d) * step; w.ph += step / 95; const walking = Math.abs(d) > 1;
+        const ph = w.ph * Math.PI, sn = Math.sin, id = t / 2.6 * 2 * Math.PI;
+        const p = walking ? { ln: -22 * sn(ph), lf: 22 * sn(ph), an: 20 * sn(ph), af: -20 * sn(ph), bob: -6 * Math.abs(sn(ph)), hr: 1.5 * sn(ph), hb: -2 * Math.abs(sn(ph)) } : { hb: -3 * sn(id), hr: 1.5 * sn(id), an: 2 * sn(id), af: -2 * sn(id) };
+        drawChar(c, look, robe, X(w.x), Y(742), k, p);
+      } else {
+        const id = t / 2.6 * 2 * Math.PI, sn = Math.sin;
+        const chase = st === 'sorting' ? Object.keys(BAN_X)[Math.floor(t * 7) % 4] : null;
+        Object.keys(BAN_X).forEach((hid, i) => {
+          const r = img(`img/rune_${hid}.png`); if (!r.complete || !r.naturalWidth) return;
+          const on = chase === hid || house === hid, hh = 150 * k * (on ? 1.15 : 1), ww = hh * r.naturalWidth / r.naturalHeight;
+          const x = X(BAN_X[hid]), y = Y(566 + 6 * sn(t * 1.4 + i));
+          if (house === hid) { const g = c.createRadialGradient(x, y, 0, x, y, 170 * k); g.addColorStop(0, HCOL[hid]); g.addColorStop(1, 'rgba(0,0,0,0)'); c.globalCompositeOperation = 'lighter'; c.globalAlpha = .45 + .1 * sn(t * 3); c.fillStyle = g; c.fillRect(x - 170 * k, y - 170 * k, 340 * k, 340 * k); c.globalCompositeOperation = 'source-over'; }
+          c.globalAlpha = on ? 1 : (house || chase ? .35 : .8); c.drawImage(r, x - ww / 2, y - hh / 2, ww, hh);
+          if (on) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = .4; c.drawImage(r, x - ww / 2, y - hh / 2, ww, hh); c.globalCompositeOperation = 'source-over'; }
+          c.globalAlpha = 1;
+        });
+        const sx = house ? BAN_X[house] + 90 : 1062, sy = house ? 800 : 700;
+        drawChar(c, look, robe, X(sx), Y(sy), k, { hb: -3 * sn(id), hr: 1.5 * sn(id), an: 2 * sn(id), af: -2 * sn(id), dir: house && sx > 1062 ? -1 : 1 });
+      }
+    });
+    requestAnimationFrame(tickScenes);
+  }
+  requestAnimationFrame(tickScenes);
   let HEADS = {}; fetch('heads.json').then(r => r.json()).then(j => { HEADS = j; render(); }).catch(() => {});
   const draftKey = 'ac_draft';
   let draft = (() => { try { return JSON.parse(localStorage.getItem(draftKey)) || null; } catch (e) { return null; } })() || { g: 'f', st: 'braids', c: 'darkbrown', q: [] };
@@ -161,18 +226,17 @@
     if (!me) { renderBuilder(box); return; }
     if (me.st === 'queue') {
       const ahead = me.pos - 1 + (pub.sorting ? 1 : 0), wait = Math.round(ahead * (pub.every || 7) / 10) * 10;
-      box.innerHTML = `<div class="status">${portrait(me.look)}<div><p class="big">Вы в очереди у ворот</p>
-        <p class="sub">Место <b>${me.pos}</b> из ${pub.queue || me.pos}. ${ahead ? `Перед вами ${ahead} чел.` : 'Вы следующий!'}${pub.paused ? ' Распределение сейчас на паузе.' : ahead ? ` Ждать ${wait < 60 ? 'меньше минуты' : 'около ' + Math.round(wait / 60) + ' мин'}.` : ''}</p></div></div>${resLine()}`;
+      box.innerHTML = `${scene('gate', me.look, 'grey', { tx: Math.max(760, 1290 - (me.pos - 1) * 150) })}
+        <p class="cap">Место <b>${me.pos}</b> из ${pub.queue || me.pos} у ворот · ${ahead ? `перед вами ${ahead}` : 'вы следующий!'}${pub.paused ? ' · распределение на паузе' : ahead ? ` · ждать ${wait < 60 ? 'меньше минуты' : 'около ' + Math.round(wait / 60) + ' мин'}` : ''}</p>${resLine()}`;
       return;
     }
     if (me.st === 'sorting') {
-      box.innerHTML = `<div class="status">${portrait(me.look)}<div><p class="big"><span class="spin">✦</span> Церемония…</p>
-        <p class="sub">Ваш ученик вошёл в зал распределения. Смотрите на стрим!</p></div></div>${resLine()}`;
+      box.innerHTML = `${scene('hall', me.look, 'grey', { st: 'sorting' })}<p class="cap"><span class="spin">✦</span> Смотрите на стрим!</p>${resLine()}`;
       return;
     }
     const h = houseOf(me.house);
-    box.innerHTML = `<div class="status">${portrait(me.look, { astra: 'blue', verdant: 'green', vallor: 'red', lumen: 'purple' }[me.house])}<div><p class="big">${esc(me.n)}</p><p class="sub">Ученик Академии магии</p></div></div>
-      <div class="house" style="background:${h.color}">${emblem(h.id, 44)}<div><b>${h.name}</b><div>${h.motto}</div></div></div>${resLine()}`;
+    box.innerHTML = `${scene('hall', me.look, { astra: 'blue', verdant: 'green', vallor: 'red', lumen: 'purple' }[me.house], { house: me.house })}
+      <div class="house" style="background:${h.color}">${emblem(h.id, 44)}<div><b>${esc(me.n)} · ${h.name}</b><div>${h.motto}</div></div></div>${resLine()}`;
   }
   function renderBuilder(box) {
     const L = lookOf(draft);
@@ -212,8 +276,7 @@
       $('back').onclick = () => { step = step === 0 ? 'dream' : step - 1; render(); };
       return;
     }
-    box.innerHTML = `<div class="status">${portrait(L)}<div><p class="big">Пробуждение</p>
-      <p class="sub">Повозка вздрагивает и останавливается. Сон ускользает, но вы почему-то уверены: он был не случайным. Впереди, за туманом, виднеются ворота Академии.</p></div></div>
+    box.innerHTML = `${scene('gate', L, 'grey', { tx: 1000 })}<p class="cap">Повозка остановилась. Впереди ворота Академии.</p>
       <div class="row"><button id="back">Изменить</button><button class="btn-gold" id="send" ${busy ? 'disabled' : ''}>Выйти к воротам</button></div>${resLine()}`;
     $('back').onclick = () => { step = 'look'; render(); };
     $('send').onclick = () => { send('поступить', L + ' ' + draft.q.join('')); step = null; };
