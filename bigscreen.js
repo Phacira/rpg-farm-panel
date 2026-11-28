@@ -1019,7 +1019,7 @@
     const A = id && AURA9[id], show = !!(A && (mine || others));
     if (!show) { if (d) d.remove(); return; }
     if (!d) { d = document.createElement('div'); d.className = 'aura9'; const sh = el.querySelector(':scope > .shadow'); el.insertBefore(d, sh ? sh.nextSibling : el.firstChild); }
-    if (d.dataset.id === id) return; d.dataset.id = id; const k = 192 * 1.2 / A[1], w = 520 * k, h = A[2] * k, b = (A[2] - AURA_RY[id]) * k;
+    if (d.dataset.id === id) return; d.dataset.id = id; const k = 192 * 1.2 / A[1], q9 = id === 'xmas' ? .72 : 1, w = (id === 'xmas' ? 560 : 520) * k, h = A[2] * k * q9, b = (A[2] - AURA_RY[id]) * k * q9;
     d.style.cssText = `position:absolute;left:0;bottom:calc(${-b.toFixed(1)}px * var(--hs,1));width:calc(${w.toFixed(1)}px * var(--hs,1));height:calc(${h.toFixed(1)}px * var(--hs,1));transform:translateX(calc(-50% - ${((AURA_OX[id] || 0) * k).toFixed(1)}px * var(--hs,1)));background:url(img/auras/${A[0]}.png?v=6) center/100% 100% no-repeat;pointer-events:none;animation:aura9 3.2s ease-in-out infinite`;
     const PK = { fire: ['u', '#ffb04a', 'border-radius:1px;transform:rotate(45deg)', 5], frost: ['u', '#e6f6ff', 'border-radius:50%', 4], leaf: ['d', '#d58a3a', 'border-radius:0 80% 0 80%', 9], moondust: ['t', '#efeaff', 'border-radius:50%', 4], gold: ['u', '#ffd24a', 'border-radius:50%;box-shadow:inset -1px -1px #c9961e', 7], shadow: ['u', '#b07aff', 'border-radius:50%;opacity:.7', 6], xmas: ['d', '#ffffff', 'border-radius:50%', 4] }[id];
     if (PK) { let hh = ''; for (let q = 0; q < 6; q++) { const L = 18 + (q * 13) % 64, T = PK[0] === 't' ? 20 + (q * 17) % 50 : PK[0] === 'u' ? 45 + (q * 7) % 20 : 5 + (q * 11) % 20, dur = PK[0] === 't' ? 1.6 + q * .3 : 2.4 + (q % 3) * .7;
